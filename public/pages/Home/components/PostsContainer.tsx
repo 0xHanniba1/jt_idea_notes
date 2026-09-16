@@ -2,7 +2,7 @@ import "./PostsContainer.scss"
 
 import React from "react"
 
-import { Post, Tag, CurrentUser } from "@fider/models"
+import { Post, Tag, CurrentUser, normalizePostView } from "@fider/models"
 import { Loader, Input } from "@fider/components"
 import { actions, navigator, querystring } from "@fider/services"
 import IconSearch from "@fider/assets/images/heroicons-search.svg"
@@ -26,14 +26,14 @@ interface PostsContainerState {
   posts?: Post[] // All posts
   view: string
   filterState: FilterState // Filter state
-  query: string // Seach query
+  query: string // Search query
+  moderation: string
   limit?: number // Limit
 }
 
 export interface FilterState {
   tags: string[]
   statuses: string[]
-  myVotes: boolean
   myPosts: boolean
   noTags: boolean
 }
@@ -42,22 +42,43 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
   constructor(props: PostsContainerProps) {
     super(props)
 
-    const view = querystring.get("view")
+    const view = normalizePostView(querystring.get("view"))
 
     this.state = {
       posts: this.props.posts,
       loading: false,
       view,
       query: querystring.get("query"),
+      moderation: querystring.get("moderation"),
       filterState: {
         tags: querystring.getArray("tags"),
         statuses: querystring.getArray("statuses"),
-        myVotes: querystring.get("myvotes") === "true",
         myPosts: querystring.get("myposts") === "true",
         noTags: querystring.get("notags") === "true",
       },
       limit: querystring.getNumber("limit"),
     }
+  }
+
+  public componentDidMount() {
+    const currentURL = new URL(navigator.url())
+    const normalizedURL = this.getNormalizedURL()
+    if (currentURL.search !== normalizedURL.search) {
+      navigator.replaceState(`${normalizedURL.pathname}${normalizedURL.search}${normalizedURL.hash}`)
+    }
+  }
+
+  public componentWillUnmount() {
+    window.clearTimeout(this.timer)
+  }
+
+  private getNormalizedURL(): URL {
+    const url = new URL(navigator.url())
+    url.searchParams.delete("myvotes")
+    if (url.searchParams.has("view")) {
+      url.searchParams.set("view", this.state.view)
+    }
+    return url
   }
 
   private changeFilterCriteria<K extends keyof PostsContainerState>(obj: Pick<PostsContainerState, K>, reset: boolean): void {
@@ -67,22 +88,21 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
         querystring.stringify({
           statuses: this.state.filterState.statuses,
           tags: this.state.filterState.tags,
-          myvotes: this.state.filterState.myVotes ? "true" : undefined,
           myposts: this.state.filterState.myPosts ? "true" : undefined,
           notags: this.state.filterState.noTags ? "true" : undefined,
           query,
           view: this.state.view,
           limit: this.state.limit,
+          moderation: this.state.moderation,
         })
       )
 
       this.searchPosts(
         query,
-        this.state.view || "trending",
+        this.state.view,
         this.state.limit,
         this.state.filterState.tags,
         this.state.filterState.statuses,
-        this.state.filterState.myVotes,
         this.state.filterState.myPosts,
         this.state.filterState.noTags,
         reset
@@ -97,7 +117,6 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     limit: number | undefined,
     tags: string[],
     statuses: string[],
-    myVotes: boolean,
     myPosts: boolean,
     noTags: boolean,
     reset: boolean
@@ -110,12 +129,12 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
       // Filter out "pending" from actual statuses to send to API
       const actualStatuses = statuses.filter((s) => s !== "pending")
       // Determine moderation filter
-      let moderation = ""
+      let moderation = this.state.moderation
       if (hasPending) {
         moderation = "pending"
       }
 
-      actions.searchPosts({ query, view: view, limit, tags, statuses: actualStatuses, myVotes, myPosts, noTags, moderation }).then((response) => {
+      actions.searchPosts({ query, view: view, limit, tags, statuses: actualStatuses, myPosts, noTags, moderation }).then((response) => {
         if (response.ok && this.state.loading) {
           this.setState({ loading: false, posts: response.data })
         }
@@ -155,7 +174,16 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
 
   private getShowMoreLink = (): string | undefined => {
     if (this.state.posts && this.state.posts.length >= (this.state.limit || 30)) {
-      return querystring.set("limit", (this.state.limit || 30) + 10)
+      return querystring.stringify({
+        statuses: this.state.filterState.statuses,
+        tags: this.state.filterState.tags,
+        myposts: this.state.filterState.myPosts ? "true" : undefined,
+        notags: this.state.filterState.noTags ? "true" : undefined,
+        query: this.state.query,
+        view: this.state.view,
+        limit: (this.state.limit || 30) + 10,
+        moderation: this.state.moderation,
+      })
     }
   }
 

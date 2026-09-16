@@ -39,7 +39,6 @@ type SearchPosts struct {
 	Limit            string
 	Statuses         []enum.PostStatus
 	Tags             []string
-	MyVotesOnly      bool
 	NoTagsOnly       bool
 	MyPostsOnly      bool
 	ModerationFilter string // "pending", "approved", or empty (all)
@@ -63,5 +62,16 @@ func (q *SearchPosts) SetStatusesFromStrings(statuses []string) {
 		if err := postStatus.UnmarshalText([]byte(v)); err == nil {
 			q.Statuses = append(q.Statuses, postStatus)
 		}
+	}
+}
+
+// NormalizePostView retires voting-based views and gives unknown views the home default.
+// Callers that need the API's broader default must substitute "all" for an empty view first.
+func NormalizePostView(view string) string {
+	switch view {
+	case "recent", "most-discussed", "planned", "started", "completed", "declined", "all":
+		return view
+	default:
+		return "recent"
 	}
 }

@@ -37,7 +37,6 @@ func TestGlobalFeedHandler(t *testing.T) {
 		Description: "Description of first post",
 		CreatedAt:   time.Date(2023, 1, 1, 10, 0, 0, 0, time.UTC),
 		User:        &entity.User{ID: 1, Name: "Jon Snow"},
-		VotesCount:  5,
 	}
 
 	post2 := &entity.Post{
@@ -48,7 +47,6 @@ func TestGlobalFeedHandler(t *testing.T) {
 		Description: "Description of second post",
 		CreatedAt:   time.Date(2023, 1, 3, 10, 0, 0, 0, time.UTC),
 		User:        &entity.User{ID: 2, Name: "Arya Stark"},
-		VotesCount:  2,
 	}
 
 	bus.AddHandler(func(ctx context.Context, q *query.SearchPosts) error {

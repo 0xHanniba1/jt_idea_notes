@@ -29,8 +29,6 @@ You can use ` + "`" + `{{ markdown .post_description }}` + "`" + ` to parse __Ma
 		Email: "contact@fider.io",
 		Role:  1,
 	},
-	HasVoted:      true,
-	VotesCount:    7,
 	CommentsCount: 3,
 	Status:        enum.PostStarted,
 	Response: &entity.PostResponse{

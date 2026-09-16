@@ -83,7 +83,7 @@ export class ResponseModal extends React.Component<ResponseModalProps, ResponseM
                 </Field>
                 <DisplayError fields={["originalNumber"]} error={this.state.error} />
                 <span className="text-muted">
-                  <Trans id="showpost.responseform.message.mergedvotes">Votes from this post will be merged into original post.</Trans>
+                  <Trans id="showpost.responseform.message.linkedoriginal">This post will be linked to the original post.</Trans>
                 </span>
               </>
             ) : (

@@ -1,5 +1,5 @@
 import { http, Result, querystring } from "@fider/services"
-import { Post, Vote, ImageUpload, UserNames, Comment } from "@fider/models"
+import { Post, ImageUpload, UserNames, Comment, normalizePostView } from "@fider/models"
 
 export const getAllPosts = async (): Promise<Result<Post[]>> => {
   return await http.get<Post[]>("/api/v1/posts")
@@ -18,7 +18,6 @@ export interface SearchPostsParams {
   view?: string
   limit?: number
   tags?: string[]
-  myVotes?: boolean
   noTags?: boolean
   myPosts?: boolean
   statuses?: string[]
@@ -26,23 +25,16 @@ export interface SearchPostsParams {
 }
 
 export const searchPosts = async (params: SearchPostsParams): Promise<Result<Post[]>> => {
-  let qsParams = querystring.stringify({
+  const qsParams = querystring.stringify({
     tags: params.tags,
     statuses: params.statuses,
     query: params.query,
-    view: params.view,
+    view: params.view ? normalizePostView(params.view) : undefined,
     limit: params.limit,
     moderation: params.moderation,
+    notags: params.noTags ? "true" : undefined,
+    myposts: params.myPosts ? "true" : undefined,
   })
-  if (params.myVotes) {
-    qsParams += `&myvotes=true`
-  }
-  if (params.noTags) {
-    qsParams += `&notags=true`
-  }
-  if (params.myPosts) {
-    qsParams += `&myposts=true`
-  }
   return await http.get<Post[]>(`/api/v1/posts${qsParams}`)
 }
 
@@ -59,28 +51,12 @@ export const deletePost = async (postNumber: number, text: string): Promise<Resu
     .then(http.event("post", "delete"))
 }
 
-export const addVote = async (postNumber: number): Promise<Result> => {
-  return http.post(`/api/v1/posts/${postNumber}/votes`).then(http.event("post", "vote"))
-}
-
-export const removeVote = async (postNumber: number): Promise<Result> => {
-  return http.delete(`/api/v1/posts/${postNumber}/votes`).then(http.event("post", "unvote"))
-}
-
-export const toggleVote = async (postNumber: number): Promise<Result<{ voted: boolean }>> => {
-  return http.post<{ voted: boolean }>(`/api/v1/posts/${postNumber}/votes/toggle`).then(http.event("post", "toggle-vote"))
-}
-
 export const subscribe = async (postNumber: number): Promise<Result> => {
   return http.post(`/api/v1/posts/${postNumber}/subscription`).then(http.event("post", "subscribe"))
 }
 
 export const unsubscribe = async (postNumber: number): Promise<Result> => {
   return http.delete(`/api/v1/posts/${postNumber}/subscription`).then(http.event("post", "unsubscribe"))
-}
-
-export const listVotes = async (postNumber: number): Promise<Result<Vote[]>> => {
-  return http.get<Vote[]>(`/api/v1/posts/${postNumber}/votes`)
 }
 
 export const getTaggableUsers = async (userFilter: string): Promise<Result<UserNames[]>> => {

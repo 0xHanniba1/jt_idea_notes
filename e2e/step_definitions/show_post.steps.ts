@@ -12,7 +12,13 @@ Then("I should see {string} as the post title", async function (this: FiderWorld
   expect(postTitle).toBe(title)
 })
 
-Then("I should see {int} vote\\(s)", async function (this: FiderWorld, voteCount: number) {
-  // Look for the vote count number within the post detail view
-  await expect(this.page.locator(".p-show-post .text-2xl").filter({ hasText: voteCount.toString() })).toBeVisible()
+Then("the post should have no voting controls or voter list", async function (this: FiderWorld) {
+  const detail = this.page.locator(".p-show-post")
+  await expect(detail.locator(".p-show-post__title")).toBeVisible()
+  await expect(detail.getByRole("button", { name: /vote|voted/i })).toHaveCount(0)
+  await expect(detail.locator(".c-vote-counter, .c-votes-panel, .p-show-post__vote-section")).toHaveCount(0)
+})
+
+Then("I should be following the post", async function (this: FiderWorld) {
+  await expect(this.page.locator(".p-show-post").getByRole("button", { name: "Following", exact: true })).toBeVisible()
 })

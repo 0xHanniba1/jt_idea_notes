@@ -9,9 +9,7 @@ export interface Post {
   createdAt: string
   status: string
   user: User
-  hasVoted: boolean
   response: PostResponse | null
-  votesCount: number
   commentsCount: number
   tags: string[]
   isApproved: boolean
@@ -78,17 +76,13 @@ export interface Tag {
   isPublic: boolean
 }
 
-export interface Vote {
-  createdAt: Date
-  user: {
-    id: number
-    name: string
-    email: string
-    avatarURL: string
-  }
-}
-
 export interface InlineImage {
   bkey: string
   remove: boolean
+}
+
+// Keep legacy status views used by saved links and the roadmap; retired and
+// unknown ranking views fall back to the same order as the home page.
+export const normalizePostView = (view: string): string => {
+  return ["recent", "most-discussed", "all", "planned", "started", "completed", "declined"].includes(view) ? view : "recent"
 }

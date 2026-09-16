@@ -17,7 +17,7 @@ const defaultSubject = () => `[${Fider.session.tenant.name}] We would like to he
 
 const defaultMessage = () => `Hi,
 
-We are inviting you to join the ${Fider.session.tenant.name} feedback site, a place where you can vote, discuss and share your ideas and thoughts on how to improve our services!
+We are inviting you to join the ${Fider.session.tenant.name} feedback site, a place where you can discuss and share your ideas and thoughts on how to improve our services!
 
 Click the link below to join!
 

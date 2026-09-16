@@ -93,7 +93,6 @@ func generatePostContent(c *web.Context, post *entity.Post, options *generatorOp
 	title := ""
 	if options.generateTitle {
 		title = i18n.T(c, "feed.post.title", i18n.Params{
-			"votes":    post.VotesCount,
 			"comments": post.CommentsCount,
 			"title":    post.Title,
 		})
@@ -112,7 +111,6 @@ func generatePostContent(c *web.Context, post *entity.Post, options *generatorOp
 
 		footer = i18n.T(c, "feed.post.footer", i18n.Params{
 			"response_footer": responseFooter,
-			"votes":           post.VotesCount,
 			"comments":        post.CommentsCount,
 			"web_link":        fmt.Sprintf("%s/posts/%d", web.BaseURL(c), post.Number),
 			"feed_link":       fmt.Sprintf("%s/feed/posts/%d.atom", web.BaseURL(c), post.Number),
@@ -183,10 +181,7 @@ func GlobalFeed() web.HandlerFunc {
 			}
 
 			feed.Entries = append(feed.Entries, &Entry{
-				Title: i18n.T(c, "feed.global.title", i18n.Params{
-					"count": post.VotesCount,
-					"title": post.Title,
-				}),
+				Title:     post.Title,
 				Author:    &Author{Name: post.User.Name},
 				Published: formatTime(post.CreatedAt),
 				Updated: func() string {

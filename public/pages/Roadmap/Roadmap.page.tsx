@@ -9,7 +9,7 @@ import { VStack, HStack } from "@fider/components/layout"
 import { useFider, usePostOverlay } from "@fider/hooks"
 import { actions } from "@fider/services"
 import { PostDetails } from "@fider/components/PostDetails"
-import { Trans, Plural } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
 
 interface RoadmapPageProps {
   plannedPosts?: Post[]
@@ -40,7 +40,6 @@ const RoadmapPost = (props: { post: Post; tags: Tag[]; status: string; onPostCli
   const isModerationEnabled = fider.session.tenant.isModerationEnabled
   const isPending = isModerationEnabled && !props.post.isApproved
   const isCompleted = props.status === "completed"
-  const votes = props.post.votesCount
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (props.onPostClick) {
@@ -67,15 +66,11 @@ const RoadmapPost = (props: { post: Post; tags: Tag[]; status: string; onPostCli
             ))}
           </HStack>
         )}
-        {isCompleted && props.post.response?.respondedAt ? (
+        {isCompleted && props.post.response?.respondedAt && (
           <HStack spacing={1} className="c-roadmap-post__completed flex-items-center">
             <Icon sprite={IconCheckCircle} className="h-4 w-4 text-green-600" />
             <Moment locale={fider.currentLocale} date={props.post.response.respondedAt} />
           </HStack>
-        ) : (
-          <span className="c-roadmap-post__votes">
-            <span className="text-semibold">{votes}</span> <Plural id="label.votecount" value={votes} one="Vote" other="Votes" />
-          </span>
         )}
       </VStack>
     </a>

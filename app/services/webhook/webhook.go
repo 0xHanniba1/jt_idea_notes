@@ -178,5 +178,7 @@ func resultWithError(ctx context.Context, message, error string, result *dto.Web
 
 func getWebhookProps(ctx context.Context, c *cmd.GetWebhookProps) error {
 	c.Result = dummyTriggerProps(ctx, c.Type)
+	// Keep legacy rendering support without offering this variable in new templates.
+	delete(c.Result, "post_votes")
 	return nil
 }

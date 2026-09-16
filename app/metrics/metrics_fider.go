@@ -26,13 +26,6 @@ var TotalComments = prometheus.NewCounter(
 	},
 )
 
-var TotalVotes = prometheus.NewCounter(
-	prometheus.CounterOpts{
-		Name: "fider_votes_total",
-		Help: "Number of Fider votes.",
-	},
-)
-
 var fiderInfo = prometheus.NewGauge(
 	prometheus.GaugeOpts{
 		Name:        "fider_info",
@@ -43,5 +36,5 @@ var fiderInfo = prometheus.NewGauge(
 
 func init() {
 	fiderInfo.Inc()
-	prometheus.MustRegister(TotalTenants, TotalPosts, TotalComments, TotalVotes, fiderInfo)
+	prometheus.MustRegister(TotalTenants, TotalPosts, TotalComments, fiderInfo)
 }

@@ -2,10 +2,9 @@ import React from "react"
 import { Post, Tag, CurrentUser } from "@fider/models"
 import { ShowTag, Markdown, Icon, ResponseLozenge } from "@fider/components"
 import IconChatAlt2 from "@fider/assets/images/heroicons-chat-alt-2.svg"
-import IconCheck from "@fider/assets/images/heroicons-check.svg"
 import { HStack, VStack } from "@fider/components/layout"
 import { useFider } from "@fider/hooks"
-import { Trans, Plural } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
 
 interface ListPostsProps {
   posts?: Post[]
@@ -26,7 +25,6 @@ const ListPostItem = (props: {
   const fider = useFider()
   const isModerationEnabled = fider.session.tenant.isModerationEnabled
   const isPending = isModerationEnabled && !props.post.isApproved
-  const votes = props.post.votesCount
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (props.onPostClick) {
@@ -62,23 +60,11 @@ const ListPostItem = (props: {
             ))}
           </HStack>
         )}
-        <HStack justify="between" align="center">
-          <div className="c-posts-container__post-votes">
-            <span className="text-semibold text-2xl">{votes}</span>{" "}
-            <span className="text-gray-700">
-              <Plural id="label.votecount" value={votes} one="Vote" other="Votes" />
-            </span>
-            {props.post.hasVoted && (
-              <span className="text-xs text-blue-600 ml-2 inline-flex flex-items-center">
-                <Icon sprite={IconCheck} className="h-3 w-3 mr-1" />
-                <Trans id="action.voted">Voted!</Trans>
-              </span>
-            )}
-          </div>
-          {props.showStatus !== false && props.post.status !== "open" && (
+        {props.showStatus !== false && props.post.status !== "open" && (
+          <HStack className="justify-end">
             <ResponseLozenge status={props.post.status} response={props.post.response} size={"small"} />
-          )}
-        </HStack>
+          </HStack>
+        )}
       </VStack>
     </a>
   )
@@ -105,12 +91,10 @@ const MinimalListPostItem = (props: { post: Post; tags: Tag[]; onPostClick?: (po
           </a>
           {isPending && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">pending</span>}
         </HStack>
-        {props.post.status !== "open" ? (
+        {props.post.status !== "open" && (
           <div>
             <ResponseLozenge status={props.post.status} response={props.post.response} size={"micro"} />
           </div>
-        ) : (
-          <span className="text-gray-700 text-sm">+{props.post.votesCount}</span>
         )}
       </HStack>
     </HStack>
