@@ -10,6 +10,7 @@ import (
 	"github.com/getfider/fider/app"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/errors"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/validate"
 	"github.com/gosimple/slug"
 )
@@ -45,25 +46,25 @@ func (action *CreateEditTag) Validate(ctx context.Context, user *entity.User) *v
 	}
 
 	if action.Name == "" {
-		result.AddFieldFailure("name", "Name is required.")
+		result.AddFieldFailure("name", i18n.T(ctx, "admin.tags.validation.name.required"))
 	} else if len(action.Name) > 30 {
-		result.AddFieldFailure("name", "Name must have less than 30 characters.")
+		result.AddFieldFailure("name", i18n.T(ctx, "admin.tags.validation.name.length"))
 	} else {
 		getDuplicateSlug := &query.GetTagBySlug{Slug: slug.Make(action.Name)}
 		err := bus.Dispatch(ctx, getDuplicateSlug)
 		if err != nil && errors.Cause(err) != app.ErrNotFound {
 			return validate.Error(err)
 		} else if err == nil && (action.Tag == nil || action.Tag.ID != getDuplicateSlug.Result.ID) {
-			result.AddFieldFailure("name", "This tag name is already in use.")
+			result.AddFieldFailure("name", i18n.T(ctx, "admin.tags.validation.name.duplicate"))
 		}
 	}
 
 	if action.Color == "" {
-		result.AddFieldFailure("color", "Color is required.")
+		result.AddFieldFailure("color", i18n.T(ctx, "admin.tags.validation.color.required"))
 	} else if len(action.Color) != 6 {
-		result.AddFieldFailure("color", "Color must be exactly 6 characters.")
+		result.AddFieldFailure("color", i18n.T(ctx, "admin.tags.validation.color.length"))
 	} else if !colorRegex.MatchString(action.Color) {
-		result.AddFieldFailure("color", "Color is invalid.")
+		result.AddFieldFailure("color", i18n.T(ctx, "admin.tags.validation.color.invalid"))
 	}
 
 	return result

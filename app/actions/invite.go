@@ -9,6 +9,7 @@ import (
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/i18n"
 
 	"github.com/getfider/fider/app"
 	"github.com/getfider/fider/app/pkg/env"
@@ -18,9 +19,9 @@ import (
 
 // InviteUsers is used to invite new users into Fider
 type InviteUsers struct {
-	Subject        string   `json:"subject"`
-	Message        string   `json:"message"`
-	Recipients     []string `json:"recipients" format:"lower"`
+	Subject        string            `json:"subject"`
+	Message        string            `json:"message"`
+	Recipients     []string          `json:"recipients" format:"lower"`
 	IsSampleInvite bool              `json:"-"`
 	Invitations    []*UserInvitation `json:"-"`
 }
@@ -58,15 +59,15 @@ func (action *InviteUsers) Validate(ctx context.Context, user *entity.User) *val
 	}
 
 	if action.Subject == "" {
-		result.AddFieldFailure("subject", "Subject is required.")
+		result.AddFieldFailure("subject", i18n.T(ctx, "validation.invitation.subjectrequired"))
 	} else if len(action.Subject) > 70 {
-		result.AddFieldFailure("subject", "Subject must have less than 70 characters.")
+		result.AddFieldFailure("subject", i18n.T(ctx, "validation.invitation.subjecttoolong"))
 	}
 
 	if action.Message == "" {
-		result.AddFieldFailure("message", "Message is required.")
+		result.AddFieldFailure("message", i18n.T(ctx, "validation.invitation.messagerequired"))
 	} else if !strings.Contains(action.Message, app.InvitePlaceholder) {
-		msg := fmt.Sprintf("Your message is missing the invitation link placeholder. Please add '%s' to your message.", app.InvitePlaceholder)
+		msg := i18n.T(ctx, "validation.invitation.missingplaceholder", i18n.Params{"placeholder": app.InvitePlaceholder})
 		result.AddFieldFailure("message", msg)
 	}
 
@@ -74,9 +75,9 @@ func (action *InviteUsers) Validate(ctx context.Context, user *entity.User) *val
 	if !action.IsSampleInvite {
 
 		if len(action.Recipients) == 0 {
-			result.AddFieldFailure("recipients", "At least one recipient is required.")
+			result.AddFieldFailure("recipients", i18n.T(ctx, "validation.invitation.recipientsrequired"))
 		} else if len(action.Recipients) > 30 {
-			result.AddFieldFailure("recipients", "Too many recipients. We limit at 30 recipients per invite.")
+			result.AddFieldFailure("recipients", i18n.T(ctx, "validation.invitation.recipientstoomany"))
 		}
 
 		for _, email := range action.Recipients {
@@ -101,7 +102,7 @@ func (action *InviteUsers) Validate(ctx context.Context, user *entity.User) *val
 			}
 
 			if len(action.Invitations) == 0 {
-				result.AddFieldFailure("recipients", "All these addresses have already been registered on this site.")
+				result.AddFieldFailure("recipients", i18n.T(ctx, "validation.invitation.alreadyregistered"))
 			}
 		}
 
@@ -110,28 +111,28 @@ func (action *InviteUsers) Validate(ctx context.Context, user *entity.User) *val
 	return result
 }
 
-//UserInvitation is the model used to register an invite sent to an user
+// UserInvitation is the model used to register an invite sent to an user
 type UserInvitation struct {
 	Email           string
 	VerificationKey string
 }
 
-//GetEmail returns the invited user's email
+// GetEmail returns the invited user's email
 func (e *UserInvitation) GetEmail() string {
 	return e.Email
 }
 
-//GetName returns empty for this kind of process
+// GetName returns empty for this kind of process
 func (e *UserInvitation) GetName() string {
 	return ""
 }
 
-//GetUser returns the current user performing this action
+// GetUser returns the current user performing this action
 func (e *UserInvitation) GetUser() *entity.User {
 	return nil
 }
 
-//GetKind returns EmailVerificationKindUserInvitation
+// GetKind returns EmailVerificationKindUserInvitation
 func (e *UserInvitation) GetKind() enum.EmailVerificationKind {
 	return enum.EmailVerificationKindUserInvitation
 }

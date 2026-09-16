@@ -10,6 +10,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/errors"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 )
 
@@ -48,16 +49,16 @@ type ImportTagsResult struct {
 func ImportTagsJSON() web.HandlerFunc {
 	return func(c *web.Context) error {
 		if c.Request.ContentLength == 0 {
-			return c.BadRequest(web.Map{"error": "request body is empty"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "admin.tags.import.emptybody")})
 		}
 
 		var input []importTagInput
 		if err := json.Unmarshal([]byte(c.Request.Body), &input); err != nil {
-			return c.BadRequest(web.Map{"error": "invalid JSON: " + err.Error()})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "admin.tags.import.invalidjson", i18n.Params{"error": err.Error()})})
 		}
 
 		if len(input) == 0 {
-			return c.BadRequest(web.Map{"error": "no tags provided"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "admin.tags.import.notags")})
 		}
 
 		// Fetch existing tags once so we can skip duplicates
@@ -78,12 +79,12 @@ func ImportTagsJSON() web.HandlerFunc {
 			color := strings.ToUpper(strings.TrimSpace(t.Color))
 
 			if name == "" {
-				result.Errors = append(result.Errors, "tag with empty name skipped")
+				result.Errors = append(result.Errors, i18n.T(c, "admin.tags.import.emptyname"))
 				result.Skipped++
 				continue
 			}
 			if len(color) != 6 {
-				result.Errors = append(result.Errors, "tag '"+name+"': color must be exactly 6 hex characters")
+				result.Errors = append(result.Errors, i18n.T(c, "admin.tags.import.invalidcolor", i18n.Params{"name": name}))
 				result.Skipped++
 				continue
 			}
@@ -102,7 +103,7 @@ func ImportTagsJSON() web.HandlerFunc {
 				if errors.Cause(err) == app.ErrNotFound {
 					result.Skipped++
 				} else {
-					result.Errors = append(result.Errors, "tag '"+name+"': "+err.Error())
+					result.Errors = append(result.Errors, i18n.T(c, "admin.tags.import.error", i18n.Params{"name": name, "error": err.Error()}))
 					result.Skipped++
 				}
 				continue

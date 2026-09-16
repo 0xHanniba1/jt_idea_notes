@@ -11,6 +11,7 @@ import (
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/i18n"
 
 	"github.com/getfider/fider/app/pkg/rand"
 	"github.com/getfider/fider/app/pkg/validate"
@@ -67,16 +68,16 @@ func (action *SetSystemProviderStatus) Validate(ctx context.Context, user *entit
 		tenant := ctx.Value(app.TenantCtxKey).(*entity.Tenant)
 		activeProviders := &query.ListActiveOAuthProviders{}
 		if err := bus.Dispatch(ctx, activeProviders); err != nil {
-			return validate.Failed("Cannot retrieve OAuth providers")
+			return validate.Failed(i18n.T(ctx, "validation.oauth.providersfailed"))
 		}
 
 		if !tenant.IsEmailAuthAllowed && len(activeProviders.Result) == 1 {
-			result.AddFieldFailure("isEnabled", "You cannot disable this provider with neither email auth nor any other provider enabled.")
+			result.AddFieldFailure("isEnabled", i18n.T(ctx, "validation.oauth.lastprovider"))
 		}
 	}
 
 	if action.Provider == "" {
-		result.AddFieldFailure("provider", "Provider is required.")
+		result.AddFieldFailure("provider", i18n.T(ctx, "validation.oauth.providerrequired"))
 	}
 
 	return result
@@ -89,11 +90,11 @@ func (action *CreateEditOAuthConfig) Validate(ctx context.Context, user *entity.
 		tenant := ctx.Value(app.TenantCtxKey).(*entity.Tenant)
 		activeProviders := &query.ListActiveOAuthProviders{}
 		if err := bus.Dispatch(ctx, activeProviders); err != nil {
-			return validate.Failed("Cannot retrieve OAuth providers")
+			return validate.Failed(i18n.T(ctx, "validation.oauth.providersfailed"))
 		}
 
 		if !tenant.IsEmailAuthAllowed && len(activeProviders.Result) == 1 {
-			result.AddFieldFailure("status", "You cannot disable this provider with neither email auth nor any other provider enabled.")
+			result.AddFieldFailure("status", i18n.T(ctx, "validation.oauth.lastprovider"))
 		}
 	}
 
@@ -127,41 +128,41 @@ func (action *CreateEditOAuthConfig) Validate(ctx context.Context, user *entity.
 
 	if action.Status != enum.OAuthConfigEnabled &&
 		action.Status != enum.OAuthConfigDisabled {
-		result.AddFieldFailure("status", "Invalid status.")
+		result.AddFieldFailure("status", i18n.T(ctx, "validation.oauth.invalidstatus"))
 	}
 
 	if action.DisplayName == "" {
-		result.AddFieldFailure("displayName", "Display Name is required.")
+		result.AddFieldFailure("displayName", i18n.T(ctx, "validation.oauth.displaynamerequired"))
 	} else if len(action.DisplayName) > 50 {
-		result.AddFieldFailure("displayName", "Display Name must have less than 50 characters.")
+		result.AddFieldFailure("displayName", i18n.T(ctx, "validation.oauth.displaynametoolong"))
 	}
 
 	if action.ClientID == "" {
-		result.AddFieldFailure("clientID", "Client ID is required.")
+		result.AddFieldFailure("clientID", i18n.T(ctx, "validation.oauth.clientidrequired"))
 	} else if len(action.ClientID) > 100 {
-		result.AddFieldFailure("clientID", "Client ID must have less than 100 characters.")
+		result.AddFieldFailure("clientID", i18n.T(ctx, "validation.oauth.clientidtoolong"))
 	}
 
 	if action.ClientSecret == "" {
-		result.AddFieldFailure("clientSecret", "Client Secret is required.")
+		result.AddFieldFailure("clientSecret", i18n.T(ctx, "validation.oauth.clientsecretrequired"))
 	} else if len(action.ClientSecret) > 500 {
-		result.AddFieldFailure("clientSecret", "Client Secret must have less than 500 characters.")
+		result.AddFieldFailure("clientSecret", i18n.T(ctx, "validation.oauth.clientsecrettoolong"))
 	}
 
 	if action.Scope == "" {
-		result.AddFieldFailure("scope", "Scope is required.")
+		result.AddFieldFailure("scope", i18n.T(ctx, "validation.oauth.scoperequired"))
 	} else if len(action.Scope) > 100 {
-		result.AddFieldFailure("scope", "Scope must have less than 100 characters.")
+		result.AddFieldFailure("scope", i18n.T(ctx, "validation.oauth.scopetoolong"))
 	}
 
 	if action.AuthorizeURL == "" {
-		result.AddFieldFailure("authorizeURL", "Authorize URL is required.")
+		result.AddFieldFailure("authorizeURL", i18n.T(ctx, "validation.oauth.authorizeurlrequired"))
 	} else if messages := validate.URL(ctx, action.AuthorizeURL); len(messages) > 0 {
 		result.AddFieldFailure("authorizeURL", messages...)
 	}
 
 	if action.TokenURL == "" {
-		result.AddFieldFailure("tokenURL", "Token URL is required.")
+		result.AddFieldFailure("tokenURL", i18n.T(ctx, "validation.oauth.tokenurlrequired"))
 	} else if messages := validate.URL(ctx, action.TokenURL); len(messages) > 0 {
 		result.AddFieldFailure("tokenURL", messages...)
 	}
@@ -173,25 +174,25 @@ func (action *CreateEditOAuthConfig) Validate(ctx context.Context, user *entity.
 	}
 
 	if action.JSONUserIDPath == "" {
-		result.AddFieldFailure("jsonUserIDPath", "JSON User ID Path is required.")
+		result.AddFieldFailure("jsonUserIDPath", i18n.T(ctx, "validation.oauth.useridpathrequired"))
 	} else if len(action.JSONUserIDPath) > 100 {
-		result.AddFieldFailure("jsonUserIDPath", "JSON User ID Path must have less than 100 characters.")
+		result.AddFieldFailure("jsonUserIDPath", i18n.T(ctx, "validation.oauth.useridpathtoolong"))
 	}
 
 	if len(action.JSONUserNamePath) > 100 {
-		result.AddFieldFailure("jsonUserNamePath", "JSON User Name Path must have less than 100 characters.")
+		result.AddFieldFailure("jsonUserNamePath", i18n.T(ctx, "validation.oauth.usernamepathtoolong"))
 	}
 
 	if len(action.JSONUserEmailPath) > 100 {
-		result.AddFieldFailure("jsonUserEmailPath", "JSON User Email Path must have less than 100 characters.")
+		result.AddFieldFailure("jsonUserEmailPath", i18n.T(ctx, "validation.oauth.useremailpathtoolong"))
 	}
 
 	if len(action.JSONUserRolesPath) > 100 {
-		result.AddFieldFailure("jsonUserRolesPath", "JSON User Roles Path must have less than 100 characters.")
+		result.AddFieldFailure("jsonUserRolesPath", i18n.T(ctx, "validation.oauth.userrolespathtoolong"))
 	}
 
 	if len(action.AllowedRoles) > 500 {
-		result.AddFieldFailure("allowedRoles", "Allowed Roles must have less than 500 characters.")
+		result.AddFieldFailure("allowedRoles", i18n.T(ctx, "validation.oauth.allowedrolestoolong"))
 	}
 
 	return result

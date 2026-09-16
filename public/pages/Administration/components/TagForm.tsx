@@ -1,3 +1,4 @@
+import { i18n } from "@lingui/core"
 import React from "react"
 import { Button, Input, ShowTag, Form, RadioButton, Field, SelectOption } from "@fider/components"
 import { Failure } from "@fider/services"
@@ -19,8 +20,8 @@ export interface TagFormState {
 }
 
 export class TagForm extends React.Component<TagFormProps, TagFormState> {
-  private visibilityPublic = { label: "Public", value: "public" }
-  private visibilityPrivate = { label: "Private", value: "private" }
+  private visibilityPublic = { label: i18n._({ id: "admin.tags.public", message: "Public" }), value: "public" }
+  private visibilityPrivate = { label: i18n._({ id: "admin.tags.private", message: "Private" }), value: "private" }
 
   constructor(props: TagFormProps) {
     super(props)
@@ -70,23 +71,29 @@ export class TagForm extends React.Component<TagFormProps, TagFormState> {
   public render() {
     const randomizer = (
       <span className="text-link text-normal text-xs ml-1" onClick={this.randomize}>
-        randomize
+        {i18n._({ id: "admin.tags.randomcolor", message: "randomize" })}
       </span>
     )
 
     return (
       <Form error={this.state.error}>
         <div className="grid gap-2 lg:grid-cols-5">
-          <Input field="name" label="Name" value={this.state.name} onChange={this.setName} />
-          <Input field="color" label="Color" afterLabel={randomizer} value={this.state.color} onChange={this.setColor} />
+          <Input field="name" label={i18n._({ id: "admin.tags.name", message: "Name" })} value={this.state.name} onChange={this.setName} />
+          <Input
+            field="color"
+            label={i18n._({ id: "admin.tags.color", message: "Color" })}
+            afterLabel={randomizer}
+            value={this.state.color}
+            onChange={this.setColor}
+          />
           <RadioButton
-            label="Visibility"
+            label={i18n._({ id: "admin.tags.visibility", message: "Visibility" })}
             field="visibility"
             defaultOption={this.state.isPublic ? this.visibilityPublic : this.visibilityPrivate}
             options={[this.visibilityPublic, this.visibilityPrivate]}
             onSelect={this.setVisibility}
           />
-          <Field label="Preview">
+          <Field label={i18n._({ id: "admin.tags.preview", message: "Preview" })}>
             <ShowTag
               tag={{
                 id: 0,
@@ -99,10 +106,10 @@ export class TagForm extends React.Component<TagFormProps, TagFormState> {
           </Field>
           <HStack>
             <Button variant="primary" onClick={this.handleSave}>
-              Save
+              {i18n._({ id: "admin.tags.save", message: "Save" })}
             </Button>
             <Button onClick={this.handleCancel} variant="tertiary">
-              Cancel
+              {i18n._({ id: "admin.tags.cancel", message: "Cancel" })}
             </Button>
           </HStack>
         </div>

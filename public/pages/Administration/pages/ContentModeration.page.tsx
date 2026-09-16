@@ -1,5 +1,6 @@
 import "./ContentModeration.page.scss"
 
+import { i18n } from "@lingui/core"
 import React, { useState, useEffect } from "react"
 import { Button, Avatar, Loader, Icon, Markdown } from "@fider/components/common"
 import { Header } from "@fider/components"
@@ -109,13 +110,13 @@ const ContentModerationPage = () => {
   const handleApprovePostAndVerify = async (postId: number) => {
     const result = await actions.approvePostAndVerify(postId)
     if (result.ok) {
-      notify.success(<Trans id="moderation.post.published.verified">Post published and user verified</Trans>)
+      notify.success(<Trans id="moderation.post.published.verified">Post published and author trusted</Trans>)
       setState((prev) => ({
         ...prev,
         items: prev.items.filter((item) => !(item.type === "post" && item.id === postId)),
       }))
     } else {
-      notify.error(<Trans id="moderation.post.publish.verify.error">Failed to publish post and verify user</Trans>)
+      notify.error(<Trans id="moderation.post.publish.verify.error">Failed to publish post and trust author</Trans>)
     }
   }
 
@@ -135,13 +136,13 @@ const ContentModerationPage = () => {
   const handleApproveCommentAndVerify = async (commentId: number) => {
     const result = await actions.approveCommentAndVerify(commentId)
     if (result.ok) {
-      notify.success(<Trans id="moderation.comment.published.verified">Comment published and user verified</Trans>)
+      notify.success(<Trans id="moderation.comment.published.verified">Comment published and author trusted</Trans>)
       setState((prev) => ({
         ...prev,
         items: prev.items.filter((item) => !(item.type === "comment" && item.id === commentId)),
       }))
     } else {
-      notify.error(<Trans id="moderation.comment.publish.verify.error">Failed to publish comment and verify user</Trans>)
+      notify.error(<Trans id="moderation.comment.publish.verify.error">Failed to publish comment and trust author</Trans>)
     }
   }
 
@@ -175,7 +176,11 @@ const ContentModerationPage = () => {
   const renderModerationItem = (item: ModerationItem) => {
     const title = item.type == "post" ? item.title : item.postTitle
     const link = item.type == "post" ? `/posts/${item.postNumber}/${item.postSlug}` : `/posts/${item.postNumber}/${item.postSlug}#comment-${item.id}`
-    const blocked = item.user.status === UserStatus.Blocked && <span className="text-red-700">blocked</span>
+    const blocked = item.user.status === UserStatus.Blocked && (
+      <span className="text-red-700">
+        <Trans id="moderation.user.blocked">Blocked</Trans>
+      </span>
+    )
 
     return (
       <div key={`${item.type}-${item.id}`} className="c-moderation-item" onClick={() => handlePostClick(link)}>
@@ -205,13 +210,13 @@ const ContentModerationPage = () => {
               <Button size="small" variant="secondary" onClick={() => (item.type === "post" ? handleApprovePost(item.id) : handleApproveComment(item.id))}>
                 <Icon sprite={IconCheck} />
                 <span>
-                  <Trans id="action.publish">Publish</Trans>
+                  <Trans id="moderation.action.approve">Approve</Trans>
                 </span>
               </Button>
               <Button size="small" variant="secondary" onClick={() => (item.type === "post" ? handleDeclinePost(item.id) : handleDeclineComment(item.id))}>
                 <Icon sprite={IconX} />
                 <span>
-                  <Trans id="action.delete">Delete</Trans>
+                  <Trans id="moderation.action.decline">Decline</Trans>
                 </span>
               </Button>
               <Button
@@ -221,7 +226,7 @@ const ContentModerationPage = () => {
               >
                 <Icon sprite={IconShieldCheck} />
                 <span>
-                  <Trans id="action.publish.verify">Publish & Trust</Trans>
+                  <Trans id="moderation.action.approveandtrust">Approve and trust author</Trans>
                 </span>
               </Button>
               <Button
@@ -231,7 +236,7 @@ const ContentModerationPage = () => {
               >
                 <Icon sprite={IconBan} />
                 <span>
-                  <Trans id="action.delete.block">Delete & Block</Trans>
+                  <Trans id="moderation.action.declineandblock">Decline and block author</Trans>
                 </span>
               </Button>
             </div>
@@ -272,14 +277,14 @@ const ContentModerationPage = () => {
             <>
               {posts.length > 0 && (
                 <>
-                  {renderDivider("New ideas", posts.length)}
+                  {renderDivider(i18n._({ id: "moderation.posts", message: "Pending records" }), posts.length)}
                   <div className="c-moderation-page__list">{posts.map(renderModerationItem)}</div>
                 </>
               )}
 
               {comments.length > 0 && (
                 <>
-                  {renderDivider("New comments", comments.length)}
+                  {renderDivider(i18n._({ id: "moderation.comments", message: "Pending comments" }), comments.length)}
                   <div className="c-moderation-page__list">{comments.map(renderModerationItem)}</div>
                 </>
               )}

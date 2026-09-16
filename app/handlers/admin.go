@@ -10,6 +10,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/getfider/fider/app/tasks"
 )
@@ -19,7 +20,7 @@ func GeneralSettingsPage() web.HandlerFunc {
 	return func(c *web.Context) error {
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/GeneralSettings.page",
-			Title: "General · Site Settings",
+			Title: i18n.T(c, "admin.title.general"),
 		})
 	}
 }
@@ -29,7 +30,7 @@ func AdvancedSettingsPage() web.HandlerFunc {
 	return func(c *web.Context) error {
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/AdvancedSettings.page",
-			Title: "Advanced · Site Settings",
+			Title: i18n.T(c, "admin.title.advanced"),
 			Data: web.Map{
 				"customCSS":      c.Tenant().CustomCSS,
 				"allowedSchemes": c.Tenant().AllowedSchemes,
@@ -166,7 +167,7 @@ func ManageMembers() web.HandlerFunc {
 
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/ManageMembers.page",
-			Title: "Manage Members · Site Settings",
+			Title: i18n.T(c, "admin.title.users"),
 			Data: web.Map{
 				"users":      allUsersWithEmail,
 				"totalPages": (searchUsers.TotalCount + 10 - 1) / 10,
@@ -185,7 +186,7 @@ func ManageAuthentication() web.HandlerFunc {
 
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/ManageAuthentication.page",
-			Title: "Authentication · Site Settings",
+			Title: i18n.T(c, "admin.title.authentication"),
 			Data: web.Map{
 				"providers": listProviders.Result,
 			},
@@ -263,5 +264,12 @@ func SetSystemProviderStatus() web.HandlerFunc {
 		}
 
 		return c.Ok(web.Map{})
+	}
+}
+
+// AdminPage renders a settings page using the current site's language.
+func AdminPage(titleKey, page string) web.HandlerFunc {
+	return func(c *web.Context) error {
+		return c.Page(http.StatusOK, web.Props{Page: page, Title: i18n.T(c, titleKey)})
 	}
 }

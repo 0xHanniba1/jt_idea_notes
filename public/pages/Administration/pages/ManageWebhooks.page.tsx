@@ -1,3 +1,5 @@
+import { i18n } from "@lingui/core"
+import { Trans } from "@lingui/react/macro"
 import React, { useState } from "react"
 import { Button } from "@fider/components"
 
@@ -22,17 +24,19 @@ const webhookSorter = (w1: Webhook, w2: Webhook) => {
 }
 
 interface WebhooksListProps {
-  title: string
-  description: string
   list: JSX.Element[]
 }
 
 const WebhooksList = (props: WebhooksListProps) => {
   return (
     <div>
-      <h2 className="text-display mb-4">My Webhooks</h2>
+      <h2 className="text-display mb-4">{i18n._({ id: "admin.webhooks.list.title", message: "My Webhooks" })}</h2>
       <VStack spacing={4} divide>
-        {props.list.length === 0 ? <p className="text-muted">There aren’t any webhooks yet.</p> : props.list}
+        {props.list.length === 0 ? (
+          <p className="text-muted">{i18n._({ id: "admin.webhooks.empty", message: "There aren\u2019t any webhooks yet." })}</p>
+        ) : (
+          props.list
+        )}
       </VStack>
     </div>
   )
@@ -112,7 +116,12 @@ const ManageWebhooksPage = (props: ManageWebhooksPageProps) => {
   }
 
   const render = (content: JSX.Element) => (
-    <AdminPageContainer id="p-admin-webhooks" name="webhooks" title="Webhooks" subtitle="Manage your site webhooks">
+    <AdminPageContainer
+      id="p-admin-webhooks"
+      name="webhooks"
+      title={i18n._({ id: "admin.webhooks.title", message: "Webhooks" })}
+      subtitle={i18n._({ id: "admin.webhooks.subtitle", message: "Manage your site webhooks" })}
+    >
       {content}
     </AdminPageContainer>
   )
@@ -128,16 +137,18 @@ const ManageWebhooksPage = (props: ManageWebhooksPageProps) => {
   return render(
     <VStack spacing={8}>
       <p>
-        Use webhooks to integrate Fider with other applications like Slack, Discord, Zapier and many others.{" "}
-        <a className="text-link" href="https://docs.fider.io/using-webhooks" target="_blank" rel="noopener">
-          Learn more in our documentation
-        </a>
-        .
+        <Trans id="admin.webhooks.description">
+          Use webhooks to integrate this site with applications such as Slack, Discord, and Zapier.{" "}
+          <a className="text-link" href="https://docs.fider.io/using-webhooks" target="_blank" rel="noopener">
+            Learn more in the documentation
+          </a>
+          .
+        </Trans>
       </p>
-      <WebhooksList title="New Post" description="a new post is created on this site" list={getWebhookItems()} />
+      <WebhooksList list={getWebhookItems()} />
       <div>
         <Button variant="secondary" onClick={addNew}>
-          Add new webhook
+          {i18n._({ id: "admin.webhooks.add", message: "Add new webhook" })}
         </Button>
       </div>
     </VStack>

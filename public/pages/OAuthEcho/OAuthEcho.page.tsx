@@ -1,3 +1,6 @@
+import { t } from "@lingui/core/macro"
+import { Trans } from "@lingui/react/macro"
+
 import React from "react"
 import { navigator } from "@fider/services"
 import { Icon } from "@fider/components"
@@ -32,7 +35,9 @@ export default class OAuthEchoPage extends React.Component<OAuthEchoPageProps, a
   private renderError() {
     return (
       <>
-        <h5 className="text-display">Error</h5>
+        <h5 className="text-display">
+          <Trans id="admin.oauthecho.error">Error</Trans>
+        </h5>
         <pre>{this.props.err}</pre>
       </>
     )
@@ -64,61 +69,97 @@ export default class OAuthEchoPage extends React.Component<OAuthEchoPageProps, a
 
     return (
       <>
-        <h5 className="text-display mb-2">Raw Body</h5>
+        <h5 className="text-display mb-2">
+          <Trans id="admin.oauthecho.rawbody">Raw Body</Trans>
+        </h5>
         <pre>{responseBody}</pre>
-        <h5 className="text-display mb-2 mt-8">Parsed Profile</h5>
+        <h5 className="text-display mb-2 mt-8">
+          <Trans id="admin.oauthecho.parsedprofile">Parsed Profile</Trans>
+        </h5>
         <VStack divide={true} spacing={2}>
           <VStack>
             <HStack>
               {idOk ? ok : error}
-              <strong>ID:</strong> <span>{this.props.profile && this.props.profile.id}</span>
+              <strong>
+                <Trans id="admin.oauthecho.userid">ID:</Trans>
+              </strong>{" "}
+              <span>{this.props.profile && this.props.profile.id}</span>
             </HStack>
-            {!idOk && <span className="text-muted">ID is required. If not found, users will see an error during sign in process.</span>}
+            {!idOk && (
+              <span className="text-muted">
+                <Trans id="admin.oauthecho.idrequired">ID is required. If not found, users will see an error during sign in process.</Trans>
+              </span>
+            )}
           </VStack>
           <VStack>
             <HStack>
               {nameOk ? ok : warn}
-              <strong>Name:</strong> <span>{this.props.profile && this.props.profile.name}</span>
+              <strong>
+                <Trans id="admin.oauthecho.username">Name:</Trans>
+              </strong>{" "}
+              <span>{this.props.profile && this.props.profile.name}</span>
             </HStack>
             {!nameOk && (
               <span className="text-muted">
-                Name is required, if not found we&apos;ll use <strong>Anonymous</strong> as the name of every new user.
+                <Trans id="admin.oauthecho.namefallback">
+                  If no name is found, new users will be assigned the default name <strong>Anonymous</strong>.
+                </Trans>
               </span>
             )}
           </VStack>
           <VStack>
             <HStack>
               {emailOk ? ok : warn}
-              <strong>Email:</strong> {this.props.profile && this.props.profile.email}
+              <strong>
+                <Trans id="admin.oauthecho.email">Email:</Trans>
+              </strong>{" "}
+              {this.props.profile && this.props.profile.email}
             </HStack>
             {!emailOk && (
               <span className="text-muted">
-                Email is not required, but highly recommended. If invalid or not found, new users won&apos;t receive notifications.
+                <Trans id="admin.oauthecho.emailhelp">
+                  Email is optional, but highly recommended. If invalid or not found, new users will not receive email notifications.
+                </Trans>
               </span>
             )}
           </VStack>
           <VStack>
             <HStack>
               {hasRoles ? ok : warn}
-              <strong>Roles:</strong> {hasRoles ? this.props.profile.roles.join(", ") : "(none)"}
+              <strong>
+                <Trans id="admin.oauthecho.roles">Roles:</Trans>
+              </strong>{" "}
+              {hasRoles ? this.props.profile.roles.join(", ") : t({ id: "admin.oauthecho.noroles", message: "(none)" })}
             </HStack>
             <span className="text-muted">
-              Roles are optional and used for role-based access control when <strong>Allowed Roles</strong> is configured on this provider.
+              <Trans id="admin.oauthecho.roleshelp">
+                Roles are optional. When a roles JSON path and <strong>Allowed Roles</strong> are both configured, they are used to restrict sign-in access.
+              </Trans>
             </span>
           </VStack>
           {roleCheckConfigured && (
             <VStack>
               <HStack>
                 {roleCheckPasses ? ok : error}
-                <strong>Role check:</strong>{" "}
+                <strong>
+                  <Trans id="admin.oauthecho.rolecheck">Role check:</Trans>
+                </strong>{" "}
                 {roleCheckPasses ? (
-                  <span className="text-green-700">Pass</span>
+                  <span className="text-green-700">
+                    <Trans id="admin.oauthecho.passed">Pass</Trans>
+                  </span>
                 ) : (
-                  <span className="text-red-700">Fail — this user would be redirected to /access-denied</span>
+                  <span className="text-red-700">
+                    <Trans id="admin.oauthecho.failed">
+                      Failed: users will be redirected to /access-denied, except existing site administrators and collaborators.
+                    </Trans>
+                  </span>
                 )}
               </HStack>
               <span className="text-muted">
-                Configured roles path: <strong>{configuredRolesPath}</strong> · Allowed roles: <strong>{configuredAllowedRoles}</strong>
+                <Trans id="admin.oauthecho.rolesconfiguration">
+                  Configured roles path: <strong>{configuredRolesPath}</strong> · Allowed roles: <strong>{configuredAllowedRoles}</strong>
+                </Trans>
               </span>
             </VStack>
           )}

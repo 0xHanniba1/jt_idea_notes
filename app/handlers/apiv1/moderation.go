@@ -6,6 +6,7 @@ import (
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 )
 
@@ -14,7 +15,7 @@ func ApprovePost() web.HandlerFunc {
 	return func(c *web.Context) error {
 		postID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid post ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.postid")})
 		}
 
 		if err := bus.Dispatch(c, &cmd.ApprovePost{PostID: postID}); err != nil {
@@ -30,7 +31,7 @@ func DeclinePost() web.HandlerFunc {
 	return func(c *web.Context) error {
 		postID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid post ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.postid")})
 		}
 
 		if err := bus.Dispatch(c, &cmd.DeclinePost{PostID: postID}); err != nil {
@@ -46,7 +47,7 @@ func ApproveComment() web.HandlerFunc {
 	return func(c *web.Context) error {
 		commentID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid comment ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.commentid")})
 		}
 
 		if err := bus.Dispatch(c, &cmd.ApproveComment{CommentID: commentID}); err != nil {
@@ -62,7 +63,7 @@ func DeclineComment() web.HandlerFunc {
 	return func(c *web.Context) error {
 		commentID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid comment ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.commentid")})
 		}
 
 		if err := bus.Dispatch(c, &cmd.DeclineComment{CommentID: commentID}); err != nil {
@@ -78,7 +79,7 @@ func DeclinePostAndBlock() web.HandlerFunc {
 	return func(c *web.Context) error {
 		postID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid post ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.postid")})
 		}
 
 		getPost := &query.GetPostByID{PostID: postID}
@@ -105,7 +106,7 @@ func DeclineCommentAndBlock() web.HandlerFunc {
 	return func(c *web.Context) error {
 		commentID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid comment ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.commentid")})
 		}
 
 		getComment := &query.GetCommentByID{CommentID: commentID}
@@ -132,7 +133,7 @@ func ApprovePostAndVerify() web.HandlerFunc {
 	return func(c *web.Context) error {
 		postID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid post ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.postid")})
 		}
 
 		getPost := &query.GetPostByID{PostID: postID}
@@ -157,7 +158,7 @@ func ApproveCommentAndVerify() web.HandlerFunc {
 	return func(c *web.Context) error {
 		commentID, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.BadRequest(web.Map{"error": "Invalid comment ID"})
+			return c.BadRequest(web.Map{"error": i18n.T(c, "validation.admin.moderation.commentid")})
 		}
 
 		getComment := &query.GetCommentByID{CommentID: commentID}

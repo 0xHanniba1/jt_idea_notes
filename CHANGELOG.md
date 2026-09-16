@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-16 — Chinese administration settings
+
+- Localize all settings pages, navigation, nested forms and dialogs through the existing catalogs. Administrative pages and APIs now use the site language, including server-rendered titles and validation errors.
+- Correct wording for input prompts, access permissions, trusted members, OAuth restrictions, exports, deletion timing and UTF-8 byte limits. Preserve template variables, protocol values and original technical diagnostics.
+- Correct the reversed loading/failure labels in Webhook template help. No schema, permission or data changes.
+- Validation: 182 frontend tests, related Go race tests, ESLint, production builds and isolated Chrome checks pass. See [verification details](docs/admin-chinese-verification.md) and [Issue #5](https://github.com/0xHanniba1/jt_idea_notes/issues/5).
+
 ## 2026-09-16 — Remove branding footer
 
 - Remove the Powered by Fider link and version line from Home and record details, including the shared drawer. Remove the unused component, export and footer spacing.

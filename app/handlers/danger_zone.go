@@ -9,6 +9,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/rand"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/getfider/fider/app/tasks"
@@ -37,7 +38,7 @@ func DangerZonePage() web.HandlerFunc {
 
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/DangerZone.page",
-			Title: "Danger Zone · Site Settings",
+			Title: i18n.T(c, "admin.title.dangerzone"),
 			Data: web.Map{
 				"isOwner":             c.User().ID == owner.ID,
 				"scheduledDeletionAt": c.Tenant().ScheduledDeletionAt,
@@ -69,7 +70,7 @@ func RequestTenantDeletion() web.HandlerFunc {
 			return c.BadRequest(web.Map{})
 		}
 		if input.Subdomain != c.Tenant().Subdomain {
-			return c.BadRequest(web.Map{"message": "The subdomain you entered does not match this site."})
+			return c.BadRequest(web.Map{"message": i18n.T(c, "validation.admin.deletion.subdomain")})
 		}
 
 		cancelKey := rand.String(64)

@@ -1,5 +1,6 @@
 import "./WebhookForm.scss"
 
+import { i18n } from "@lingui/core"
 import React, { useEffect, useState } from "react"
 import { Button, Field, Form, Input, Loader, Message, Select, SelectOption, TextArea, Toggle } from "@fider/components"
 import { actions, Failure } from "@fider/services"
@@ -40,7 +41,7 @@ const HttpHeader = (props: HttpHeaderProps) => {
         }}
         disabled={duplicate || header.length === 0 || value.length === 0}
       >
-        Add
+        {i18n._({ id: "admin.webhooks.header.add", message: "Add" })}
       </Button>
     ) : (
       <Button
@@ -51,16 +52,16 @@ const HttpHeader = (props: HttpHeaderProps) => {
         }}
         disabled={value.length === 0}
       >
-        Save
+        {i18n._({ id: "admin.webhooks.save", message: "Save" })}
       </Button>
     )
   ) : (
     <>
       <Button variant="secondary" onClick={() => setEditing(true)}>
-        Edit
+        {i18n._({ id: "admin.webhooks.edit", message: "Edit" })}
       </Button>
       <Button variant="danger" onClick={() => props.onRemove && props.onRemove(header)}>
-        Remove
+        {i18n._({ id: "admin.webhooks.header.remove", message: "Remove" })}
       </Button>
     </>
   )
@@ -71,11 +72,18 @@ const HttpHeader = (props: HttpHeaderProps) => {
         field={`header-${header}`}
         value={header}
         onChange={setHeader}
-        placeholder="Header"
+        placeholder={i18n._({ id: "admin.webhooks.header.name", message: "Header" })}
         disabled={props.onRemove !== undefined}
-        suffix={duplicate ? "Duplicate" : undefined}
+        suffix={duplicate ? i18n._({ id: "admin.webhooks.header.duplicate", message: "Duplicate" }) : undefined}
       />
-      <Input field={`value-${header}`} value={value} onChange={setValue} placeholder="Value" disabled={!editing} suffix={suffix} />
+      <Input
+        field={`value-${header}`}
+        value={value}
+        onChange={setValue}
+        placeholder={i18n._({ id: "admin.webhooks.header.value", message: "Value" })}
+        disabled={!editing}
+        suffix={suffix}
+      />
     </HStack>
   )
 }
@@ -144,37 +152,52 @@ export const WebhookForm = (props: WebhookFormProps) => {
   const hideModal = () => setIsModalOpen(false)
 
   const allHeaders = Object.keys(httpHeaders)
-  const title = props.webhook ? `Webhook #${props.webhook.id}: ${props.webhook.name}` : "New webhook"
+  const title = props.webhook ? `Webhook #${props.webhook.id}: ${props.webhook.name}` : i18n._({ id: "admin.webhooks.new", message: "New webhook" })
   return (
     <>
       {status === WebhookStatus.FAILED && (
         <Message type="error" showIcon>
-          This webhook has failed
+          {i18n._({ id: "admin.webhooks.failed", message: "This webhook has failed" })}
         </Message>
       )}
       <h2 className="text-title mb-4">{title}</h2>
       <Form className="c-webhook-form" error={error}>
-        <Input field="name" label="Name" value={name} onChange={setName} placeholder="My awesome webhook" />
+        <Input
+          field="name"
+          label={i18n._({ id: "admin.webhooks.name", message: "Name" })}
+          value={name}
+          onChange={setName}
+          placeholder={i18n._({ id: "admin.webhooks.name.placeholder", message: "My awesome webhook" })}
+        />
         <Select
-          label="Type"
+          label={i18n._({ id: "admin.webhooks.type", message: "Type" })}
           field="type"
           defaultValue={type}
           options={[
-            { label: "New Post", value: WebhookType.NEW_POST },
-            { label: "New Comment", value: WebhookType.NEW_COMMENT },
-            { label: "Change Status", value: WebhookType.CHANGE_STATUS },
-            { label: "Delete Post", value: WebhookType.DELETE_POST },
+            { label: i18n._({ id: "admin.webhooks.event.newpost", message: "New Post" }), value: WebhookType.NEW_POST },
+            { label: i18n._({ id: "admin.webhooks.event.newcomment", message: "New Comment" }), value: WebhookType.NEW_COMMENT },
+            { label: i18n._({ id: "admin.webhooks.event.changestatus", message: "Change Status" }), value: WebhookType.CHANGE_STATUS },
+            { label: i18n._({ id: "admin.webhooks.event.deletepost", message: "Delete Post" }), value: WebhookType.DELETE_POST },
           ]}
           onChange={setType}
         />
-        <Field label="Enabled">
+        <Field label={i18n._({ id: "admin.webhooks.enabled.label", message: "Enabled" })}>
           <Toggle active={status === WebhookStatus.ENABLED} onToggle={setStatus} />
-          {status === WebhookStatus.FAILED && <p className="text-muted mt-1">This webhook was disabled due to a trigger failure</p>}
+          {status === WebhookStatus.FAILED && (
+            <p className="text-muted mt-1">
+              {i18n._({ id: "admin.webhooks.disabled.failure", message: "This webhook was disabled due to a trigger failure" })}
+            </p>
+          )}
         </Field>
         <Input
           field="url"
-          label="URL"
-          afterLabel={<HoverInfo text="You can use Go template formatting with many properties here" onClick={showModal} />}
+          label={i18n._({ id: "admin.webhooks.url", message: "URL" })}
+          afterLabel={
+            <HoverInfo
+              text={i18n._({ id: "admin.webhooks.template.hint", message: "You can use Go template formatting with many properties here" })}
+              onClick={showModal}
+            />
+          }
           value={url}
           onChange={setUrl}
           placeholder="https://webhook.site/..."
@@ -182,14 +205,30 @@ export const WebhookForm = (props: WebhookFormProps) => {
         <TextArea
           className="c-webhook-form__content"
           field="content"
-          label="Content"
-          afterLabel={<HoverInfo text="You can use Go template formatting with many properties here" onClick={showModal} />}
+          label={i18n._({ id: "admin.webhooks.content", message: "Content" })}
+          afterLabel={
+            <HoverInfo
+              text={i18n._({ id: "admin.webhooks.template.hint", message: "You can use Go template formatting with many properties here" })}
+              onClick={showModal}
+            />
+          }
           value={content}
           onChange={setContent}
-          placeholder="Request body"
+          placeholder={i18n._({ id: "admin.webhooks.content.placeholder", message: "Request body" })}
         />
-        <Input field="http_method" label="HTTP Method" value={httpMethod} onChange={setHttpMethod} placeholder="POST" />
-        <Field label="HTTP Headers" afterLabel={<HoverInfo text="Those headers are sent in the request when the webhook is triggered" />}>
+        <Input
+          field="http_method"
+          label={i18n._({ id: "admin.webhooks.method", message: "HTTP Method" })}
+          value={httpMethod}
+          onChange={setHttpMethod}
+          placeholder="POST"
+        />
+        <Field
+          label={i18n._({ id: "admin.webhooks.headers", message: "HTTP Headers" })}
+          afterLabel={
+            <HoverInfo text={i18n._({ id: "admin.webhooks.headers.help", message: "Those headers are sent in the request when the webhook is triggered" })} />
+          }
+        >
           <VStack spacing={0}>
             {Object.entries(httpHeaders).map(([header, value]) => (
               <HttpHeader key={header} header={header} value={value} onEdit={setHttpHeader} onRemove={removeHttpHeader} />
@@ -198,23 +237,23 @@ export const WebhookForm = (props: WebhookFormProps) => {
           </VStack>
         </Field>
         {(url || content) && (
-          <Field label="Preview" className="c-webhook-form__preview">
+          <Field label={i18n._({ id: "admin.webhooks.preview", message: "Preview" })} className="c-webhook-form__preview">
             {preview === null ? (
-              <p className="text-muted">Failed to load preview</p>
+              <p className="text-muted">{i18n._({ id: "admin.webhooks.preview.failed", message: "Failed to load preview" })}</p>
             ) : preview === undefined ? (
-              <Loader className="text-center" text="Loading preview" />
+              <Loader className="text-center" text={i18n._({ id: "admin.webhooks.preview.loading", message: "Loading preview" })} />
             ) : (
               <VStack className="bg-gray-50 rounded-md p-2" spacing={2}>
                 {url && (
                   <div>
-                    <h3 className="text-bold mb-1">URL</h3>
+                    <h3 className="text-bold mb-1">{i18n._({ id: "admin.webhooks.url", message: "URL" })}</h3>
                     <pre>{preview.url.value ? preview.url.value : preview.url.error}</pre>
                     {preview.url.message && <p className="text-muted">{preview.url.message}</p>}
                   </div>
                 )}
                 {content && (
                   <div>
-                    <h3 className="text-bold mb-1">Content</h3>
+                    <h3 className="text-bold mb-1">{i18n._({ id: "admin.webhooks.content", message: "Content" })}</h3>
                     <pre>{preview.content.value ? preview.content.value : preview.content.error}</pre>
                     {preview.content.message && <p className="text-muted">{preview.content.message}</p>}
                   </div>
@@ -225,10 +264,10 @@ export const WebhookForm = (props: WebhookFormProps) => {
         )}
         <HStack>
           <Button variant="primary" onClick={handleSave}>
-            Save
+            {i18n._({ id: "admin.webhooks.save", message: "Save" })}
           </Button>
           <Button onClick={handleCancel} variant="tertiary">
-            Cancel
+            {i18n._({ id: "admin.webhooks.cancel", message: "Cancel" })}
           </Button>
         </HStack>
       </Form>

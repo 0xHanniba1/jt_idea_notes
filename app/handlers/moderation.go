@@ -5,6 +5,7 @@ import (
 
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 )
 
@@ -13,7 +14,7 @@ func ModerationPage() web.HandlerFunc {
 	return func(c *web.Context) error {
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/ContentModeration.page",
-			Title: "Moderation · Site Settings",
+			Title: i18n.T(c, "admin.title.moderation"),
 		})
 	}
 }
