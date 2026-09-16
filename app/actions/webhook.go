@@ -6,6 +6,7 @@ import (
 	"github.com/getfider/fider/app/models/entity"
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/validate"
 )
 
@@ -29,35 +30,35 @@ func (action *CreateEditWebhook) Validate(ctx context.Context, _ *entity.User) *
 	result := validate.Success()
 
 	if action.Name == "" {
-		result.AddFieldFailure("name", "Name is required.")
+		result.AddFieldFailure("name", i18n.T(ctx, "admin.webhooks.validation.name.required"))
 	} else if len(action.Name) > 60 {
-		result.AddFieldFailure("name", "Name must have less than 60 characters.")
+		result.AddFieldFailure("name", i18n.T(ctx, "admin.webhooks.validation.name.length"))
 	}
 
 	if action.Type == 0 {
-		result.AddFieldFailure("type", "Type is required.")
+		result.AddFieldFailure("type", i18n.T(ctx, "admin.webhooks.validation.type.required"))
 	} else if action.Type != enum.WebhookNewPost &&
 		action.Type != enum.WebhookNewComment &&
 		action.Type != enum.WebhookChangeStatus &&
 		action.Type != enum.WebhookDeletePost {
-		result.AddFieldFailure("type", "Type must be valid.")
+		result.AddFieldFailure("type", i18n.T(ctx, "admin.webhooks.validation.type.invalid"))
 	}
 
 	if action.Status == 0 {
-		result.AddFieldFailure("status", "Status is required.")
+		result.AddFieldFailure("status", i18n.T(ctx, "admin.webhooks.validation.status.required"))
 	}
 
 	runCompileCheck := action.Status == enum.WebhookEnabled
 	if action.Url == "" {
-		result.AddFieldFailure("url", "URL template is required.")
+		result.AddFieldFailure("url", i18n.T(ctx, "admin.webhooks.validation.url.required"))
 		runCompileCheck = false
 	} else if len(action.Url) > 1_000 {
-		result.AddFieldFailure("url", "URL template must have less than 1 000 characters.")
+		result.AddFieldFailure("url", i18n.T(ctx, "admin.webhooks.validation.url.length"))
 		runCompileCheck = false
 	}
 
 	if len(action.Content) > 100_000 {
-		result.AddFieldFailure("content", "Content template must have less than 100 000 characters.")
+		result.AddFieldFailure("content", i18n.T(ctx, "admin.webhooks.validation.content.template.length"))
 		runCompileCheck = false
 	}
 
@@ -72,37 +73,37 @@ func (action *CreateEditWebhook) Validate(ctx context.Context, _ *entity.User) *
 		}
 
 		if previewWebhook.Result.Url.Error != "" {
-			result.AddFieldFailure("url", "URL template must compile to enable the Webhook.")
-		} else if messages := validate.WebhookURL(previewWebhook.Result.Url.Value); len(messages) > 0 {
+			result.AddFieldFailure("url", i18n.T(ctx, "admin.webhooks.validation.url.compile"))
+		} else if messages := validate.WebhookURLLocalized(ctx, previewWebhook.Result.Url.Value); len(messages) > 0 {
 			result.AddFieldFailure("url", messages...)
 		}
 
 		if previewWebhook.Result.Content.Error != "" {
-			result.AddFieldFailure("content", "Content template must compile to enable the Webhook.")
+			result.AddFieldFailure("content", i18n.T(ctx, "admin.webhooks.validation.content.compile"))
 		}
 	}
 
 	if action.HttpMethod == "" {
-		result.AddFieldFailure("http_method", "HTTP Method is required.")
+		result.AddFieldFailure("http_method", i18n.T(ctx, "admin.webhooks.validation.method.required"))
 	} else if len(action.HttpMethod) > 50 {
-		result.AddFieldFailure("http_method", "HTTP Method must have less than 50 characters.")
+		result.AddFieldFailure("http_method", i18n.T(ctx, "admin.webhooks.validation.method.length"))
 	}
 
 	if len(action.Content) > 10_000 {
-		result.AddFieldFailure("content", "Content must have less than 10 000 characters.")
+		result.AddFieldFailure("content", i18n.T(ctx, "admin.webhooks.validation.content.length"))
 	}
 
 	for header, value := range action.HttpHeaders {
 		if header == "" {
-			result.AddFieldFailure("header-"+header, "HTTP Header Name is required.")
+			result.AddFieldFailure("header-"+header, i18n.T(ctx, "admin.webhooks.validation.header.name.required"))
 		} else if len(header) > 200 {
-			result.AddFieldFailure("header-"+header, "HTTP Header Name must have less than 200 characters.")
+			result.AddFieldFailure("header-"+header, i18n.T(ctx, "admin.webhooks.validation.header.name.length"))
 		}
 
 		if value == "" {
-			result.AddFieldFailure("value-"+header, "HTTP Header Value is required.")
+			result.AddFieldFailure("value-"+header, i18n.T(ctx, "admin.webhooks.validation.header.value.required"))
 		} else if len(value) > 1_000 {
-			result.AddFieldFailure("value-"+header, "HTTP Header Value must have less than 1 000 characters.")
+			result.AddFieldFailure("value-"+header, i18n.T(ctx, "admin.webhooks.validation.header.value.length"))
 		}
 	}
 
@@ -121,16 +122,16 @@ func (action *PreviewWebhook) IsAuthorized(_ context.Context, user *entity.User)
 }
 
 // Validate if current model is valid
-func (action *PreviewWebhook) Validate(context.Context, *entity.User) *validate.Result {
+func (action *PreviewWebhook) Validate(ctx context.Context, _ *entity.User) *validate.Result {
 	result := validate.Success()
 
 	if action.Type == 0 {
-		result.AddFieldFailure("type", "Type is required.")
+		result.AddFieldFailure("type", i18n.T(ctx, "admin.webhooks.validation.type.required"))
 	} else if action.Type != enum.WebhookNewPost &&
 		action.Type != enum.WebhookNewComment &&
 		action.Type != enum.WebhookChangeStatus &&
 		action.Type != enum.WebhookDeletePost {
-		result.AddFieldFailure("type", "Type must be valid.")
+		result.AddFieldFailure("type", i18n.T(ctx, "admin.webhooks.validation.type.invalid"))
 	}
 
 	return result

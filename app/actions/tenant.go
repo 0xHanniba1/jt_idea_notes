@@ -233,27 +233,27 @@ func (action *UpdateTenantSettings) Validate(ctx context.Context, user *entity.U
 	result.AddFieldFailure("logo", messages...)
 
 	if action.Title == "" {
-		result.AddFieldFailure("title", "Title is required.")
+		result.AddFieldFailure("title", i18n.T(ctx, "validation.admin.title.required"))
 	}
 
 	if len(action.Title) > 60 {
-		result.AddFieldFailure("title", "Title must have less than 60 characters.")
+		result.AddFieldFailure("title", i18n.T(ctx, "validation.admin.title.maxbytes"))
 	}
 
 	if len(action.Invitation) > 60 {
-		result.AddFieldFailure("invitation", "Invitation must have less than 60 characters.")
+		result.AddFieldFailure("invitation", i18n.T(ctx, "validation.admin.invitation.maxbytes"))
 	}
 
 	if len(action.WelcomeHeader) > 100 {
-		result.AddFieldFailure("welcomeHeader", "Welcome Header must have less than 100 characters.")
+		result.AddFieldFailure("welcomeHeader", i18n.T(ctx, "validation.admin.welcomeheader.maxbytes"))
 	}
 
 	if len(action.DescriptionTemplate) > 2000 {
-		result.AddFieldFailure("descriptionTemplate", "Idea Template must have less than 2000 characters.")
+		result.AddFieldFailure("descriptionTemplate", i18n.T(ctx, "validation.admin.descriptiontemplate.maxbytes"))
 	}
 
 	if !i18n.IsValidLocale(action.Locale) {
-		result.AddFieldFailure("locale", "Locale is invalid.")
+		result.AddFieldFailure("locale", i18n.T(ctx, "validation.admin.locale.invalid"))
 	}
 
 	if action.CNAME != "" {
@@ -295,7 +295,7 @@ func (action *UpdateTenantPrivacySettings) IsAuthorized(ctx context.Context, use
 // Validate if current model is valid
 func (action *UpdateTenantPrivacySettings) Validate(ctx context.Context, user *entity.User) *validate.Result {
 	if action.IsPrivate && action.IsFeedEnabled {
-		return validate.Failed("Feed can not be enabled when set to private.")
+		return validate.Failed(i18n.T(ctx, "validation.admin.feed.private"))
 	}
 	return validate.Success()
 }
@@ -316,11 +316,11 @@ func (action *UpdateTenantEmailAuthAllowed) Validate(ctx context.Context, user *
 
 	activeProviders := &query.ListActiveOAuthProviders{}
 	if err := bus.Dispatch(ctx, activeProviders); err != nil {
-		return validate.Failed("Cannot retrieve OAuth providers")
+		return validate.Failed(i18n.T(ctx, "validation.admin.oauth.retrievefailed"))
 	}
 
 	if len(activeProviders.Result) == 0 {
-		result.AddFieldFailure("isEmailAuthAllowed", "You cannot disable email authentication without any other provider enabled.")
+		result.AddFieldFailure("isEmailAuthAllowed", i18n.T(ctx, "validation.admin.emailauth.lastprovider"))
 	}
 
 	return result

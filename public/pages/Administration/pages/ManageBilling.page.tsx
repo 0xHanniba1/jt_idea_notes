@@ -1,3 +1,5 @@
+import { i18n } from "@lingui/core"
+import { Trans } from "@lingui/react/macro"
 import React, { useState } from "react"
 import { Button, Icon } from "@fider/components"
 import { HStack, VStack } from "@fider/components/layout"
@@ -51,7 +53,11 @@ const PlanCard = (props: PlanCardProps) => {
       <VStack spacing={4}>
         <HStack justify="between" align="center">
           <span className={`text-title ${textColor}`}>{props.name}</span>
-          {props.isCurrent && <span className="text-xs text-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">CURRENT</span>}
+          {props.isCurrent && (
+            <span className="text-xs text-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">
+              <Trans id="admin.billing.currentbadge">Current</Trans>
+            </span>
+          )}
         </HStack>
 
         <div className="flex flex-items-baseline">
@@ -69,10 +75,14 @@ const PlanCard = (props: PlanCardProps) => {
 
         {showButton && (
           <Button variant={props.buttonVariant} onClick={props.onButtonClick} disabled={props.isLoading}>
-            {props.isLoading ? "Loading..." : props.buttonText}
+            {props.isLoading ? i18n._({ id: "admin.billing.loading", message: "Loading..." }) : props.buttonText}
           </Button>
         )}
-        {showCurrentLabel && <div className="text-center py-2 px-4 text-sm text-medium text-gray-500 bg-gray-200 rounded-md">Current Plan</div>}
+        {showCurrentLabel && (
+          <div className="text-center py-2 px-4 text-sm text-medium text-gray-500 bg-gray-200 rounded-md">
+            <Trans id="admin.billing.currentplan">Current plan</Trans>
+          </div>
+        )}
         {!showButton && !showCurrentLabel && <div className="py-2 px-4 text-sm">&nbsp;</div>}
 
         <VStack spacing={2} className={`pt-4 border-t c-plan-card__light ${props.isHighlighted ? "border-gray-700" : "border-gray-200 text-gray-700"}`}>
@@ -105,10 +115,14 @@ const PaddleMigrationBanner = () => {
       <HStack spacing={2} align="start">
         <Icon sprite={IconInfo} className="text-blue-600 flex-shrink-0 mt-0.5" height="20" />
         <VStack spacing={1}>
-          <p className="text-sm text-gray-900 text-medium">Migration to Stripe Billing</p>
+          <p className="text-sm text-gray-900 text-medium">
+            <Trans id="admin.billing.migration.title">Migration to Stripe billing</Trans>
+          </p>
           <p className="text-sm text-gray-700">
-            You&apos;re currently entitled to pro features because of your existing subscription. Switch to our new Stripe billing to manage your subscription
-            and save money.
+            <Trans id="admin.billing.migration.help">
+              Your existing subscription still gives you access to Pro features. Switch to the new Stripe billing system to manage your subscription at the new
+              plan price.
+            </Trans>
           </p>
         </VStack>
       </HStack>
@@ -145,7 +159,12 @@ const ManageBillingPage = (props: ManageBillingPageProps) => {
     }
   }
 
-  const freeFeatures = ["250 suggestions", "Unlimited participants", "Your own subdomain or custom domain", "All core functionality"]
+  const freeFeatures = [
+    i18n._({ id: "admin.billing.feature.records250", message: "250 records" }),
+    i18n._({ id: "admin.billing.feature.participants", message: "Unlimited participants" }),
+    i18n._({ id: "admin.billing.feature.domain", message: "Your own subdomain or custom domain" }),
+    i18n._({ id: "admin.billing.feature.core", message: "All core functionality" }),
+  ]
 
   const startAnnualCheckout = async () => {
     setIsLoading(true)
@@ -158,37 +177,44 @@ const ManageBillingPage = (props: ManageBillingPageProps) => {
   }
 
   const proFeatures: (string | PlanFeature)[] = [
-    "Everything in free",
-    "Unlimited suggestions",
-    "Content moderation",
-    "Search engine indexing",
+    i18n._({ id: "admin.billing.feature.allfree", message: "Everything in Free" }),
+    i18n._({ id: "admin.billing.feature.unlimitedrecords", message: "Unlimited records" }),
+    i18n._({ id: "admin.billing.feature.moderation", message: "Content moderation" }),
+    i18n._({ id: "admin.billing.feature.indexing", message: "Search engine indexing" }),
     {
-      text: "Option to pay annually",
+      text: i18n._({ id: "admin.billing.feature.annual", message: "Option to pay annually" }),
       onClick: startAnnualCheckout,
     },
   ]
 
   const legacyProFeatures: PlanFeature[] = [
-    { text: "Same features as Pro" },
-    { text: "More expensive", isNegative: true },
-    { text: "Billing management not supported", isNegative: true },
+    { text: i18n._({ id: "admin.billing.feature.samepro", message: "Same features as Pro" }) },
+    { text: i18n._({ id: "admin.billing.feature.legacycost", message: "More expensive" }), isNegative: true },
+    { text: i18n._({ id: "admin.billing.feature.legacyportal", message: "Billing management not supported" }), isNegative: true },
   ]
 
   return (
-    <AdminPageContainer id="p-admin-billing" name="billing" title="Billing" subtitle="Manage your subscription and billing">
-      <p>Fider is free forever. But if you need advanced features and support, consider upgrading to Pro.</p>
+    <AdminPageContainer
+      id="p-admin-billing"
+      name="billing"
+      title={i18n._({ id: "admin.billing.title", message: "Billing" })}
+      subtitle={i18n._({ id: "admin.billing.subtitle", message: "Manage your subscription and billing" })}
+    >
+      <p>
+        <Trans id="admin.billing.intro">The Free plan has no time limit. Upgrade to Pro if you need advanced features and support.</Trans>
+      </p>
 
       {isPaddleCustomer && <PaddleMigrationBanner />}
 
       <div className="c-billing-plans">
         <PlanCard
-          name="Free"
+          name={i18n._({ id: "admin.billing.plan.free", message: "Free" })}
           price="$0"
-          period="month"
-          description="Perfect for getting started with feedback collection."
+          period={i18n._({ id: "admin.billing.period.month", message: "month" })}
+          description={i18n._({ id: "admin.billing.plan.free.description", message: "For getting started with feedback collection." })}
           features={freeFeatures}
           isCurrent={!displayAsPro && !isPaddleCustomer}
-          buttonText="Downgrade"
+          buttonText={i18n._({ id: "admin.billing.downgrade", message: "Downgrade" })}
           buttonVariant="secondary"
           onButtonClick={displayAsPro ? openPortal : undefined}
           isLoading={isLoading && displayAsPro}
@@ -196,25 +222,31 @@ const ManageBillingPage = (props: ManageBillingPageProps) => {
 
         {isPaddleCustomer && (
           <PlanCard
-            name="Legacy Pro"
-            description="Your current plan from our previous billing system."
+            name={i18n._({ id: "admin.billing.plan.legacy", message: "Legacy Pro" })}
+            description={i18n._({ id: "admin.billing.plan.legacy.description", message: "Your current plan from our previous billing system." })}
             features={legacyProFeatures}
             isCurrent={true}
-            buttonText="Current Plan"
+            buttonText={i18n._({ id: "admin.billing.currentplan", message: "Current plan" })}
             buttonVariant="secondary"
             isLoading={false}
           />
         )}
 
         <PlanCard
-          name="Pro"
+          name={i18n._({ id: "admin.billing.plan.pro", message: "Pro" })}
           price="$25"
-          period="month"
-          description="For teams that need advanced features and support."
+          period={i18n._({ id: "admin.billing.period.month", message: "month" })}
+          description={i18n._({ id: "admin.billing.plan.pro.description", message: "For teams that need advanced features and support." })}
           features={proFeatures}
           isCurrent={displayAsPro}
           isHighlighted={true}
-          buttonText={displayAsPro ? "Manage Billing" : isPaddleCustomer ? "Switch to new Pro Plan" : "Upgrade to Pro"}
+          buttonText={
+            displayAsPro
+              ? i18n._({ id: "admin.billing.manage", message: "Manage billing" })
+              : isPaddleCustomer
+              ? i18n._({ id: "admin.billing.switch", message: "Switch to the new Pro plan" })
+              : i18n._({ id: "admin.billing.upgrade", message: "Upgrade to Pro" })
+          }
           buttonVariant="primary"
           onButtonClick={displayAsPro ? openPortal : startCheckout}
           isLoading={isLoading}

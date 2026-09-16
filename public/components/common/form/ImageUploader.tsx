@@ -49,7 +49,7 @@ export class ImageUploader extends React.Component<ImageUploaderProps, ImageUplo
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       if (file.size > hardFileSizeLimit) {
-        alert("The image size must be smaller than 5MB.")
+        alert(i18n._({ id: "imageupload.fileTooLarge", message: "Images must be no larger than 5 MB." }))
         return
       }
 
@@ -124,7 +124,7 @@ export class ImageUploader extends React.Component<ImageUploaderProps, ImageUplo
 
         <Modal.Footer>
           <Button variant="tertiary" onClick={this.closeModal}>
-            Close
+            {i18n._({ id: "action.close", message: "Close" })}
           </Button>
         </Modal.Footer>
       </Modal.Window>

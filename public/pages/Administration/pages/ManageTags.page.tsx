@@ -1,5 +1,7 @@
 import "./ManageTags.page.scss"
 
+import { i18n } from "@lingui/core"
+import { Trans } from "@lingui/react/macro"
 import React from "react"
 import { Button, Icon } from "@fider/components"
 
@@ -43,8 +45,8 @@ const tagSorter = (t1: Tag, t2: Tag) => {
 export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, ManageTagsPageState> {
   public id = "p-admin-tags"
   public name = "tags"
-  public title = "Tags"
-  public subtitle = "Manage your site tags"
+  public title = i18n._({ id: "admin.tags.title", message: "Tags" })
+  public subtitle = i18n._({ id: "admin.tags.subtitle", message: "Manage your site tags" })
 
   constructor(props: ManageTagsPageProps) {
     super(props)
@@ -109,12 +111,12 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
       try {
         parsed = JSON.parse(text)
       } catch {
-        this.setState({ importStatus: "error", importError: "Invalid JSON file." })
+        this.setState({ importStatus: "error", importError: i18n._({ id: "admin.tags.invalidjson", message: "Invalid JSON file." }) })
         return
       }
 
       if (!Array.isArray(parsed)) {
-        this.setState({ importStatus: "error", importError: "JSON must be an array of tags." })
+        this.setState({ importStatus: "error", importError: i18n._({ id: "admin.tags.arrayrequired", message: "JSON must be an array of tags." }) })
         return
       }
 
@@ -123,10 +125,13 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
         // Reload newly-created tags by merging them in (simplest: re-fetch via reload)
         this.setState({ importStatus: "success", importResult: result.data })
       } else {
-        this.setState({ importStatus: "error", importError: "Import failed. Please check the file format." })
+        this.setState({
+          importStatus: "error",
+          importError: i18n._({ id: "admin.tags.importfailed", message: "Import failed. Please check the file format." }),
+        })
       }
     } catch {
-      this.setState({ importStatus: "error", importError: "An unexpected error occurred." })
+      this.setState({ importStatus: "error", importError: i18n._({ id: "admin.tags.unexpected", message: "An unexpected error occurred." }) })
     }
 
     // Reset the file input so the same file can be selected again
@@ -146,26 +151,28 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
         ) : (
           <Button variant="tertiary" onClick={this.addNew}>
             <Icon sprite={IconPlus} />
-            <span>Add new tag</span>
+            <span>{i18n._({ id: "admin.tags.add", message: "Add new tag" })}</span>
           </Button>
         )}
       </div>
     )
 
     const { importStatus, importResult, importError } = this.state
+    const created = importResult?.created
+    const skipped = importResult?.skipped
 
     return (
       <VStack spacing={8}>
         <VStack className="rounded-md border border-gray-200 relative">
           <div className="c-tag-row c-tag-row--header grid rounded-md-t gap-4 py-3 px-4 bg-gray-100 text-category" style={{ gridTemplateColumns }}>
-            <div>Tag</div>
-            <div>Visibility</div>
+            <div>{i18n._({ id: "admin.tags.tag", message: "Tag" })}</div>
+            <div>{i18n._({ id: "admin.tags.visibility", message: "Visibility" })}</div>
             <div></div>
           </div>
           <div>
             {tags.length === 0 ? (
               <div className={`py-4 px-4 bg-white text-muted ${lastTagIsLast ? "rounded-md-b" : "border-b border-gray-200"}`}>
-                There aren&apos;t any tags yet.
+                {i18n._({ id: "admin.tags.empty", message: "There aren't any tags yet." })}
               </div>
             ) : (
               tags.map((tag, index) => (
@@ -185,15 +192,17 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
 
         {Fider.session.user.isAdministrator && (
           <div className="mt-4">
-            <h2 className="text-display">Import &amp; Export Tags</h2>
+            <h2 className="text-display">{i18n._({ id: "admin.tags.importexport", message: "Import & Export Tags" })}</h2>
             <p className="text-muted">
-              Download all your tags as a JSON file, or upload a <code>tags.json</code> file to restore or add tags. Existing tags with the same name will be
-              skipped.
+              <Trans id="admin.tags.importexport.help">
+                Download all your tags as a JSON file, or upload a <code>tags.json</code> file to restore or add tags. Existing tags with the same name will be
+                skipped.
+              </Trans>
             </p>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" href="/admin/export/tags.json">
                 <Icon sprite={IconDownload} />
-                <span>Export tags.json</span>
+                <span>{i18n._({ id: "admin.tags.export", message: "Export tags.json" })}</span>
               </Button>
               <label>
                 <input
@@ -206,14 +215,20 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
                 />
                 <Button variant="secondary" onClick={() => document.getElementById("tags-import-input")?.click()} disabled={importStatus === "loading"}>
                   <Icon sprite={IconUpload} />
-                  <span>{importStatus === "loading" ? "Importing…" : "Import tags.json"}</span>
+                  <span>
+                    {importStatus === "loading"
+                      ? i18n._({ id: "admin.tags.importing", message: "Importing\u2026" })
+                      : i18n._({ id: "admin.tags.import", message: "Import tags.json" })}
+                  </span>
                 </Button>
               </label>
             </div>
 
             {importStatus === "success" && importResult && (
               <div className="mt-2 text-green-700">
-                ✓ Import complete — <strong>{importResult.created}</strong> tag(s) created, <strong>{importResult.skipped}</strong> skipped.
+                <Trans id="admin.tags.importcomplete">
+                  Import complete: <strong>{created}</strong> tag(s) created, <strong>{skipped}</strong> skipped.
+                </Trans>
                 {importResult.errors && importResult.errors.length > 0 && (
                   <ul className="mt-1 text-red-600 text-sm list-disc list-inside">
                     {importResult.errors.map((e, i) => (

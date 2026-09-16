@@ -164,14 +164,10 @@ func routes(r *web.Engine) *web.Engine {
 		// From this step, only Collaborators and Administrators are allowed
 		ui.Use(middlewares.IsAuthorized(enum.RoleCollaborator, enum.RoleAdministrator))
 
-		// locale is forced to English for administrative pages.
-		// This is meant to be removed when all pages are translated.
-		ui.Use(middlewares.SetLocale("en"))
-
 		ui.Get("/admin", handlers.GeneralSettingsPage())
 		ui.Get("/admin/advanced", handlers.AdvancedSettingsPage())
-		ui.Get("/admin/privacy", handlers.Page("Privacy · Site Settings", "", "Administration/pages/PrivacySettings.page"))
-		ui.Get("/admin/invitations", handlers.Page("Invitations · Site Settings", "", "Administration/pages/Invitations.page"))
+		ui.Get("/admin/privacy", handlers.AdminPage("admin.title.privacy", "Administration/pages/PrivacySettings.page"))
+		ui.Get("/admin/invitations", handlers.AdminPage("admin.title.invitations", "Administration/pages/Invitations.page"))
 		ui.Get("/admin/users", handlers.ManageMembers())
 		ui.Get("/admin/tags", handlers.ManageTags())
 		ui.Get("/admin/authentication", handlers.ManageAuthentication())
@@ -195,7 +191,7 @@ func routes(r *web.Engine) *web.Engine {
 			ui.Post("/_api/admin/tenant/cancel-deletion", handlers.CancelTenantDeletionByOwner())
 		}
 
-		ui.Get("/admin/export", handlers.Page("Export · Site Settings", "", "Administration/pages/Export.page"))
+		ui.Get("/admin/export", handlers.AdminPage("admin.title.export", "Administration/pages/Export.page"))
 		ui.Get("/admin/export/posts.csv", handlers.ExportPostsToCSV())
 		ui.Get("/admin/export/backup.zip", handlers.ExportBackupZip())
 		ui.Get("/admin/export/tags.json", handlers.ExportTagsJSON())
@@ -273,7 +269,6 @@ func routes(r *web.Engine) *web.Engine {
 	// Available to both collaborators and administrators
 	staffApi := r.Group()
 	{
-		staffApi.Use(middlewares.SetLocale("en"))
 		staffApi.Use(middlewares.IsAuthenticated())
 		staffApi.Use(middlewares.IsAuthorized(enum.RoleCollaborator, enum.RoleAdministrator))
 
@@ -290,7 +285,6 @@ func routes(r *web.Engine) *web.Engine {
 	// Only available to administrators
 	adminApi := r.Group()
 	{
-		adminApi.Use(middlewares.SetLocale("en"))
 		adminApi.Use(middlewares.IsAuthenticated())
 		adminApi.Use(middlewares.IsAuthorized(enum.RoleAdministrator))
 

@@ -1,5 +1,6 @@
 import "./WebhookProperties.scss"
 
+import { i18n } from "@lingui/core"
 import React from "react"
 
 import { HStack, VStack } from "@fider/components/layout"
@@ -27,7 +28,7 @@ const Property = (props: PropertyProps) => {
       </VStack>
     )
 
-  if (props.value === "") return grayValText("empty")
+  if (props.value === "") return grayValText(i18n._({ id: "admin.webhooks.property.empty", message: "empty" }))
   if (props.value === null) return grayValText("null")
   if (props.value === undefined) return grayValText("undefined")
   if (props.value === true) return <span className="c-webhook-properties__val--green">true</span>
@@ -41,7 +42,13 @@ const Property = (props: PropertyProps) => {
     case "bigint":
       return <span className="c-webhook-properties__val--blue">{props.value}</span>
     case "object":
-      return <WebhookProperties properties={props.value} propsName="Name" valueName="Value" />
+      return (
+        <WebhookProperties
+          properties={props.value}
+          propsName={i18n._({ id: "admin.webhooks.property.name", message: "Property name" })}
+          valueName={i18n._({ id: "admin.webhooks.property.value", message: "Value" })}
+        />
+      )
     default:
       return props.value
   }

@@ -7,6 +7,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/stripe/stripe-go/v83"
 	portalsession "github.com/stripe/stripe-go/v83/billingportal/session"
@@ -23,7 +24,7 @@ func ManageBilling() web.HandlerFunc {
 
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/ManageBilling.page",
-			Title: "Manage Billing · Site Settings",
+			Title: i18n.T(c, "admin.title.billing"),
 			Data: web.Map{
 				"stripeCustomerID":     billingState.Result.CustomerID,
 				"stripeSubscriptionID": billingState.Result.SubscriptionID,
@@ -43,7 +44,7 @@ func CreateStripePortalSession() web.HandlerFunc {
 		}
 
 		if billingState.Result.CustomerID == "" {
-			return c.BadRequest(web.Map{"message": "No Stripe customer found"})
+			return c.BadRequest(web.Map{"message": i18n.T(c, "validation.admin.billing.nocustomer")})
 		}
 
 		stripe.Key = env.Config.Stripe.SecretKey
@@ -94,7 +95,7 @@ func createCheckoutSession(c *web.Context, priceID string) error {
 		},
 		CustomText: &stripe.CheckoutSessionCustomTextParams{
 			Submit: &stripe.CheckoutSessionCustomTextSubmitParams{
-				Message: stripe.String("By submitting, you'll be subscribed to Pro at the price shown on the previous page. Your subscription starts immediately."),
+				Message: stripe.String(i18n.T(c, "admin.billing.checkout.confirmation")),
 			},
 		},
 	}

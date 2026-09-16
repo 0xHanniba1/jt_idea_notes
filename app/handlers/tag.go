@@ -5,6 +5,7 @@ import (
 
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 )
 
@@ -18,7 +19,7 @@ func ManageTags() web.HandlerFunc {
 
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/ManageTags.page",
-			Title: "Manage Tags · Site Settings",
+			Title: i18n.T(c, "admin.title.tags"),
 			Data: web.Map{
 				"tags": getAllTags.Result,
 			},

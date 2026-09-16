@@ -1,3 +1,6 @@
+import { t } from "@lingui/core/macro"
+import { Trans } from "@lingui/react/macro"
+
 import React from "react"
 
 import { Button, OAuthProviderLogo, Icon, Field, Toggle, Form } from "@fider/components"
@@ -26,8 +29,8 @@ interface ManageAuthenticationPageState {
 export default class ManageAuthenticationPage extends AdminBasePage<ManageAuthenticationPageProps, ManageAuthenticationPageState> {
   public id = "p-admin-authentication"
   public name = "authentication"
-  public title = "Authentication"
-  public subtitle = "Manage your site authentication"
+  public title = t({ id: "admin.authentication.title", message: "Authentication" })
+  public subtitle = t({ id: "admin.authentication.subtitle", message: "Manage your site authentication" })
 
   constructor(props: ManageAuthenticationPageProps) {
     super(props)
@@ -47,7 +50,7 @@ export default class ManageAuthenticationPage extends AdminBasePage<ManageAuthen
     if (result.ok) {
       this.setState({ editing: result.data, isAdding: false })
     } else {
-      notify.error("Failed to retrieve OAuth configuration. Try again later")
+      notify.error(t({ id: "admin.authentication.fetchfailed", message: "Failed to retrieve OAuth configuration. Try again later" }))
     }
   }
 
@@ -68,14 +71,14 @@ export default class ManageAuthenticationPage extends AdminBasePage<ManageAuthen
       async () => {
         const response = await actions.updateTenantEmailAuthAllowed(this.state.isEmailAuthAllowed)
         if (response.ok) {
-          notify.success(`You successfully changed email authentication setting.`)
+          notify.success(t({ id: "admin.authentication.emailsaved", message: "You successfully changed email authentication setting." }))
         } else {
           this.setState(
             () => ({
               isEmailAuthAllowed: !active,
               error: response.error,
             }),
-            () => notify.error("Unable to save this setting.")
+            () => notify.error(t({ id: "admin.authentication.savefailed", message: "Unable to save this setting." }))
           )
         }
       }
@@ -107,41 +110,64 @@ export default class ManageAuthenticationPage extends AdminBasePage<ManageAuthen
       return <OAuthForm cantDisable={cantDisable} config={this.state.editing} onCancel={this.cancel} />
     }
 
-    const enabled = <span className="text-green-700">Enabled</span>
-    const disabled = <span className="text-red-700">Disabled</span>
+    const enabled = (
+      <span className="text-green-700">
+        <Trans id="admin.authentication.enabled">Enabled</Trans>
+      </span>
+    )
+    const disabled = (
+      <span className="text-red-700">
+        <Trans id="admin.authentication.disabled">Disabled</Trans>
+      </span>
+    )
 
     return (
       <VStack spacing={8}>
         <div>
-          <h2 className="text-display">General Authentication</h2>
+          <h2 className="text-display">
+            <Trans id="admin.authentication.general">General Authentication</Trans>
+          </h2>
           <Form error={this.state.error} className="mt-4">
-            <Field label="Allow Email Authentication" className="mt-2">
+            <Field label={t({ id: "admin.authentication.allowemail", message: "Allow Email Authentication" })} className="mt-2">
               <Toggle
                 field="isEmailAuthAllowed"
-                label={this.state.isEmailAuthAllowed ? "Yes" : "No"}
+                label={
+                  this.state.isEmailAuthAllowed ? t({ id: "admin.authentication.yes", message: "Yes" }) : t({ id: "admin.authentication.no", message: "No" })
+                }
                 disabled={!Fider.session.user.isAdministrator || !this.state.canDisableEmailAuth}
                 active={this.state.isEmailAuthAllowed}
                 onToggle={this.toggleEmailAuth}
               />
               {!this.state.canDisableEmailAuth && (
-                <p className="text-muted my-1">You need to configure another authentication provider before disabling email authentication.</p>
+                <p className="text-muted my-1">
+                  <Trans id="admin.authentication.requireprovider">
+                    You need to configure another authentication provider before disabling email authentication.
+                  </Trans>
+                </p>
               )}
               <p className="text-muted my-1">
-                When email-based authentication is disabled, users will not be allowed to sign in using their email. Thus, they will be forced to use another
-                authentication provider, such as your preferred OAuth provider.
+                <Trans id="admin.authentication.emailhelp">
+                  When email-based authentication is disabled, users must use another authentication method, such as an OAuth provider, to sign in.
+                </Trans>
               </p>
-              <p className="text-muted mt-1">Note: Administrator accounts will still be allowed to sign in using their email.</p>
+              <p className="text-muted mt-1">
+                <Trans id="admin.authentication.adminemail">Note: Administrator accounts will still be allowed to sign in using their email.</Trans>
+              </p>
             </Field>
           </Form>
         </div>
         <div>
-          <h2 className="text-display">OAuth Providers</h2>
+          <h2 className="text-display">
+            <Trans id="admin.authentication.providers">OAuth Providers</Trans>
+          </h2>
           <p>
-            You can use these section to add any authentication provider thats supports the OAuth2 protocol. Additional information is available in our{" "}
-            <a rel="noopener" className="text-link" target="_blank" href="https://docs.fider.io/configuring-oauth">
-              OAuth Documentation
-            </a>
-            .
+            <Trans id="admin.authentication.providershelp">
+              You can add any authentication provider that supports the OAuth 2.0 protocol. Learn more in the{" "}
+              <a rel="noopener" className="text-link" target="_blank" href="https://docs.fider.io/configuring-oauth">
+                OAuth documentation
+              </a>
+              .
+            </Trans>
           </p>
           <VStack spacing={6}>
             {this.props.providers.map((o) => (
@@ -156,32 +182,50 @@ export default class ManageAuthenticationPage extends AdminBasePage<ManageAuthen
                       <>
                         <Button onClick={this.edit.bind(this, o.provider)} size="small">
                           <Icon sprite={IconPencilAlt} />
-                          <span>Edit</span>
+                          <span>
+                            <Trans id="admin.authentication.edit">Edit</Trans>
+                          </span>
                         </Button>
                         <Button onClick={this.startTest.bind(this, o.provider)} size="small">
                           <Icon sprite={IconPlay} />
-                          <span>Test</span>
+                          <span>
+                            <Trans id="admin.authentication.test">Test</Trans>
+                          </span>
                         </Button>
                       </>
                     )}
                     {!o.isCustomProvider && o.clientID && Fider.session.user.isAdministrator && (
                       <Toggle
                         field={`provider-${o.provider}`}
-                        label={o.isEnabled ? "Enabled" : "Disabled"}
+                        label={
+                          o.isEnabled
+                            ? t({ id: "admin.authentication.enabled", message: "Enabled" })
+                            : t({ id: "admin.authentication.disabled", message: "Disabled" })
+                        }
                         disabled={cantDisable && o.isEnabled}
                         active={o.isEnabled}
                         onToggle={this.toggleSystemProvider.bind(this, o)}
                       />
                     )}
-                    {!o.isCustomProvider && !o.clientID && <span className="text-muted">Not configured</span>}
+                    {!o.isCustomProvider && !o.clientID && (
+                      <span className="text-muted">
+                        <Trans id="admin.authentication.notconfigured">Not configured</Trans>
+                      </span>
+                    )}
                   </HStack>
                 </HStack>
                 {o.isCustomProvider && (
                   <>
                     <div className="text-xs block my-1">{o.isEnabled ? enabled : disabled}</div>
                     <span className="text-muted">
-                      <strong>Client ID:</strong> {o.clientID} <br />
-                      <strong>Callback URL:</strong> {o.callbackURL}
+                      <strong>
+                        <Trans id="admin.authentication.clientid">Client ID:</Trans>
+                      </strong>{" "}
+                      {o.clientID} <br />
+                      <strong>
+                        <Trans id="admin.authentication.callbackurl">Callback URL:</Trans>
+                      </strong>{" "}
+                      {o.callbackURL}
                     </span>
                   </>
                 )}
@@ -190,7 +234,7 @@ export default class ManageAuthenticationPage extends AdminBasePage<ManageAuthen
             <div>
               {Fider.session.user.isAdministrator && (
                 <Button variant="secondary" onClick={this.addNew}>
-                  Add new
+                  <Trans id="admin.authentication.add">Add new</Trans>
                 </Button>
               )}
             </div>

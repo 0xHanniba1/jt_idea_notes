@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro"
 import React from "react"
 import { Icon } from "@fider/components"
 import IconVisa from "@fider/assets/images/cc-visa.svg"
@@ -30,12 +31,15 @@ const brands: { [key: string]: SpriteSymbol } = {
 
 export const CardDetails = (props: CardDetailsProps) => {
   const icon = brands[props.cardType] || IconGeneric
+  const expiryDate = props.expiryDate
 
   return (
     <HStack>
       <Icon sprite={icon} className="h-6" />
       <span>{props.lastFourDigits}</span>
-      <span>Exp. {props.expiryDate}</span>
+      <span>
+        <Trans id="admin.billing.card.expiry">Expires {expiryDate}</Trans>
+      </span>
     </HStack>
   )
 }

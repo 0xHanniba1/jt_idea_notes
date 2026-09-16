@@ -1,5 +1,7 @@
 import "./WebhookListItem.scss"
 
+import { i18n } from "@lingui/core"
+import { Trans } from "@lingui/react/macro"
 import React, { useState } from "react"
 import { Webhook, WebhookStatus, WebhookTriggerResult, WebhookType } from "@fider/models"
 import { Button, Icon } from "@fider/components"
@@ -26,23 +28,26 @@ interface WebhookIconProps {
 }
 
 const WebhookIcon = (props: WebhookIconProps) => {
-  let text, icon
+  let text, icon, statusClass
   switch (props.status) {
     case WebhookStatus.ENABLED:
-      text = "Enabled"
+      text = i18n._({ id: "admin.webhooks.enabled", message: "Enabled" })
+      statusClass = "enabled"
       icon = IconCheckCircle
       break
     case WebhookStatus.DISABLED:
-      text = "Disabled"
+      text = i18n._({ id: "admin.webhooks.disabled", message: "Disabled" })
+      statusClass = "disabled"
       icon = IconXCircle
       break
     case WebhookStatus.FAILED:
-      text = "Failed"
+      text = i18n._({ id: "admin.webhooks.status.failed", message: "Failed" })
+      statusClass = "failed"
       icon = IconExclamation
   }
   return (
     <div data-tooltip={text}>
-      <Icon width="23" height="23" className={`c-webhook-listitem__icon c-webhook-listitem__icon--${text.toLowerCase()}`} sprite={icon} />
+      <Icon width="23" height="23" className={`c-webhook-listitem__icon c-webhook-listitem__icon--${statusClass}`} sprite={icon} />
     </div>
   )
 }
@@ -66,13 +71,13 @@ export const WebhookListItem = (props: WebhookListItemProps) => {
   const getWebhookType = (type: WebhookType) => {
     switch (type) {
       case WebhookType.CHANGE_STATUS:
-        return "Change Status"
+        return i18n._({ id: "admin.webhooks.event.changestatus", message: "Change Status" })
       case WebhookType.NEW_COMMENT:
-        return "New Comment"
+        return i18n._({ id: "admin.webhooks.event.newcomment", message: "New Comment" })
       case WebhookType.DELETE_POST:
-        return "Delete Post"
+        return i18n._({ id: "admin.webhooks.event.deletepost", message: "Delete Post" })
       case WebhookType.NEW_POST:
-        return "New Post"
+        return i18n._({ id: "admin.webhooks.event.newpost", message: "New Post" })
     }
   }
 
@@ -80,7 +85,7 @@ export const WebhookListItem = (props: WebhookListItemProps) => {
     const result = await actions.testWebhook(props.webhook.id)
     setTriggerResult(result.data)
     if (result.ok && result.data.success) {
-      notify.success("Successfully triggered webhook")
+      notify.success(i18n._({ id: "admin.webhooks.test.success", message: "Successfully triggered webhook" }))
     } else {
       notify.error(result.data.message)
       props.onWebhookFailed(props.webhook)
@@ -88,20 +93,24 @@ export const WebhookListItem = (props: WebhookListItemProps) => {
   }
 
   const renderDeleteMode = () => {
+    const id = props.webhook.id
+    const name = props.webhook.name
     return (
       <VStack spacing={2}>
         <div>
-          <b>Are you sure?</b>{" "}
+          <b>{i18n._({ id: "admin.webhooks.delete.confirm", message: "Are you sure?" })}</b>{" "}
           <span>
-            The webhook #{props.webhook.id} &quot;{props.webhook.name}&quot; will be deleted forever. Alternatively, you may want to <b>disable</b> it instead.
+            <Trans id="admin.webhooks.delete.help">
+              Webhook #{id} &quot;{name}&quot; will be permanently deleted. You can also <b>disable</b> it to keep its configuration.
+            </Trans>
           </span>
         </div>
         <div>
           <Button variant="danger" onClick={deleteWebhook}>
-            Delete webhook
+            {i18n._({ id: "admin.webhooks.delete", message: "Delete webhook" })}
           </Button>
           <Button onClick={() => setDeleting(false)} variant="tertiary">
-            Cancel
+            {i18n._({ id: "admin.webhooks.cancel", message: "Cancel" })}
           </Button>
         </div>
       </VStack>
@@ -124,15 +133,15 @@ export const WebhookListItem = (props: WebhookListItemProps) => {
         <HStack>
           <Button size="small" onClick={testWebhook}>
             <Icon sprite={IconPlay} />
-            <span>Test</span>
+            <span>{i18n._({ id: "admin.webhooks.test", message: "Test" })}</span>
           </Button>
           <Button size="small" onClick={() => props.editWebhook(props.webhook)}>
             <Icon sprite={IconPencilAlt} />
-            <span>Edit</span>
+            <span>{i18n._({ id: "admin.webhooks.edit", message: "Edit" })}</span>
           </Button>
           <Button size="small" onClick={() => setDeleting(true)}>
             <Icon sprite={IconX} />
-            <span>Delete</span>
+            <span>{i18n._({ id: "admin.webhooks.delete.action", message: "Delete" })}</span>
           </Button>
         </HStack>
       </HStack>

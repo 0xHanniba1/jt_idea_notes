@@ -1,5 +1,8 @@
 import "./ManageMembers.page.scss"
 
+import { t } from "@lingui/core/macro"
+import { Trans } from "@lingui/react/macro"
+
 import React, { useState, useEffect, useCallback } from "react"
 import { Input, Avatar, Icon, Dropdown, Pagination } from "@fider/components"
 import { User, UserRole, UserStatus } from "@fider/models"
@@ -26,11 +29,25 @@ interface UserListItemExtendedProps extends UserListItemProps {
 }
 
 const UserListItem = (props: UserListItemExtendedProps) => {
-  const admin = props.user.role === UserRole.Administrator && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">administrator</span>
-  const collaborator = props.user.role === UserRole.Collaborator && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">collaborator</span>
-  const blocked = props.user.status === UserStatus.Blocked && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">blocked</span>
+  const admin = props.user.role === UserRole.Administrator && (
+    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+      <Trans id="admin.members.administrator">administrator</Trans>
+    </span>
+  )
+  const collaborator = props.user.role === UserRole.Collaborator && (
+    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+      <Trans id="admin.members.collaborator">collaborator</Trans>
+    </span>
+  )
+  const blocked = props.user.status === UserStatus.Blocked && (
+    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+      <Trans id="admin.members.blocked">blocked</Trans>
+    </span>
+  )
   const trusted = props.user.status === UserStatus.Active && props.user.role === UserRole.Visitor && props.user.isTrusted && (
-    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">trusted member</span>
+    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+      <Trans id="admin.members.trusted">trusted member</Trans>
+    </span>
   )
   const isMember = props.user.role === UserRole.Visitor
 
@@ -46,12 +63,16 @@ const UserListItem = (props: UserListItemExtendedProps) => {
       </HStack>
 
       <div className="c-members-email text-muted" title={props.user.email}>
-        {props.user.email || "No email"}
+        {props.user.email || t({ id: "admin.members.noemail", message: "No email" })}
       </div>
 
       <div>
         {admin} {collaborator} {blocked} {trusted}
-        {isMember && !blocked && !trusted && <span className="text-xs text-gray-600">member</span>}
+        {isMember && !blocked && !trusted && (
+          <span className="text-xs text-gray-600">
+            <Trans id="admin.members.member">member</Trans>
+          </span>
+        )}
       </div>
 
       <div className="c-members-actions flex justify-end relative">
@@ -59,14 +80,40 @@ const UserListItem = (props: UserListItemExtendedProps) => {
           <div className="relative z-10">
             <Dropdown position="left" renderHandle={<Icon sprite={IconDotsHorizontal} width="16" height="16" />}>
               {!blocked && (!!collaborator || isMember) && (
-                <Dropdown.ListItem onClick={actionSelected("to-administrator")}>Promote to Administrator</Dropdown.ListItem>
+                <Dropdown.ListItem onClick={actionSelected("to-administrator")}>
+                  <Trans id="admin.members.setadministrator">Promote to Administrator</Trans>
+                </Dropdown.ListItem>
               )}
-              {!blocked && (!!admin || isMember) && <Dropdown.ListItem onClick={actionSelected("to-collaborator")}>Promote to Collaborator</Dropdown.ListItem>}
-              {!blocked && (!!collaborator || !!admin) && <Dropdown.ListItem onClick={actionSelected("to-visitor")}>Demote to Member</Dropdown.ListItem>}
-              {isMember && !blocked && !props.user.isTrusted && <Dropdown.ListItem onClick={actionSelected("approve")}>Trust User</Dropdown.ListItem>}
-              {isMember && !blocked && props.user.isTrusted && <Dropdown.ListItem onClick={actionSelected("unapprove")}>Untrust User</Dropdown.ListItem>}
-              {isMember && !blocked && <Dropdown.ListItem onClick={actionSelected("block")}>Block User</Dropdown.ListItem>}
-              {isMember && !!blocked && <Dropdown.ListItem onClick={actionSelected("unblock")}>Unblock User</Dropdown.ListItem>}
+              {!blocked && (!!admin || isMember) && (
+                <Dropdown.ListItem onClick={actionSelected("to-collaborator")}>
+                  <Trans id="admin.members.setcollaborator">Promote to Collaborator</Trans>
+                </Dropdown.ListItem>
+              )}
+              {!blocked && (!!collaborator || !!admin) && (
+                <Dropdown.ListItem onClick={actionSelected("to-visitor")}>
+                  <Trans id="admin.members.setmember">Demote to Member</Trans>
+                </Dropdown.ListItem>
+              )}
+              {isMember && !blocked && !props.user.isTrusted && (
+                <Dropdown.ListItem onClick={actionSelected("approve")}>
+                  <Trans id="admin.members.trust">Trust User</Trans>
+                </Dropdown.ListItem>
+              )}
+              {isMember && !blocked && props.user.isTrusted && (
+                <Dropdown.ListItem onClick={actionSelected("unapprove")}>
+                  <Trans id="admin.members.untrust">Untrust User</Trans>
+                </Dropdown.ListItem>
+              )}
+              {isMember && !blocked && (
+                <Dropdown.ListItem onClick={actionSelected("block")}>
+                  <Trans id="admin.members.block">Block User</Trans>
+                </Dropdown.ListItem>
+              )}
+              {isMember && !!blocked && (
+                <Dropdown.ListItem onClick={actionSelected("unblock")}>
+                  <Trans id="admin.members.unblock">Unblock User</Trans>
+                </Dropdown.ListItem>
+              )}
             </Dropdown>
           </div>
         )}
@@ -214,14 +261,19 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
   )
 
   return (
-    <AdminPageContainer id="p-admin-members" name="users" title="Members" subtitle="Manage your site administrators and collaborators">
+    <AdminPageContainer
+      id="p-admin-members"
+      name="users"
+      title={t({ id: "admin.members.title", message: "Members" })}
+      subtitle={t({ id: "admin.members.subtitle", message: "Manage your site administrators and collaborators" })}
+    >
       <div className="c-members-toolbar flex gap-4 flex-items-center mb-4">
         <div className="flex-grow">
           <Input
             field="query"
             icon={query ? IconX : IconSearch}
             onIconClick={query ? clearSearch : undefined}
-            placeholder="Search by name / email ..."
+            placeholder={t({ id: "admin.members.search", message: "Search by name / email ..." })}
             value={query}
             onChange={handleSearchFilterChanged}
           />
@@ -230,31 +282,45 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
           renderHandle={
             <div className="flex flex-items-center text-medium text-xs">
               <Icon sprite={HeroIconFilter} className="h-5 pr-1" />
-              Role
+              <Trans id="admin.members.role">Role</Trans>
               {roleFilter !== "all" && <div className="bg-gray-200 inline-block rounded-full px-2 py-1 w-min-4 text-2xs text-center ml-2">1</div>}
             </div>
           }
         >
           <Dropdown.ListItem onClick={() => handleRoleFilterChanged("all")}>
-            <span className={roleFilter === "all" ? "text-semibold" : ""}>All Roles</span>
+            <span className={roleFilter === "all" ? "text-semibold" : ""}>
+              <Trans id="admin.members.allroles">All Roles</Trans>
+            </span>
           </Dropdown.ListItem>
           <Dropdown.ListItem onClick={() => handleRoleFilterChanged(UserRole.Administrator)}>
-            <span className={roleFilter === UserRole.Administrator ? "text-semibold" : ""}>Administrators</span>
+            <span className={roleFilter === UserRole.Administrator ? "text-semibold" : ""}>
+              <Trans id="admin.members.administrators">Administrators</Trans>
+            </span>
           </Dropdown.ListItem>
           <Dropdown.ListItem onClick={() => handleRoleFilterChanged(UserRole.Collaborator)}>
-            <span className={roleFilter === UserRole.Collaborator ? "text-semibold" : ""}>Collaborators</span>
+            <span className={roleFilter === UserRole.Collaborator ? "text-semibold" : ""}>
+              <Trans id="admin.members.collaborators">Collaborators</Trans>
+            </span>
           </Dropdown.ListItem>
           <Dropdown.ListItem onClick={() => handleRoleFilterChanged(UserRole.Visitor)}>
-            <span className={roleFilter === UserRole.Visitor ? "text-semibold" : ""}>Members</span>
+            <span className={roleFilter === UserRole.Visitor ? "text-semibold" : ""}>
+              <Trans id="admin.members.members">Members</Trans>
+            </span>
           </Dropdown.ListItem>
         </Dropdown>
       </div>
 
       <VStack className="rounded-md border border-gray-200 relative">
         <div className="c-members-row c-members-row--header">
-          <div>Name</div>
-          <div>Email</div>
-          <div>Role</div>
+          <div>
+            <Trans id="admin.members.name">Name</Trans>
+          </div>
+          <div>
+            <Trans id="admin.members.email">Email</Trans>
+          </div>
+          <div>
+            <Trans id="admin.members.role">Role</Trans>
+          </div>
         </div>
         <div>
           {users.map((user, index) => (
@@ -269,13 +335,19 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
 
       <ul className="text-muted">
         <li>
-          <strong>Administrators</strong> have full access to edit and manage content, permissions and all site settings.
+          <Trans id="admin.members.administratorshelp">
+            <strong>Administrators</strong> have full access to edit and manage content, permissions and all site settings.
+          </Trans>
         </li>
         <li>
-          <strong>Collaborators</strong> can edit and manage content, but not permissions and settings.
+          <Trans id="admin.members.collaboratorshelp">
+            <strong>Collaborators</strong> can edit and manage content, but not permissions and settings.
+          </Trans>
         </li>
         <li>
-          <strong>Blocked</strong> users are unable to sign into this site.
+          <Trans id="admin.members.blockedhelp">
+            <strong>Blocked</strong> users are unable to sign into this site.
+          </Trans>
         </li>
       </ul>
     </AdminPageContainer>

@@ -12,6 +12,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/log"
 	"github.com/getfider/fider/app/pkg/tpl"
 	"github.com/getfider/fider/app/pkg/validate"
@@ -82,14 +83,14 @@ func triggerWebhook(ctx context.Context, webhook *entity.Webhook, props webhook.
 	fullName := fmt.Sprintf("%d-%s", webhook.ID, webhook.Name)
 	result.Url, err = executeTemplate(fmt.Sprintf("%s-url", fullName), webhook.Url, props)
 	if err != nil {
-		return resultWithError(ctx, "Could not parse webhook URL template", err.Error(), result)
+		return resultWithError(ctx, i18n.T(ctx, "admin.webhooks.failure.url.parse"), err.Error(), result)
 	}
-	if msgs := validate.WebhookURL(result.Url); len(msgs) > 0 {
-		return resultWithError(ctx, "Webhook URL targets a blocked address", strings.Join(msgs, "; "), result)
+	if msgs := validate.WebhookURLLocalized(ctx, result.Url); len(msgs) > 0 {
+		return resultWithError(ctx, i18n.T(ctx, "admin.webhooks.failure.url.blocked"), strings.Join(msgs, "; "), result)
 	}
 	result.Content, err = executeTemplate(fmt.Sprintf("%s-content", fullName), webhook.Content, props)
 	if err != nil {
-		return resultWithError(ctx, "Could not parse webhook content template", err.Error(), result)
+		return resultWithError(ctx, i18n.T(ctx, "admin.webhooks.failure.content.parse"), err.Error(), result)
 	}
 
 	httpRequest := &cmd.HTTPRequest{
@@ -101,12 +102,12 @@ func triggerWebhook(ctx context.Context, webhook *entity.Webhook, props webhook.
 	}
 	err = bus.Dispatch(ctx, httpRequest)
 	if err != nil {
-		return resultWithError(ctx, "Could not execute webhook HTTP request", err.Error(), result)
+		return resultWithError(ctx, i18n.T(ctx, "admin.webhooks.failure.request.failed"), err.Error(), result)
 	}
 	result.StatusCode = httpRequest.ResponseStatusCode
 	if result.StatusCode >= http.StatusBadRequest {
 		fullResponse := fmt.Sprintf("%d %s:\n%s", result.StatusCode, http.StatusText(result.StatusCode), httpRequest.ResponseBody)
-		return resultWithError(ctx, "Webhook HTTP request returned an error response code", fullResponse, result)
+		return resultWithError(ctx, i18n.T(ctx, "admin.webhooks.failure.response.failed"), fullResponse, result)
 	}
 
 	result.Success = true
@@ -125,13 +126,13 @@ func previewWebhook(ctx context.Context, c *cmd.PreviewWebhook) error {
 
 	c.Result.Url.Value, err = executeTemplate("preview-url", c.Url, props)
 	if err != nil {
-		c.Result.Url.Message = "Could not parse webhook URL template"
+		c.Result.Url.Message = i18n.T(ctx, "admin.webhooks.failure.url.parse")
 		c.Result.Url.Error = err.Error()
 		// Do not propagate error: it's a preview
 	}
 	c.Result.Content.Value, err = executeTemplate("preview-content", c.Content, props)
 	if err != nil {
-		c.Result.Content.Message = "Could not parse webhook content template"
+		c.Result.Content.Message = i18n.T(ctx, "admin.webhooks.failure.content.parse")
 		c.Result.Content.Error = err.Error()
 		// Do not propagate error: it's a preview
 	}

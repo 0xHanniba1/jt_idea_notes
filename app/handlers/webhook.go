@@ -9,6 +9,7 @@ import (
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 )
 
@@ -22,7 +23,7 @@ func ManageWebhooks() web.HandlerFunc {
 
 		return c.Page(http.StatusOK, web.Props{
 			Page:  "Administration/pages/ManageWebhooks.page",
-			Title: "Manage Webhooks · Site Settings",
+			Title: i18n.T(c, "admin.title.webhooks"),
 			Data: web.Map{
 				"webhooks": allWebhooks.Result,
 			},

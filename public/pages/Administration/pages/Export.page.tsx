@@ -1,3 +1,5 @@
+import { i18n } from "@lingui/core"
+import { Trans } from "@lingui/react/macro"
 import React from "react"
 
 import { Button, Icon } from "@fider/components"
@@ -7,30 +9,39 @@ import IconDownload from "@fider/assets/images/heroicons-download.svg"
 export default class ExportPage extends AdminBasePage<any, any> {
   public id = "p-admin-export"
   public name = "export"
-  public title = "Export"
-  public subtitle = "Download your data"
+  public title = i18n._({ id: "admin.export.title", message: "Export" })
+  public subtitle = i18n._({ id: "admin.export.subtitle", message: "Download your data" })
 
   public content() {
     return (
       <>
-        <h2 className="text-display">Export Posts</h2>
+        <h2 className="text-display">
+          <Trans id="admin.export.posts.title">Export posts</Trans>
+        </h2>
         <p className="text-muted">
-          Use this button to download a CSV file with all posts in this site. This can be useful to analyse the data with an external tool or simply to back it
-          up.
+          <Trans id="admin.export.posts.help">Download the site records as a CSV file for analysis in other tools or for backup.</Trans>
         </p>
         <Button variant="secondary" href="/admin/export/posts.csv">
           <Icon sprite={IconDownload} />
-          <span>posts.csv</span>
+          <span>
+            <Trans id="admin.export.posts.download">Download posts.csv</Trans>
+          </span>
         </Button>
 
         <div className="mt-8">
-          <h2 className="text-display">Backup your data</h2>
+          <h2 className="text-display">
+            <Trans id="admin.export.backup.title">Back up your data</Trans>
+          </h2>
           <p className="text-muted">
-            Use this button to download a ZIP file with your data in JSON format. This is a full backup and contains all of your data.
+            <Trans id="admin.export.backup.help">
+              Download a ZIP archive containing site records, comments, users and settings in JSON format, together with uploaded files.
+            </Trans>
           </p>
           <Button variant="secondary" href="/admin/export/backup.zip">
             <Icon sprite={IconDownload} />
-            <span>backup.zip</span>
+            <span>
+              <Trans id="admin.export.backup.download">Download backup.zip</Trans>
+            </span>
           </Button>
         </div>
       </>
