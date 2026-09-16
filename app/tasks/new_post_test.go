@@ -165,18 +165,14 @@ func TestNotifyAboutNewPostTask_WithMention(t *testing.T) {
 		Execute(task)
 
 	Expect(err).IsNil()
-	Expect(emailmock.MessageHistory).HasLen(2)
-
-	// Check standard notification email
-	Expect(emailmock.MessageHistory[0].TemplateName).Equals("new_post")
+	// The standard notification has no recipients and must not be published.
+	Expect(emailmock.MessageHistory).HasLen(1)
+	Expect(emailmock.MessageHistory[0].TemplateName).Equals("new_comment")
 	Expect(emailmock.MessageHistory[0].Tenant).Equals(mock.DemoTenant)
 	Expect(emailmock.MessageHistory[0].Props["content"]).Equals(template.HTML("<p>TypeScript is great, please add support for it @Jon Snow</p>"))
-
-	// Check mention notification email
-	Expect(emailmock.MessageHistory[1].TemplateName).Equals("new_comment")
-	Expect(emailmock.MessageHistory[1].Props["messageLocaleString"]).Equals("email.new_mention.text")
-	Expect(emailmock.MessageHistory[1].To).HasLen(1)
-	Expect(emailmock.MessageHistory[1].To[0].Name).Equals("Jon Snow")
+	Expect(emailmock.MessageHistory[0].Props["messageLocaleString"]).Equals("email.new_mention.text")
+	Expect(emailmock.MessageHistory[0].To).HasLen(1)
+	Expect(emailmock.MessageHistory[0].To[0].Name).Equals("Jon Snow")
 
 	Expect(addNewNotification).IsNotNil()
 	Expect(addNewNotification.PostID).Equals(post.ID)

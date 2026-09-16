@@ -51,6 +51,7 @@ type config struct {
 	Host                        string `env:"HOST,default="`
 	HostMode                    string `env:"HOST_MODE,default=single"`
 	HostDomain                  string `env:"HOST_DOMAIN"`
+	TrustedProxyCIDRs           string `env:"TRUSTED_PROXY_CIDRS"`
 	BaseURL                     string `env:"BASE_URL"`
 	Locale                      string `env:"LOCALE,default=en"`
 	JWTSecret                   string `env:"JWT_SECRET,required"`

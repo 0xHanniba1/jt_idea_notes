@@ -81,7 +81,7 @@ func NotifyAboutStatusChange(post *entity.Post, prevStatus enum.PostStatus) work
 			"logo":        logoURL,
 		}
 
-		bus.Publish(c, &cmd.SendMail{
+		publishMail(c, &cmd.SendMail{
 			From:         dto.Recipient{Name: author.Name},
 			To:           to,
 			TemplateName: "change_status",

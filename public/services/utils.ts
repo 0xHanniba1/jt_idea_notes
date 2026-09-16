@@ -103,10 +103,12 @@ export const isCookieEnabled = (): boolean => {
 
 export const uploadedImageURL = (bkey: string | undefined, size?: number): string | undefined => {
   if (bkey) {
+    // Uploaded content requires the site's host-only authentication cookie.
+    // The assets CDN is only suitable for public, compiled resources.
     if (size) {
-      return `${Fider.settings.assetsURL}/static/images/${bkey}?size=${size}`
+      return `${Fider.settings.baseURL}/static/images/${bkey}?size=${size}`
     }
-    return `${Fider.settings.assetsURL}/static/images/${bkey}`
+    return `${Fider.settings.baseURL}/static/images/${bkey}`
   }
   return undefined
 }

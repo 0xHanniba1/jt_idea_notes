@@ -7,6 +7,7 @@ import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
 
 interface NotificationSettingsProps {
+  hasEmail: boolean
   userSettings: UserSettings
   settingsChanged: (settings: UserSettings) => void
 }
@@ -26,6 +27,7 @@ export const NotificationSettings = (props: NotificationSettingsProps) => {
   }
 
   const toggle = async (settingsKey: string, channel: Channel) => {
+    if (channel === EmailChannel && !props.hasEmail) return
     const nextSettings = {
       ...userSettings,
       [settingsKey]: (parseInt(userSettings[settingsKey], 10) ^ channel).toString(),
@@ -38,10 +40,11 @@ export const NotificationSettings = (props: NotificationSettingsProps) => {
   const labelEmail = i18n._({ id: "mysettings.notification.channelemail", message: "Email" })
 
   const icon = (settingsKey: string, channel: Channel) => {
-    const active = isEnabled(settingsKey, channel)
+    const unavailable = channel === EmailChannel && !props.hasEmail
+    const active = !unavailable && isEnabled(settingsKey, channel)
     const label = channel === WebChannel ? labelWeb : labelEmail
     const onToggle = () => toggle(settingsKey, channel)
-    return <Toggle key={`${settingsKey}_${channel}`} active={active} label={label} onToggle={onToggle} />
+    return <Toggle key={`${settingsKey}_${channel}`} disabled={unavailable} active={active} label={label} onToggle={onToggle} />
   }
 
   return (
@@ -51,6 +54,11 @@ export const NotificationSettings = (props: NotificationSettingsProps) => {
           <Trans id="mysettings.notification.title">Choose the events to receive a notification for.</Trans>
         </p>
 
+        {!props.hasEmail && (
+          <p className="text-muted">
+            <Trans id="auth.notifications.noemail">No contact email is set. You will only receive in-app notifications.</Trans>
+          </p>
+        )}
         <div className="notifications-settings mt-4">
           <VStack spacing={4} divide={true} className="rounded">
             <div>

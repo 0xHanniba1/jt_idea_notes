@@ -3,7 +3,6 @@ package tasks
 import (
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/dto"
-	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/getfider/fider/app/pkg/worker"
 )
@@ -17,7 +16,7 @@ func SendSignInEmail(email, linkKey, code string) worker.Task {
 			"link":     link(web.BaseURL(c), "/signin/verify?k=%s", linkKey),
 		})
 
-		bus.Publish(c, &cmd.SendMail{
+		publishMail(c, &cmd.SendMail{
 			From:         dto.Recipient{Name: c.Tenant().Name},
 			To:           []dto.Recipient{to},
 			TemplateName: "signin_email",

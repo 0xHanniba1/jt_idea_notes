@@ -10,6 +10,8 @@ import { HStack } from "@fider/components/layout"
 interface InputProps {
   children?: React.ReactNode
   field: string
+  type?: "text" | "password" | "email"
+  readOnly?: boolean
   label?: string
   ariaLabel?: string
   iconAriaLabel?: string
@@ -59,6 +61,7 @@ export const Input: React.FunctionComponent<InputProps> = (props) => {
     props.onIconClick ? (
       <button
         type="button"
+        disabled={props.disabled}
         className="c-input__icon-button"
         onClick={props.onIconClick}
         aria-label={props.iconAriaLabel || props.ariaLabel || props.label || props.placeholder}
@@ -94,9 +97,12 @@ export const Input: React.FunctionComponent<InputProps> = (props) => {
                 "c-input--suffixed": !!suffix,
               })}
               id={`input-${props.field}`}
-              type="text"
+              name={props.field}
+              type={props.type || "text"}
+              readOnly={props.readOnly}
               aria-label={props.ariaLabel || (!props.label ? props.placeholder : undefined)}
               aria-invalid={hasError(props.field, ctx.error) || undefined}
+              aria-describedby={hasError(props.field, ctx.error) ? `error-${props.field}` : undefined}
               autoComplete={props.autoComplete}
               inputMode={props.inputMode}
               tabIndex={props.noTabFocus ? -1 : undefined}
@@ -121,7 +127,7 @@ export const Input: React.FunctionComponent<InputProps> = (props) => {
             {icon}
             {suffix}
           </HStack>
-          <DisplayError fields={[props.field]} error={ctx.error} />
+          <DisplayError id={`error-${props.field}`} fields={[props.field]} error={ctx.error} />
           {props.children}
         </div>
       )}

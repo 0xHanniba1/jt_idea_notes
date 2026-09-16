@@ -13,17 +13,20 @@ import (
 
 // User is the database mapping for users table
 type User struct {
-	ID            sql.NullInt64  `db:"id"`
-	Name          sql.NullString `db:"name"`
-	Email         sql.NullString `db:"email"`
-	Tenant        *Tenant        `db:"tenant"`
-	Role          sql.NullInt64  `db:"role"`
-	Status        sql.NullInt64  `db:"status"`
-	AvatarType    sql.NullInt64  `db:"avatar_type"`
-	AvatarBlobKey sql.NullString `db:"avatar_bkey"`
-	IsTrusted     sql.NullBool   `db:"is_trusted"`
-	SecurityStamp sql.NullString `db:"security_stamp"`
-	Providers     []*UserProvider
+	ID                  sql.NullInt64  `db:"id"`
+	Name                sql.NullString `db:"name"`
+	Email               sql.NullString `db:"email"`
+	Tenant              *Tenant        `db:"tenant"`
+	Role                sql.NullInt64  `db:"role"`
+	Status              sql.NullInt64  `db:"status"`
+	AvatarType          sql.NullInt64  `db:"avatar_type"`
+	AvatarBlobKey       sql.NullString `db:"avatar_bkey"`
+	IsTrusted           sql.NullBool   `db:"is_trusted"`
+	SecurityStamp       sql.NullString `db:"security_stamp"`
+	Username            sql.NullString `db:"username"`
+	PasswordInitialized sql.NullBool   `db:"password_initialized"`
+	MustChangePassword  sql.NullBool   `db:"must_change_password"`
+	Providers           []*UserProvider
 }
 
 type UserProvider struct {
@@ -64,22 +67,25 @@ func (u *User) ToModel(ctx context.Context) *entity.User {
 
 	avatarType := enum.AvatarType(u.AvatarType.Int64)
 	avatarURL := ""
-	if u.AvatarType.Valid {
+	if u.AvatarType.Valid && ctx.Value(app.RequestCtxKey) != nil {
 		avatarURL = buildAvatarURL(ctx, avatarType, int(u.ID.Int64), u.Name.String, u.AvatarBlobKey.String)
 	}
 
 	user := &entity.User{
-		ID:            int(u.ID.Int64),
-		Name:          u.Name.String,
-		Email:         u.Email.String,
-		Tenant:        tenant,
-		Role:          enum.Role(u.Role.Int64),
-		Status:        enum.UserStatus(u.Status.Int64),
-		AvatarType:    avatarType,
-		AvatarBlobKey: u.AvatarBlobKey.String,
-		AvatarURL:     avatarURL,
-		IsTrusted:     u.IsTrusted.Bool,
-		SecurityStamp: u.SecurityStamp.String,
+		ID:                  int(u.ID.Int64),
+		Name:                u.Name.String,
+		Email:               u.Email.String,
+		Tenant:              tenant,
+		Role:                enum.Role(u.Role.Int64),
+		Status:              enum.UserStatus(u.Status.Int64),
+		AvatarType:          avatarType,
+		AvatarBlobKey:       u.AvatarBlobKey.String,
+		AvatarURL:           avatarURL,
+		IsTrusted:           u.IsTrusted.Bool,
+		SecurityStamp:       u.SecurityStamp.String,
+		Username:            u.Username.String,
+		PasswordInitialized: u.PasswordInitialized.Bool,
+		MustChangePassword:  u.MustChangePassword.Bool,
 	}
 
 	if u.Providers != nil {

@@ -67,6 +67,9 @@ func TestBaseURL_HTTPS(t *testing.T) {
 
 func TestBaseURL_HTTPS_Proxy(t *testing.T) {
 	RegisterT(t)
+	previous := env.Config.TrustedProxyCIDRs
+	env.Config.TrustedProxyCIDRs = "192.0.2.0/24"
+	defer func() { env.Config.TrustedProxyCIDRs = previous }()
 
 	ctx := newGetContext("http://demo.test.fider.io:3000", map[string]string{
 		"X-Forwarded-Proto": "https",

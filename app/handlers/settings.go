@@ -139,7 +139,7 @@ func ChangeUserRole() web.HandlerFunc {
 		}
 
 		if err := bus.Dispatch(c, changeRole); err != nil {
-			return c.Failure(err)
+			return passwordStoreFailure(c, err)
 		}
 
 		// Handle userlist
@@ -147,6 +147,9 @@ func ChangeUserRole() web.HandlerFunc {
 			c.Enqueue(tasks.UserListAddOrRemoveUser(action.UserID, action.Role))
 		}
 
+		if err := c.Commit(); err != nil {
+			return c.Failure(err)
+		}
 		return c.Ok(web.Map{})
 	}
 }
@@ -155,16 +158,18 @@ func ChangeUserRole() web.HandlerFunc {
 func DeleteUser() web.HandlerFunc {
 	return func(c *web.Context) error {
 		if err := bus.Dispatch(c, &cmd.DeleteCurrentUser{}); err != nil {
-			return c.Failure(err)
+			return passwordStoreFailure(c, err)
 		}
-
-		c.RemoveCookie(web.CookieAuthName)
 
 		// Handle userlist (easiest way is to demote them which will remove them from the userlist)
 		if env.Config.UserList.Enabled {
 			c.Enqueue(tasks.UserListAddOrRemoveUser(c.User().ID, enum.RoleVisitor))
 		}
 
+		if err := c.Commit(); err != nil {
+			return c.Failure(err)
+		}
+		c.ClearPasswordCookies()
 		return c.Ok(web.Map{})
 	}
 }

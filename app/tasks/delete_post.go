@@ -84,7 +84,7 @@ func NotifyAboutDeletedPost(post *entity.Post, deleteCommentAdded bool) worker.T
 			"logo":     logoURL,
 		}
 
-		bus.Publish(c, &cmd.SendMail{
+		publishMail(c, &cmd.SendMail{
 			From:         dto.Recipient{Name: c.User().Name},
 			To:           to,
 			TemplateName: "delete_post",

@@ -2,6 +2,9 @@
 ##
 ## For more information, refer to https://www.thapaliya.com/en/writings/well-documented-makefiles/
 
+# Maintained Go packages. Ignored scratch scripts under tmp/ are not application packages.
+GO_PACKAGES ?= . ./app/...
+
 LDFLAGS += -X github.com/getfider/fider/app/pkg/env.commithash=${COMMITHASH}
 LDFLAGS += -X github.com/getfider/fider/app/pkg/env.version=${VERSION}
 
@@ -74,14 +77,14 @@ test: test-server test-ui ## Test server and ui code
 
 test-server: build-server build-ssr ## Run all server tests (set SHORT=false for full tests including network-dependent tests)
 	godotenv -f .test.env ./fider migrate
-	godotenv -f .test.env go test ./... -race $(if $(filter false,$(SHORT)),,-short)
+	godotenv -f .test.env go test $(GO_PACKAGES) -p 1 -race $(if $(filter false,$(SHORT)),,-short)
 
 test-ui: ## Run all UI tests
 	TZ=GMT npx jest ./public
 
 coverage-server: build-server build-ssr ## Run all server tests (with code coverage, set SHORT=false for full tests)
 	godotenv -f .test.env ./fider migrate
-	godotenv -f .test.env go test ./... -coverprofile=cover.out -coverpkg=all -p=8 -race $(if $(filter false,$(SHORT)),,-short)
+	godotenv -f .test.env go test $(GO_PACKAGES) -coverprofile=cover.out -coverpkg=all -p=1 -race $(if $(filter false,$(SHORT)),,-short)
 
 
 
@@ -122,7 +125,7 @@ watch-ui: ## Build and run server in watch mode
 lint: lint-server lint-ui ## Lint server and ui
 
 lint-server: ## Lint server code
-	golangci-lint run --timeout 3m
+	golangci-lint run --timeout 3m $(GO_PACKAGES)
 
 lint-ui: ## Lint ui code
 	npx eslint .

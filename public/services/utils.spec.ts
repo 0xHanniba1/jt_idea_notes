@@ -1,5 +1,13 @@
-import { classSet, formatDate, timeSince, fileToBase64, sortTags, clearUrlHash } from "./utils"
+import { classSet, formatDate, timeSince, fileToBase64, sortTags, clearUrlHash, uploadedImageURL } from "./utils"
 import { readFileSync } from "fs"
+import { Fider } from "./fider"
+
+test("uploaded images use the authenticated site origin even when compiled assets use a CDN", () => {
+  Fider.initialize({ settings: { baseURL: "https://ideas.example.test", assetsURL: "https://cdn.example.test" } })
+  expect(uploadedImageURL("private-attachment")).toBe("https://ideas.example.test/static/images/private-attachment")
+  expect(uploadedImageURL("member-avatar", 100)).toBe("https://ideas.example.test/static/images/member-avatar?size=100")
+  expect(uploadedImageURL(undefined)).toBeUndefined()
+})
 
 // replaces non-breaking spaces with normal spaces
 const normalize = (str: string) =>

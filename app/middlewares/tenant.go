@@ -80,7 +80,7 @@ func RequireTenant() web.MiddlewareFunc {
 			tenant := c.Tenant()
 			if tenant == nil {
 				if env.IsSingleHostMode() {
-					return c.Redirect("/signup")
+					return c.String(http.StatusServiceUnavailable, "Site is not initialized. Run the local account bootstrap command.")
 				}
 				return c.NotFound()
 			}
@@ -123,7 +123,7 @@ func CheckTenantPrivacy() web.MiddlewareFunc {
 					!strings.HasPrefix(cleanPath, "/signin") &&
 					!strings.HasPrefix(cleanPath, "/signout") &&
 					!strings.Contains(cleanPath, "..") {
-						redirectTarget = cleanPath
+					redirectTarget = cleanPath
 				}
 
 				if redirectTarget != "" {

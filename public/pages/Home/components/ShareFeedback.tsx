@@ -208,10 +208,7 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
     }
   }
 
-  const onCodeVerified = (): void => {
-    // User is authenticated - finalize the feedback submission
-    finaliseFeedback()
-  }
+  const onSignedIn = () => finaliseFeedback()
 
   const handleEditorFocus = () => {
     // This function is called when the editor is focused
@@ -289,13 +286,7 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
               <h2 className="text-title text-center mb-4">
                 <Trans id="newpost.modal.submit">Submit your idea</Trans>
               </h2>
-              <SignInControl
-                onSubmit={onSubmitFeedback}
-                onCodeVerified={onCodeVerified}
-                signInButtonText={i18n._({ id: "signin.message.email", message: "Continue with Email" })}
-                useEmail={true}
-                redirectTo={fider.settings.baseURL}
-              />
+              <SignInControl onSubmit={onSubmitFeedback} onSignedIn={onSignedIn} redirectTo="/" />
             </div>
           </div>
         ) : (

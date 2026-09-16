@@ -105,6 +105,10 @@ func UpdatePrivacySettings() web.HandlerFunc {
 			return c.HandleValidation(result)
 		}
 
+		if !action.IsPrivate {
+			return passwordError(c, 400, "isPrivate", "auth.internalonly")
+		}
+
 		updateSettings := &cmd.UpdateTenantPrivacySettings{
 			IsPrivate:           action.IsPrivate,
 			IsFeedEnabled:       action.IsFeedEnabled,

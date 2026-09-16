@@ -69,6 +69,7 @@ export const requiresModeration = (user: User): boolean => {
 export interface CurrentUser {
   id: number
   name: string
+  username: string
   email: string
   avatarType: UserAvatarType
   avatarBlobKey: string
@@ -78,4 +79,11 @@ export interface CurrentUser {
   isAdministrator: boolean
   isCollaborator: boolean
   isTrusted: boolean
+}
+
+// Only the protected member-management endpoint exposes credential state.
+export interface ManagedUser extends User {
+  username: string
+  passwordInitialized: boolean
+  mustChangePassword: boolean
 }

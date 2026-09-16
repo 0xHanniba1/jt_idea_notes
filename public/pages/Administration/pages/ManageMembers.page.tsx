@@ -1,271 +1,139 @@
 import "./ManageMembers.page.scss"
-
 import { t } from "@lingui/core/macro"
 import { Trans } from "@lingui/react/macro"
-
-import React, { useState, useEffect, useCallback } from "react"
-import { Input, Avatar, Icon, Dropdown, Pagination } from "@fider/components"
-import { User, UserRole, UserStatus } from "@fider/models"
+import React, { useState, useEffect, useCallback, useRef } from "react"
+import { Input, Avatar, Icon, Dropdown, Pagination, Button, DisplayError } from "@fider/components"
+import { ManagedUser, UserRole, UserStatus } from "@fider/models"
 import IconSearch from "@fider/assets/images/heroicons-search.svg"
 import IconX from "@fider/assets/images/heroicons-x.svg"
 import IconDotsHorizontal from "@fider/assets/images/heroicons-dots-horizontal.svg"
 import HeroIconFilter from "@fider/assets/images/heroicons-filter.svg"
-import { actions, Fider } from "@fider/services"
+import { actions, Fider, Failure, http, notify } from "@fider/services"
+import { authenticationFailure } from "@fider/services/password-auth"
 import { AdminPageContainer } from "../components/AdminBasePage"
+import { AccountModal, AccountOperation, accountOperationLabel } from "../components/AccountModal"
 import { HStack, VStack } from "@fider/components/layout"
 
 interface ManageMembersPageProps {
-  users: User[]
+  users: ManagedUser[]
   totalPages: number
 }
-
-interface UserListItemProps {
-  user: User
-  onAction: (actionName: string, user: User) => Promise<void>
+interface MemberAction {
+  operation: AccountOperation
+  user?: ManagedUser
 }
 
-interface UserListItemExtendedProps extends UserListItemProps {
-  isLast?: boolean
-}
-
-const UserListItem = (props: UserListItemExtendedProps) => {
-  const admin = props.user.role === UserRole.Administrator && (
-    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-      <Trans id="admin.members.administrator">administrator</Trans>
-    </span>
-  )
-  const collaborator = props.user.role === UserRole.Collaborator && (
-    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-      <Trans id="admin.members.collaborator">collaborator</Trans>
-    </span>
-  )
-  const blocked = props.user.status === UserStatus.Blocked && (
-    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-      <Trans id="admin.members.blocked">blocked</Trans>
-    </span>
-  )
-  const trusted = props.user.status === UserStatus.Active && props.user.role === UserRole.Visitor && props.user.isTrusted && (
-    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-      <Trans id="admin.members.trusted">trusted member</Trans>
-    </span>
-  )
-  const isMember = props.user.role === UserRole.Visitor
-
-  const actionSelected = (actionName: string) => () => {
-    props.onAction(actionName, props.user)
-  }
-
-  return (
-    <div className={`c-members-row ${props.isLast ? "c-members-row--last" : ""}`}>
-      <HStack>
-        <Avatar user={props.user} />
-        <div className="text-subtitle">{props.user.name}</div>
-      </HStack>
-
-      <div className="c-members-email text-muted" title={props.user.email}>
-        {props.user.email || t({ id: "admin.members.noemail", message: "No email" })}
-      </div>
-
-      <div>
-        {admin} {collaborator} {blocked} {trusted}
-        {isMember && !blocked && !trusted && (
-          <span className="text-xs text-gray-600">
-            <Trans id="admin.members.member">member</Trans>
-          </span>
-        )}
-      </div>
-
-      <div className="c-members-actions flex justify-end relative">
-        {Fider.session.user.id !== props.user.id && Fider.session.user.isAdministrator && (
-          <div className="relative z-10">
-            <Dropdown position="left" renderHandle={<Icon sprite={IconDotsHorizontal} width="16" height="16" />}>
-              {!blocked && (!!collaborator || isMember) && (
-                <Dropdown.ListItem onClick={actionSelected("to-administrator")}>
-                  <Trans id="admin.members.setadministrator">Promote to Administrator</Trans>
-                </Dropdown.ListItem>
-              )}
-              {!blocked && (!!admin || isMember) && (
-                <Dropdown.ListItem onClick={actionSelected("to-collaborator")}>
-                  <Trans id="admin.members.setcollaborator">Promote to Collaborator</Trans>
-                </Dropdown.ListItem>
-              )}
-              {!blocked && (!!collaborator || !!admin) && (
-                <Dropdown.ListItem onClick={actionSelected("to-visitor")}>
-                  <Trans id="admin.members.setmember">Demote to Member</Trans>
-                </Dropdown.ListItem>
-              )}
-              {isMember && !blocked && !props.user.isTrusted && (
-                <Dropdown.ListItem onClick={actionSelected("approve")}>
-                  <Trans id="admin.members.trust">Trust User</Trans>
-                </Dropdown.ListItem>
-              )}
-              {isMember && !blocked && props.user.isTrusted && (
-                <Dropdown.ListItem onClick={actionSelected("unapprove")}>
-                  <Trans id="admin.members.untrust">Untrust User</Trans>
-                </Dropdown.ListItem>
-              )}
-              {isMember && !blocked && (
-                <Dropdown.ListItem onClick={actionSelected("block")}>
-                  <Trans id="admin.members.block">Block User</Trans>
-                </Dropdown.ListItem>
-              )}
-              {isMember && !!blocked && (
-                <Dropdown.ListItem onClick={actionSelected("unblock")}>
-                  <Trans id="admin.members.unblock">Unblock User</Trans>
-                </Dropdown.ListItem>
-              )}
-            </Dropdown>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+const roleLabel = (role: UserRole) =>
+  role === UserRole.Administrator
+    ? t({ id: "admin.members.administrator", message: "administrator" })
+    : role === UserRole.Collaborator
+    ? t({ id: "admin.members.collaborator", message: "collaborator" })
+    : t({ id: "admin.members.member", message: "member" })
 
 export default function ManageMembersPage(props: ManageMembersPageProps) {
   const [query, setQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all")
-  const [users, setUsers] = useState<User[]>(props.users)
+  const [users, setUsers] = useState<ManagedUser[]>(props.users)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(props.totalPages)
-  const [searchTimeoutId, setSearchTimeoutId] = useState<number | undefined>(undefined)
-  const pageSize = 10
+  const [error, setError] = useState<Failure>()
+  const [loading, setLoading] = useState(false)
+  const [pendingUser, setPendingUser] = useState<number>()
+  const [accountAction, setAccountAction] = useState<MemberAction>()
+  const searchTimeout = useRef<number>()
+  const requestID = useRef(0)
+  const isAdministrator = Fider.session.user.isAdministrator
+  const mutationPending = useRef(false)
 
-  // Initialize state from URL parameters and load first page
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const initialQuery = urlParams.get("query") || ""
-    const initialRoleFilter = (urlParams.get("roles") as UserRole) || "all"
-    const initialPage = parseInt(urlParams.get("page") || "1")
-
-    setQuery(initialQuery)
-    setRoleFilter(initialRoleFilter)
-    setCurrentPage(initialPage)
+  const reloadUsers = useCallback(async (searchQuery: string, role: UserRole | "all", page = 1) => {
+    const request = ++requestID.current
+    setLoading(true)
+    setError(undefined)
+    const params = new URLSearchParams({ page: page.toString(), limit: "10" })
+    if (searchQuery) params.set("query", searchQuery)
+    if (role !== "all") params.set("roles", role)
+    try {
+      const result = await http.get<ManageMembersPageProps>(`/api/v1/users?${params}`)
+      if (request !== requestID.current) return
+      if (result.ok) {
+        setUsers(result.data.users)
+        setTotalPages(result.data.totalPages)
+        setCurrentPage(page)
+      } else setError(result.error || authenticationFailure())
+    } catch {
+      if (request === requestID.current) setError(authenticationFailure())
+    } finally {
+      if (request === requestID.current) setLoading(false)
+    }
   }, [])
 
-  const reloadUsers = useCallback(
-    async (searchQuery: string, roleFilterValue: UserRole | "all", page = 1) => {
-      const params = new URLSearchParams()
-      if (searchQuery) {
-        params.append("query", searchQuery)
-      }
-      if (roleFilterValue !== "all") {
-        params.append("roles", roleFilterValue.toString())
-      }
-      params.append("page", page.toString())
-      params.append("limit", pageSize.toString())
-
-      const response = await fetch(`/api/v1/users?${params.toString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setUsers(data.users)
-        setTotalPages(data.totalPages)
-        setCurrentPage(page)
-      }
-    },
-    [pageSize]
-  )
-
-  const handleSearchFilterChanged = useCallback(
-    (newQuery: string) => {
-      setQuery(newQuery)
-
-      // Debounce the API call for search
-      if (searchTimeoutId) {
-        clearTimeout(searchTimeoutId)
-      }
-
-      const timeoutId = window.setTimeout(() => {
-        reloadUsers(newQuery, roleFilter, 1) // Reset to page 1 when searching
-      }, 300)
-
-      setSearchTimeoutId(timeoutId)
-    },
-    [roleFilter, reloadUsers, searchTimeoutId]
-  )
-
-  const handleRoleFilterChanged = useCallback(
-    (newRoleFilter: UserRole | "all") => {
-      setRoleFilter(newRoleFilter)
-      reloadUsers(query, newRoleFilter, 1) // Reset to page 1 when changing filter
-    },
-    [query, reloadUsers]
-  )
-
-  const clearSearch = useCallback(() => {
-    if (searchTimeoutId) {
-      clearTimeout(searchTimeoutId)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const initialQuery = params.get("query") || ""
+    const role = params.get("roles") as UserRole
+    const initialRole = Object.values(UserRole).includes(role) ? role : "all"
+    const initialPage = Math.max(1, Number(params.get("page")) || 1)
+    setQuery(initialQuery)
+    setRoleFilter(initialRole)
+    setCurrentPage(initialPage)
+    if (initialQuery || initialRole !== "all" || initialPage !== 1) reloadUsers(initialQuery, initialRole, initialPage)
+    return () => {
+      window.clearTimeout(searchTimeout.current)
+      requestID.current++
     }
+  }, [reloadUsers])
+
+  const changeSearch = (value: string) => {
+    setQuery(value)
+    window.clearTimeout(searchTimeout.current)
+    requestID.current++
+    searchTimeout.current = window.setTimeout(() => reloadUsers(value, roleFilter), 300)
+  }
+  const changeFilter = (role: UserRole | "all") => {
+    window.clearTimeout(searchTimeout.current)
+    setRoleFilter(role)
+    reloadUsers(query, role)
+  }
+  const clearSearch = () => {
+    window.clearTimeout(searchTimeout.current)
     setQuery("")
-    reloadUsers("", roleFilter, 1)
-  }, [roleFilter, reloadUsers, searchTimeoutId])
+    reloadUsers("", roleFilter)
+  }
 
-  const handlePageChange = useCallback(
-    (page: number) => {
-      reloadUsers(query, roleFilter, page)
-    },
-    [query, roleFilter, reloadUsers]
-  )
+  const memberAction = async (user: ManagedUser, operation: "role" | "trust", role?: UserRole) => {
+    if (mutationPending.current) return
+    mutationPending.current = true
+    setPendingUser(user.id)
+    setError(undefined)
+    try {
+      const result =
+        operation === "role" && role
+          ? await actions.changeUserRole(user.id, role)
+          : user.isTrusted
+          ? await actions.untrustUser(user.id)
+          : await actions.trustUser(user.id)
+      if (result.ok) await reloadUsers(query, roleFilter, currentPage)
+      else setError({ errors: result.error?.errors?.map(({ message }) => ({ message })) || authenticationFailure().errors })
+    } catch {
+      setError(authenticationFailure())
+    } finally {
+      mutationPending.current = false
+      setPendingUser(undefined)
+    }
+  }
 
-  const handleAction = useCallback(
-    async (actionName: string, user: User) => {
-      const changeRole = async (role: UserRole) => {
-        const result = await actions.changeUserRole(user.id, role)
-        if (result.ok) {
-          user.role = role
-          // Update the user in current state without full reload
-          const updatedUsers = users.map((u) => (u.id === user.id ? user : u))
-          setUsers(updatedUsers)
-        }
-      }
-
-      const changeStatus = async (status: UserStatus) => {
-        const action = status === UserStatus.Blocked ? actions.blockUser : actions.unblockUser
-        const result = await action(user.id)
-        if (result.ok) {
-          user.status = status
-          // Update the user in current state without full reload
-          const updatedUsers = users.map((u) => (u.id === user.id ? user : u))
-          setUsers(updatedUsers)
-        }
-      }
-
-      const changeTrust = async (isTrusted: boolean) => {
-        const action = isTrusted ? actions.trustUser : actions.untrustUser
-        const result = await action(user.id)
-        if (result.ok) {
-          user.isTrusted = isTrusted
-          // Update the user in current state without full reload
-          const updatedUsers = users.map((u) => (u.id === user.id ? user : u))
-          setUsers(updatedUsers)
-        }
-      }
-
-      if (actionName === "to-collaborator") {
-        await changeRole(UserRole.Collaborator)
-      } else if (actionName === "to-visitor") {
-        await changeRole(UserRole.Visitor)
-      } else if (actionName === "to-administrator") {
-        await changeRole(UserRole.Administrator)
-      } else if (actionName === "block") {
-        await changeStatus(UserStatus.Blocked)
-      } else if (actionName === "unblock") {
-        await changeStatus(UserStatus.Active)
-      } else if (actionName === "approve") {
-        await changeTrust(true)
-      } else if (actionName === "unapprove") {
-        await changeTrust(false)
-      }
-    },
-    [users]
-  )
+  const onAccountSaved = () => {
+    setAccountAction(undefined)
+    notify.success(t({ id: "accounts.saved", message: "Account updated." }))
+    reloadUsers(query, roleFilter, currentPage)
+  }
 
   return (
     <AdminPageContainer
       id="p-admin-members"
       name="users"
       title={t({ id: "admin.members.title", message: "Members" })}
-      subtitle={t({ id: "admin.members.subtitle", message: "Manage your site administrators and collaborators" })}
+      subtitle={t({ id: "accounts.members.subtitle", message: "Manage sign-in accounts, roles and account status" })}
     >
       <div className="c-members-toolbar flex gap-4 flex-items-center mb-4">
         <div className="flex-grow">
@@ -273,9 +141,10 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
             field="query"
             icon={query ? IconX : IconSearch}
             onIconClick={query ? clearSearch : undefined}
-            placeholder={t({ id: "admin.members.search", message: "Search by name / email ..." })}
+            ariaLabel={t({ id: "accounts.search", message: "Search by username or name" })}
+            placeholder={t({ id: "accounts.search", message: "Search by username or name" })}
             value={query}
-            onChange={handleSearchFilterChanged}
+            onChange={changeSearch}
           />
         </div>
         <Dropdown
@@ -283,56 +152,132 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
             <div className="flex flex-items-center text-medium text-xs">
               <Icon sprite={HeroIconFilter} className="h-5 pr-1" />
               <Trans id="admin.members.role">Role</Trans>
-              {roleFilter !== "all" && <div className="bg-gray-200 inline-block rounded-full px-2 py-1 w-min-4 text-2xs text-center ml-2">1</div>}
             </div>
           }
         >
-          <Dropdown.ListItem onClick={() => handleRoleFilterChanged("all")}>
-            <span className={roleFilter === "all" ? "text-semibold" : ""}>
-              <Trans id="admin.members.allroles">All Roles</Trans>
-            </span>
+          <Dropdown.ListItem checkType="radio" checked={roleFilter === "all"} onClick={() => changeFilter("all")}>
+            <Trans id="admin.members.allroles">All Roles</Trans>
           </Dropdown.ListItem>
-          <Dropdown.ListItem onClick={() => handleRoleFilterChanged(UserRole.Administrator)}>
-            <span className={roleFilter === UserRole.Administrator ? "text-semibold" : ""}>
-              <Trans id="admin.members.administrators">Administrators</Trans>
-            </span>
-          </Dropdown.ListItem>
-          <Dropdown.ListItem onClick={() => handleRoleFilterChanged(UserRole.Collaborator)}>
-            <span className={roleFilter === UserRole.Collaborator ? "text-semibold" : ""}>
-              <Trans id="admin.members.collaborators">Collaborators</Trans>
-            </span>
-          </Dropdown.ListItem>
-          <Dropdown.ListItem onClick={() => handleRoleFilterChanged(UserRole.Visitor)}>
-            <span className={roleFilter === UserRole.Visitor ? "text-semibold" : ""}>
-              <Trans id="admin.members.members">Members</Trans>
-            </span>
-          </Dropdown.ListItem>
+          {Object.values(UserRole).map((role) => (
+            <Dropdown.ListItem key={role} checkType="radio" checked={roleFilter === role} onClick={() => changeFilter(role)}>
+              {roleLabel(role)}
+            </Dropdown.ListItem>
+          ))}
         </Dropdown>
+        {isAdministrator && (
+          <Button variant="primary" onClick={() => setAccountAction({ operation: "create" })}>
+            {accountOperationLabel("create")}
+          </Button>
+        )}
       </div>
-
+      <DisplayError error={error} />
+      {error && (
+        <Button size="small" onClick={() => reloadUsers(query, roleFilter, currentPage)}>
+          <Trans id="action.retry">Retry</Trans>
+        </Button>
+      )}
       <VStack className="rounded-md border border-gray-200 relative">
         <div className="c-members-row c-members-row--header">
           <div>
             <Trans id="admin.members.name">Name</Trans>
           </div>
           <div>
-            <Trans id="admin.members.email">Email</Trans>
+            <Trans id="auth.username">Username</Trans>
           </div>
           <div>
             <Trans id="admin.members.role">Role</Trans>
           </div>
+          <div>
+            <Trans id="accounts.status">Account status</Trans>
+          </div>
         </div>
-        <div>
-          {users.map((user, index) => (
-            <UserListItem key={user.id} user={user} onAction={handleAction} isLast={index === users.length - 1} />
-          ))}
+        <div aria-busy={loading}>
+          {users.map((user, index) => {
+            const active = user.status === UserStatus.Active
+            const canManage = isAdministrator && user.id !== Fider.session.user.id && user.status !== UserStatus.Deleted
+            return (
+              <div key={user.id} className={`c-members-row ${index === users.length - 1 ? "c-members-row--last" : ""}`}>
+                <HStack>
+                  <Avatar user={user} />
+                  <div className="text-subtitle">{user.name}</div>
+                </HStack>
+                <div className="c-members-username text-muted">{user.username || "—"}</div>
+                <div className="text-xs">{roleLabel(user.role)}</div>
+                <div className="c-members-status">
+                  {user.status === UserStatus.Blocked ? (
+                    <span className="c-members-state c-members-state--inactive">
+                      <Trans id="accounts.inactive">Inactive</Trans>
+                    </span>
+                  ) : !user.passwordInitialized ? (
+                    <span className="c-members-state">
+                      <Trans id="accounts.uninitialized">Password sign-in not enabled</Trans>
+                    </span>
+                  ) : user.mustChangePassword ? (
+                    <span className="c-members-state">
+                      <Trans id="accounts.passwordpending">Password change required</Trans>
+                    </span>
+                  ) : (
+                    <span className="c-members-state">
+                      <Trans id="accounts.active">Active</Trans>
+                    </span>
+                  )}
+                </div>
+                <div className="c-members-actions flex justify-end relative">
+                  {canManage && (
+                    <Dropdown
+                      position="left"
+                      ariaLabel={t({ id: "accounts.actions", message: "Account actions" })}
+                      renderHandle={<Icon sprite={IconDotsHorizontal} width="16" height="16" />}
+                    >
+                      {!user.passwordInitialized && (
+                        <Dropdown.ListItem disabled={pendingUser !== undefined} onClick={() => setAccountAction({ operation: "initialize", user })}>
+                          {accountOperationLabel("initialize")}
+                        </Dropdown.ListItem>
+                      )}
+                      {active && user.passwordInitialized && (
+                        <Dropdown.ListItem disabled={pendingUser !== undefined} onClick={() => setAccountAction({ operation: "reset", user })}>
+                          {accountOperationLabel("reset")}
+                        </Dropdown.ListItem>
+                      )}
+                      {active &&
+                        Object.values(UserRole)
+                          .filter((role) => role !== user.role)
+                          .map((role) => (
+                            <Dropdown.ListItem key={role} disabled={pendingUser !== undefined} onClick={() => memberAction(user, "role", role)}>
+                              {t({ id: "accounts.setrole", message: "Set role" })}: {roleLabel(role)}
+                            </Dropdown.ListItem>
+                          ))}
+                      {active && user.role === UserRole.Visitor && (
+                        <Dropdown.ListItem disabled={pendingUser !== undefined} onClick={() => memberAction(user, "trust")}>
+                          {user.isTrusted ? <Trans id="admin.members.untrust">Untrust User</Trans> : <Trans id="admin.members.trust">Trust User</Trans>}
+                        </Dropdown.ListItem>
+                      )}
+                      {active && (
+                        <Dropdown.ListItem disabled={pendingUser !== undefined} onClick={() => setAccountAction({ operation: "deactivate", user })}>
+                          {accountOperationLabel("deactivate")}
+                        </Dropdown.ListItem>
+                      )}
+                      {user.status === UserStatus.Blocked && user.passwordInitialized && (
+                        <Dropdown.ListItem disabled={pendingUser !== undefined} onClick={() => setAccountAction({ operation: "restore", user })}>
+                          {accountOperationLabel("restore")}
+                        </Dropdown.ListItem>
+                      )}
+                    </Dropdown>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          {!users.length && !loading && (
+            <p className="p-4 text-muted">
+              <Trans id="accounts.empty">No members found.</Trans>
+            </p>
+          )}
         </div>
       </VStack>
-
       <div className="pt-4">
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(page) => reloadUsers(query, roleFilter, page)} />
       </div>
-
       <ul className="text-muted">
         <li>
           <Trans id="admin.members.administratorshelp">
@@ -345,11 +290,14 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
           </Trans>
         </li>
         <li>
-          <Trans id="admin.members.blockedhelp">
-            <strong>Blocked</strong> users are unable to sign into this site.
+          <Trans id="accounts.history.help">
+            Initialize existing members using their account actions to preserve their records. Do not create duplicate accounts for them.
           </Trans>
         </li>
       </ul>
+      {accountAction && (
+        <AccountModal operation={accountAction.operation} user={accountAction.user} onClose={() => setAccountAction(undefined)} onSaved={onAccountSaved} />
+      )}
     </AdminPageContainer>
   )
 }

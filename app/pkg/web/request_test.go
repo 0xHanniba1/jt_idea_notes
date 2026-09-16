@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/getfider/fider/app/pkg/assert"
+	"github.com/getfider/fider/app/pkg/env"
 	"github.com/getfider/fider/app/pkg/web"
 )
 
@@ -58,6 +59,9 @@ func TestRequest_WithPort(t *testing.T) {
 
 func TestRequest_BehindTLSTerminationProxy(t *testing.T) {
 	RegisterT(t)
+	previous := env.Config.TrustedProxyCIDRs
+	env.Config.TrustedProxyCIDRs = "192.0.2.0/24"
+	defer func() { env.Config.TrustedProxyCIDRs = previous }()
 
 	header := make(http.Header)
 	header.Set("X-Forwarded-Host", "feedback.mycompany.com")
@@ -65,9 +69,10 @@ func TestRequest_BehindTLSTerminationProxy(t *testing.T) {
 
 	req := web.WrapRequest(
 		&http.Request{
-			Method: "GET",
-			Header: header,
-			Host:   "demo.test.fider.io",
+			Method:     "GET",
+			RemoteAddr: "192.0.2.10:12345",
+			Header:     header,
+			Host:       "demo.test.fider.io",
 		},
 	)
 

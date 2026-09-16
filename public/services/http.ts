@@ -1,4 +1,5 @@
-import { analytics, notify, truncate, Fider } from "@fider/services"
+import { analytics, notify, Fider } from "@fider/services"
+import { i18n } from "@lingui/core"
 
 export interface ErrorItem {
   field?: string
@@ -29,12 +30,12 @@ async function toResult<T>(response: Response): Promise<Result<T>> {
     }
   }
 
-  if (response.status === 500) {
-    notify.error("An unexpected error occurred while processing your request.")
+  const hasServerErrors = Array.isArray(body.errors) && body.errors.length > 0
+  if (response.status === 500 && !hasServerErrors) {
+    notify.error(i18n._({ id: "http.error.unexpected", message: "An unexpected error occurred while processing your request." }))
   } else if (response.status === 401) {
-    // If the user was authenticated but received a 401 it means their session was
-    // invalidated (e.g. security stamp rotated after an OAuth allowed-roles change).
-    // Redirect to /signin so they re-authenticate and the role check runs again.
+    // An authenticated session may have expired or been revoked. Re-authenticate
+    // before continuing; anonymous sign-in failures remain in their form.
     if (Fider.session.isAuthenticated) {
       const redirect = encodeURIComponent(window.location.pathname + window.location.search)
       window.location.href = `/signin?redirect=${redirect}`
@@ -42,9 +43,9 @@ async function toResult<T>(response: Response): Promise<Result<T>> {
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       return new Promise<Result<T>>(() => {})
     }
-    notify.error("You need to be authenticated to perform this operation.")
-  } else if (response.status === 403) {
-    notify.error("You are not authorized to perform this operation.")
+    if (!hasServerErrors) notify.error(i18n._({ id: "http.error.signin", message: "Sign in to continue." }))
+  } else if (response.status === 403 && !hasServerErrors) {
+    notify.error(i18n._({ id: "http.error.forbidden", message: "You do not have permission to perform this operation." }))
   }
 
   return {
@@ -69,8 +70,8 @@ async function request<T>(url: string, method: "GET" | "POST" | "PUT" | "DELETE"
     })
     return await toResult<T>(response)
   } catch (err) {
-    const truncatedBody = truncate(body ? JSON.stringify(body) : "<empty>", 1000)
-    throw new Error(`Failed to ${method} ${url} with body '${truncatedBody}'`)
+    // Request bodies may contain passwords. Errors reach the client error reporter.
+    throw new Error(`Failed to ${method} ${url}`)
   }
 }
 

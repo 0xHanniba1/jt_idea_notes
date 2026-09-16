@@ -2,6 +2,7 @@ package web
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -18,6 +19,7 @@ type Request struct {
 	Method        string
 	ContentLength int64
 	Body          string
+	BodyError     error
 	IsSecure      bool
 	StartTime     time.Time
 	URL           *url.URL
@@ -26,26 +28,40 @@ type Request struct {
 // WrapRequest returns Fider wrapper of HTTP Request
 func WrapRequest(request *http.Request) Request {
 	protocol := "http"
-	if request.TLS != nil || request.Header.Get("X-Forwarded-Proto") == "https" {
+	if request.TLS != nil || (trustedProxy(request.RemoteAddr) && request.Header.Get("X-Forwarded-Proto") == "https") {
 		protocol = "https"
 	}
 
 	host := request.Host
-	if request.Header.Get("X-Forwarded-Host") != "" {
+	if trustedProxy(request.RemoteAddr) && request.Header.Get("X-Forwarded-Host") != "" {
 		host = request.Header.Get("X-Forwarded-Host")
 	}
 
-	fullURL := protocol + "://" + host + request.RequestURI
+	// A proxy may send absolute-form RequestURI. Use its path/query, just as
+	// the router does, so authentication body limits cannot be bypassed.
+	requestPath := request.RequestURI
+	if request.URL != nil {
+		requestPath = request.URL.RequestURI()
+	} else if parsed, err := url.Parse(requestPath); requestPath != "" && err == nil {
+		requestPath = parsed.RequestURI()
+	}
+	fullURL := protocol + "://" + host + requestPath
 	u, err := url.Parse(fullURL)
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to parse url '%s'", fullURL))
 	}
 
 	var bodyBytes []byte
-	if request.ContentLength > 0 {
-		bodyBytes, err = io.ReadAll(request.Body)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to read body").Error())
+	var bodyError error
+	if request.Body != nil {
+		reader := io.Reader(request.Body)
+		if IsPasswordRequest(u.Path) {
+			reader = io.LimitReader(reader, 8193)
+		}
+		bodyBytes, bodyError = io.ReadAll(reader)
+		if IsPasswordRequest(u.Path) && len(bodyBytes) > 8192 {
+			bodyError = &http.MaxBytesError{Limit: 8192}
+			bodyBytes = nil
 		}
 	}
 
@@ -54,6 +70,7 @@ func WrapRequest(request *http.Request) Request {
 		Method:        request.Method,
 		ContentLength: request.ContentLength,
 		Body:          string(bodyBytes),
+		BodyError:     bodyError,
 		URL:           u,
 		IsSecure:      protocol == "https",
 		StartTime:     time.Now(),
@@ -110,4 +127,47 @@ func (r *Request) BaseURL() string {
 	}
 
 	return address
+}
+
+// trustedProxy never trusts forwarded headers unless the peer is explicitly configured.
+func trustedProxy(remoteAddr string) bool {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	for _, raw := range strings.Split(env.Config.TrustedProxyCIDRs, ",") {
+		_, network, err := net.ParseCIDR(strings.TrimSpace(raw))
+		if err == nil && network.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Request) ClientIP() string {
+	host, _, err := net.SplitHostPort(r.instance.RemoteAddr)
+	if err != nil {
+		host = r.instance.RemoteAddr
+	}
+	if trustedProxy(r.instance.RemoteAddr) {
+		chain := strings.Split(r.GetHeader("X-Forwarded-For"), ",")
+		for i := len(chain) - 1; i >= 0; i-- {
+			candidate := strings.TrimSpace(chain[i])
+			if net.ParseIP(candidate) == nil {
+				break
+			}
+			host = candidate
+			if !trustedProxy(candidate) {
+				break
+			}
+		}
+	}
+	if net.ParseIP(host) == nil {
+		return "unknown"
+	}
+	return host
 }

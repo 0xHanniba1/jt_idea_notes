@@ -19,6 +19,7 @@ func TestSendSignUpEmailTask(t *testing.T) {
 	worker := mock.NewWorker()
 	task := tasks.SendSignUpEmail(&actions.CreateTenant{
 		VerificationKey: "1234",
+		Email:           "member@local.test",
 	}, "http://domain.com")
 
 	err := worker.
@@ -37,6 +38,7 @@ func TestSendSignUpEmailTask(t *testing.T) {
 	})
 	Expect(emailmock.MessageHistory[0].To).HasLen(1)
 	Expect(emailmock.MessageHistory[0].To[0]).Equals(dto.Recipient{
+		Address: "member@local.test",
 		Props: dto.Props{
 			"link": "<a href='http://domain.com/signup/verify?k=1234'>http://domain.com/signup/verify?k=1234</a>",
 		},

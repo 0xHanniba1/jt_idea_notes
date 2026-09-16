@@ -51,18 +51,6 @@ export const SideMenu = (props: SiteMenuProps) => {
         <SideMenuItem name="users" title={i18n._({ id: "admin.menu.users", message: "Users" })} href="/admin/users" isActive={activeItem === "users"} />
         <SideMenuItem name="tags" title={i18n._({ id: "admin.menu.tags", message: "Tags" })} href="/admin/tags" isActive={activeItem === "tags"} />
         <SideMenuItem
-          name="invitations"
-          title={i18n._({ id: "admin.menu.invitations", message: "Invitations" })}
-          href="/admin/invitations"
-          isActive={activeItem === "invitations"}
-        />
-        <SideMenuItem
-          name="authentication"
-          title={i18n._({ id: "admin.menu.authentication", message: "Authentication" })}
-          href="/admin/authentication"
-          isActive={activeItem === "authentication"}
-        />
-        <SideMenuItem
           name="advanced"
           title={i18n._({ id: "admin.menu.advanced", message: "Advanced" })}
           href="/admin/advanced"

@@ -160,3 +160,17 @@ func TestBatch_Success(t *testing.T) {
 	Expect(string(requests[1].body)).ContainsSubstring("Message-ID: ")
 	Expect(string(requests[1].body)).ContainsSubstring("Hello World Arya!")
 }
+
+func TestSend_EmptyRecipientDoesNotStopValidRecipients(t *testing.T) {
+	RegisterT(t)
+	reset()
+	email.SetAllowlist("")
+	email.SetBlocklist("")
+	bus.Publish(ctx, &cmd.SendMail{
+		To:           []dto.Recipient{{Address: ""}, {Address: " \t "}, {Name: "Member", Address: "member@local.test"}},
+		TemplateName: "echo_test", Props: dto.Props{"name": "Member"},
+	})
+	if len(requests) != 1 || len(requests[0].to) != 1 || requests[0].to[0] != "member@local.test" {
+		t.Fatal("empty member suppressed valid SMTP delivery")
+	}
+}

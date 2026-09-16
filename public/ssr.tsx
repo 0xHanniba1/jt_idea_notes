@@ -37,6 +37,7 @@ const pages: { [key: string]: any } = {
   "Home/Home.page": require(`./pages/Home/Home.page`),
   "ShowPost/ShowPost.page": require(`./pages/ShowPost/ShowPost.page`),
   "SignIn/SignIn.page": require(`./pages/SignIn/SignIn.page`),
+  "SignIn/ChangePasswordRequired.page": require(`./pages/SignIn/ChangePasswordRequired.page`),
   "SignUp/SignUp.page": require(`./pages/SignUp/SignUp.page`),
   "SignUp/PendingActivation.page": require(`./pages/SignUp/PendingActivation.page`),
   "Legal/Legal.page": require(`./pages/Legal/Legal.page`),

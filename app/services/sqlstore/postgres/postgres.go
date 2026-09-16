@@ -78,6 +78,13 @@ func (s Service) Init() {
 	bus.AddHandler(getCommentByID)
 	bus.AddHandler(getCommentsByPost)
 
+	bus.AddHandler(getPasswordCredential)
+	bus.AddHandler(hasPasswordAdministrator)
+	bus.AddHandler(createPasswordAccount)
+	bus.AddHandler(initializePasswordAccount)
+	bus.AddHandler(resetPasswordAccount)
+	bus.AddHandler(changePassword)
+
 	bus.AddHandler(countUsers)
 	bus.AddHandler(blockUser)
 	bus.AddHandler(unblockUser)

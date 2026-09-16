@@ -1,3 +1,8 @@
+# JT Idea Notes（Fider Fork）
+
+本项目基于 Fider，用于团队内部记录想法、需求、Bug 和优化建议。当前 Fork 使用管理员开通的账号与密码登录，首次登录必须修改临时密码；上游的邮箱登录、OAuth、公开注册和 API Key 认证已停用。
+
+自部署、既有管理员初始化和本机恢复请先阅读[账号密码登录运维说明](docs/admin-password-login-operations.md)。原版 Fider 的介绍保留在下方，其中上游安装与认证说明不能直接替代本 Fork 的切换步骤。
 
 <p align="center">
   <a href="https://fider.io/" target="_blank">

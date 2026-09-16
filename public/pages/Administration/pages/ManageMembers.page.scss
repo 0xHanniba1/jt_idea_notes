@@ -7,7 +7,7 @@
 }
 .c-members-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(160px, 1.5fr) minmax(100px, 150px) 36px;
+  grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) minmax(80px, 110px) minmax(110px, 1fr) 36px;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -31,7 +31,7 @@
     border-radius: 0 0 var(--radius-card) var(--radius-card);
   }
 }
-.c-members-email {
+.c-members-username {
   overflow-wrap: anywhere;
   font-size: 12px;
 }
@@ -48,6 +48,20 @@
   }
   .c-members-row .c-members-actions {
     grid-column: 2;
-    grid-row: 1 / span 3;
+    grid-row: 1 / span 4;
+  }
+}
+
+.c-members-state {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--paper-soft);
+  color: var(--ink-700);
+  overflow-wrap: anywhere;
+  &--inactive {
+    color: var(--red);
+    background: var(--red-soft);
   }
 }

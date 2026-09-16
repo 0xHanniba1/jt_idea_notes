@@ -2,6 +2,8 @@ package middlewares
 
 import (
 	"fmt"
+	"mime"
+	"net/url"
 	"strings"
 
 	"github.com/getfider/fider/app/pkg/env"
@@ -32,13 +34,26 @@ func Secure() web.MiddlewareFunc {
 	}
 }
 
-// Secure middleware is responsible for blocking CSRF attacks
+// CSRF requires JSON and the configured origin for browser state changes.
+// Stripe's signed webhook is registered before this middleware.
 func CSRF() web.MiddlewareFunc {
 	return func(next web.HandlerFunc) web.HandlerFunc {
 		return func(c *web.Context) error {
-			var isWriteRequest = c.Request.Method == "POST" || c.Request.Method == "PUT" || c.Request.Method == "DELETE"
-			if isWriteRequest && !c.IsAjax() {
-				return c.Forbidden()
+			if web.IsWriteMethod(c.Request.Method) {
+				contentType, _, err := mime.ParseMediaType(c.Request.GetHeader("Content-Type"))
+				if err != nil || contentType != web.JSONContentType {
+					return c.JSON(403, web.Map{})
+				}
+				origin := c.Request.GetHeader("Origin")
+				fromOrigin := origin != ""
+				if !fromOrigin {
+					origin = c.Request.GetHeader("Referer")
+				}
+				expected, expectedErr := url.Parse(c.ConfiguredOrigin())
+				provided, providedErr := url.Parse(origin)
+				if expectedErr != nil || providedErr != nil || expected == nil || provided == nil || provided.User != nil || provided.Scheme == "" || provided.Host == "" || expected.Scheme != provided.Scheme || !strings.EqualFold(expected.Host, provided.Host) || (fromOrigin && (provided.Path != "" || provided.RawQuery != "" || provided.Fragment != "")) {
+					return c.JSON(403, web.Map{})
+				}
 			}
 			return next(c)
 		}

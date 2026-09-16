@@ -20,7 +20,8 @@ import (
 )
 
 func sendMail(ctx context.Context, c *cmd.SendMail) {
-	if len(c.To) == 0 {
+	recipients := email.NonEmptyRecipients(c.To)
+	if len(recipients) == 0 {
 		return
 	}
 
@@ -32,19 +33,19 @@ func sendMail(ctx context.Context, c *cmd.SendMail) {
 		c.From.Address = email.NoReply
 	}
 
-	isBatch := len(c.To) > 1
+	isBatch := len(recipients) > 1
 
 	var message *email.Message
 	if isBatch {
 		// Replace recipient specific Go templates variables with Mailgun template variables
-		if c.To[0].Props != nil {
-			for k := range c.To[0].Props {
+		if recipients[0].Props != nil {
+			for k := range recipients[0].Props {
 				c.Props[k] = fmt.Sprintf("%%recipient.%s%%", k)
 			}
 		}
 		message = email.RenderMessage(ctx, c.TemplateName, c.From.Address, c.Props)
 	} else {
-		message = email.RenderMessage(ctx, c.TemplateName, c.From.Address, c.Props.Merge(c.To[0].Props))
+		message = email.RenderMessage(ctx, c.TemplateName, c.From.Address, c.Props.Merge(recipients[0].Props))
 	}
 
 	form := url.Values{}
@@ -61,7 +62,7 @@ func sendMail(ctx context.Context, c *cmd.SendMail) {
 
 	// Set Mailgun's var based on each recipient's variables
 	recipientVariables := make(map[string]dto.Props)
-	for _, r := range c.To {
+	for _, r := range recipients {
 		if r.Address != "" {
 			if email.CanSendTo(r.Address) {
 				form.Add("to", r.String())
@@ -96,7 +97,7 @@ func sendMail(ctx context.Context, c *cmd.SendMail) {
 		})
 	} else {
 		log.Debugf(ctx, "Sending email to @{Address} with template @{TemplateName}.", dto.Props{
-			"Address":      c.To[0].Address,
+			"Address":      recipients[0].Address,
 			"TemplateName": c.TemplateName,
 		})
 	}

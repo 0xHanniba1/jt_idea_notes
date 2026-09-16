@@ -306,7 +306,7 @@ func sendEmailNotifications(c *worker.Context, post *entity.Post, to []dto.Recip
 		"logo":                logoURL,
 	}
 
-	bus.Publish(c, &cmd.SendMail{
+	publishMail(c, &cmd.SendMail{
 		From:         dto.Recipient{Name: author.Name},
 		To:           to,
 		TemplateName: templateName,

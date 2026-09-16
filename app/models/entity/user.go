@@ -8,18 +8,21 @@ import (
 
 // User represents an user inside our application
 type User struct {
-	ID            int             `json:"id"`
-	Name          string          `json:"name"`
-	Tenant        *Tenant         `json:"-"`
-	Email         string          `json:"-"`
-	Role          enum.Role       `json:"role"`
-	Providers     []*UserProvider `json:"-"`
-	AvatarBlobKey string          `json:"-"`
-	AvatarType    enum.AvatarType `json:"-"`
-	AvatarURL     string          `json:"avatarURL,omitempty"`
-	Status        enum.UserStatus `json:"status"`
-	IsTrusted     bool            `json:"isTrusted"`
-	SecurityStamp string          `json:"-"`
+	ID                  int             `json:"id"`
+	Name                string          `json:"name"`
+	Tenant              *Tenant         `json:"-"`
+	Email               string          `json:"-"`
+	Role                enum.Role       `json:"role"`
+	Providers           []*UserProvider `json:"-"`
+	AvatarBlobKey       string          `json:"-"`
+	AvatarType          enum.AvatarType `json:"-"`
+	AvatarURL           string          `json:"avatarURL,omitempty"`
+	Status              enum.UserStatus `json:"status"`
+	IsTrusted           bool            `json:"isTrusted"`
+	SecurityStamp       string          `json:"-"`
+	Username            string          `json:"-"`
+	PasswordInitialized bool            `json:"-"`
+	MustChangePassword  bool            `json:"-"`
 }
 
 // HasProvider returns true if current user has registered with given provider
@@ -62,9 +65,15 @@ func (umc UserWithEmail) MarshalJSON() ([]byte, error) {
 	type Alias User // Prevent recursion
 	return json.Marshal(&struct {
 		*Alias
-		Email string `json:"email"`
+		Email               string `json:"email"`
+		Username            string `json:"username"`
+		PasswordInitialized bool   `json:"passwordInitialized"`
+		MustChangePassword  bool   `json:"mustChangePassword"`
 	}{
-		Alias: (*Alias)(umc.User),
-		Email: umc.Email,
+		Alias:               (*Alias)(umc.User),
+		Email:               umc.Email,
+		Username:            umc.Username,
+		PasswordInitialized: umc.PasswordInitialized,
+		MustChangePassword:  umc.MustChangePassword,
 	})
 }

@@ -126,7 +126,7 @@ func NotifyAboutNewPost(post *entity.Post) worker.Task {
 			"logo":     logoURL,
 		}
 
-		bus.Publish(c, &cmd.SendMail{
+		publishMail(c, &cmd.SendMail{
 			From:         dto.Recipient{Name: author.Name},
 			To:           to,
 			TemplateName: "new_post",
