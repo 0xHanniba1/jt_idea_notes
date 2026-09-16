@@ -4,9 +4,9 @@
   max-width: 500px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 45px;
-  padding-right: 45px;
-  padding-bottom: 40px;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-bottom: 20px;
 
   &__oauth {
     display: flex;
@@ -22,8 +22,8 @@
 
 .c-signin-social-button {
   background: none;
-  border: 1px solid get("colors.gray.700");
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -34,8 +34,17 @@
     padding-right: spacing(3);
   }
   span {
-    color: get("colors.gray.700");
+    color: var(--ink-700);
     font-size: get("font.size.base");
     font-weight: 500;
   }
+}
+
+.c-signin-social-button {
+  background: var(--paper);
+  box-shadow: var(--shadow-control);
+  min-height: 44px;
+}
+.c-signin-social-button:hover {
+  background: var(--control-hover);
 }

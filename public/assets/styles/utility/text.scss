@@ -13,13 +13,13 @@ pre:last-child {
   font-size: get("font.size.2xl");
   color: var(--colors-gray-900);
   font-weight: get("font.weight.bold");
-  letter-spacing: -1px;
+  letter-spacing: -0.3px;
 }
 
 .text-display2 {
   font-size: get("font.size.xl");
   font-weight: get("font.weight.medium");
-  letter-spacing: -1px;
+  letter-spacing: -0.3px;
 }
 
 .header-emphasis {
@@ -28,7 +28,7 @@ pre:last-child {
 
 .text-display {
   font-size: get("font.size.3xl");
-  font-weight: get("font.weight.xbold");
+  font-weight: 600;
 }
 
 .text-header {

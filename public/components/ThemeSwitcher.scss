@@ -1,6 +1,27 @@
 .c-themeswitcher {
-  border: none;
-  background: transparent;
-  color: var(--colors-gray-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  color: var(--ink-500);
+  background: var(--paper);
+  box-shadow: var(--shadow-control);
   cursor: pointer;
+}
+.c-themeswitcher:hover {
+  color: var(--ink-950);
+  background: var(--control-hover);
+}
+.c-themeswitcher:active {
+  background: var(--control-active);
+}
+@media (max-width: 680px), (pointer: coarse) {
+  .c-themeswitcher {
+    width: 44px;
+    height: 44px;
+  }
 }

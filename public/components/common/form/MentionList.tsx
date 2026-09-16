@@ -38,6 +38,11 @@ const MentionList = forwardRef<MentionListHandle, Props>((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }): boolean => {
+      if (event.isComposing || !props.items.length) return false
+      if (event.key === "Home" || event.key === "End") {
+        setSelectedIndex(event.key === "Home" ? 0 : props.items.length - 1)
+        return true
+      }
       if (event.key === "ArrowUp") {
         upHandler()
         return true
@@ -61,7 +66,13 @@ const MentionList = forwardRef<MentionListHandle, Props>((props, ref) => {
     <div className="dropdown-menu">
       {props.items.length ? (
         props.items.map((item, index) => (
-          <button className={`${index === selectedIndex ? "is-selected" : ""}`} key={index} onClick={() => selectItem(index)}>
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            className={`${index === selectedIndex ? "is-selected" : ""}`}
+            key={index}
+            onClick={() => selectItem(index)}
+          >
             {item.label}
           </button>
         ))

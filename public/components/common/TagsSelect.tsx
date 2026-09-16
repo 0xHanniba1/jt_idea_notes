@@ -1,4 +1,4 @@
-import React, { KeyboardEvent as ReactKeyboardEvent, useEffect, useRef, useState } from "react"
+import React, { KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { Tag } from "@fider/models"
 import { sortTags } from "@fider/services"
 import { Button, ShowTag } from "@fider/components"
@@ -24,18 +24,24 @@ export const TagsSelect = (props: TagsSelectProps) => {
   const fider = useFider()
   const [isEditing, setIsEditing] = useState(false)
   const [query, setQuery] = useState("")
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [above, setAbove] = useState(false)
+  const listId = useId()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLElement | null>(null)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const assignOrUnassignTag = async (tag: Tag) => {
-    const idx = props.selected.indexOf(tag)
-    const next = idx >= 0 ? props.selected.filter((x) => x !== tag) : props.selected.concat(tag)
+    const assigned = props.selected.some((item) => item.id === tag.id)
+    const next = assigned ? props.selected.filter((item) => item.id !== tag.id) : props.selected.concat(tag)
     props.selectionChanged(next)
   }
 
   const onSubtitleClick = () => {
     if (props.canEdit) {
+      triggerRef.current = document.activeElement as HTMLElement
       setIsEditing(!isEditing)
       // Immediately focus on the input element when editing starts
       if (inputRef.current) {
@@ -53,30 +59,40 @@ export const TagsSelect = (props: TagsSelectProps) => {
     }
   }
 
-  const handleOptionKey = (event: ReactKeyboardEvent, tag: Tag) => {
-    if (event.code !== "Enter" && event.code !== "Space") {
-      return
-    }
-
-    event.preventDefault()
-    assignOrUnassignTag(tag)
-    if (inputRef.current) {
-      inputRef.current.focus()
-    }
-  }
-
-  const filteredOptions = props.tags.filter(
-    (option) => option.name.toLowerCase().includes(query.toLowerCase()) && !props.selected.some((tag) => tag.slug === option.slug)
+  const filteredOptions = sortTags(
+    props.tags.filter((option) => option.name.toLowerCase().includes(query.toLowerCase()) && !props.selected.some((tag) => tag.slug === option.slug))
   )
 
-  const handleEsc = (event: KeyboardEvent | ReactKeyboardEvent) => {
-    if (event.code !== "Escape") {
-      return
-    }
-
+  const handleEsc = (event: ReactKeyboardEvent) => {
+    if (event.nativeEvent.isComposing || event.key !== "Escape" || !isEditing) return
+    event.preventDefault()
     event.stopPropagation()
-
     setIsEditing(false)
+    requestAnimationFrame(() => {
+      if (triggerRef.current?.isConnected) triggerRef.current.focus()
+      else containerRef.current?.querySelector<HTMLElement>("button")?.focus()
+    })
+  }
+
+  const onInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) && filteredOptions.length) {
+      event.preventDefault()
+      const next =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+          ? filteredOptions.length - 1
+          : event.key === "ArrowDown"
+          ? (activeIndex + 1) % filteredOptions.length
+          : (activeIndex - 1 + filteredOptions.length) % filteredOptions.length
+      setActiveIndex(next)
+      document.getElementById(`${listId}-${next}`)?.scrollIntoView?.({ block: "nearest" })
+    } else if (event.key === "Enter" && filteredOptions[activeIndex]) {
+      event.preventDefault()
+      handleOptionClick(filteredOptions[activeIndex])
+      setActiveIndex(0)
+    }
   }
 
   // Close dropdown when clicking outside
@@ -96,6 +112,8 @@ export const TagsSelect = (props: TagsSelectProps) => {
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus()
+      const rect = dropdownRef.current?.getBoundingClientRect()
+      if (rect) setAbove(window.innerHeight - rect.bottom < 280 && rect.top > window.innerHeight - rect.bottom)
     }
   }, [isEditing])
 
@@ -120,9 +138,17 @@ export const TagsSelect = (props: TagsSelectProps) => {
 
   // Dynamic multiselect dropdown for tags selection
   const editTagsList = props.tags.length > 0 && (
-    <div className="c-tags-select__container" ref={dropdownRef} onKeyDown={handleEsc} onClick={props.canEdit && !isEditing ? onSubtitleClick : undefined}>
+    <div
+      className="c-tags-select__container"
+      ref={dropdownRef}
+      onKeyDown={handleEsc}
+      onClick={props.canEdit && !isEditing ? onSubtitleClick : undefined}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node)) setIsEditing(false)
+      }}
+    >
       <div className="c-tags-select__selected-container">
-        {props.selected.length === 0 && props.canEdit && (
+        {props.canEdit && (
           <Button className="text-gray-600" variant={"link"} size={"no-padding"} onClick={onSubtitleClick}>
             <Trans id="label.addtags">Add tags...</Trans>
           </Button>
@@ -130,8 +156,14 @@ export const TagsSelect = (props: TagsSelectProps) => {
         {sortTags(props.selected).map((tag) => (
           <div key={tag.id} className="c-tags-select__selected-item">
             <ShowTag tag={tag} />
-            <button onClick={() => handleOptionClick(tag)} className="c-tags-select__remove-button">
-              x
+            <button
+              type="button"
+              disabled={!props.canEdit}
+              onClick={() => handleOptionClick(tag)}
+              className="c-tags-select__remove-button"
+              aria-label={`${i18n._({ id: "action.remove", message: "Remove" })}: ${tag.name}`}
+            >
+              ×
             </button>
           </div>
         ))}
@@ -139,28 +171,46 @@ export const TagsSelect = (props: TagsSelectProps) => {
 
       {/* Dropdown options after items are filtered */}
       {isEditing && (
-        <div className="c-tags-select__options">
+        <div className="c-tags-select__options" data-side={above ? "top" : "bottom"}>
           {/* Search box to enter query string */}
           <input
             type="text"
             value={query}
             ref={inputRef}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setActiveIndex(0)
+            }}
+            role="combobox"
+            aria-label={i18n._({ id: "label.searchtags", message: "Search tags..." })}
+            aria-expanded={true}
+            aria-controls={listId}
+            aria-activedescendant={filteredOptions[activeIndex] ? `${listId}-${activeIndex}` : undefined}
             className="c-input c-tags-select__search-input"
             placeholder={i18n._({ id: "label.searchtags", message: "Search tags..." })}
-            onKeyDown={() => handleEsc}
+            onKeyDown={onInputKeyDown}
           />
-          {filteredOptions.length > 0 ? (
-            sortTags(filteredOptions).map((tag) => (
-              <div key={tag.id} className="c-tags-select__option" onClick={() => handleOptionClick(tag)} onKeyDown={(event) => handleOptionKey(event, tag)}>
-                <ShowTag tag={tag} />
+          <div role="listbox" id={listId} aria-label={i18n._({ id: "label.tags", message: "Tags" })}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((tag, index) => (
+                <div
+                  key={tag.id}
+                  id={`${listId}-${index}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  className="c-tags-select__option"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => handleOptionClick(tag)}
+                >
+                  <ShowTag tag={tag} />
+                </div>
+              ))
+            ) : (
+              <div className="c-tags-select__no-options">
+                <Trans id="labels.notagsavailable">No tags available</Trans>
               </div>
-            ))
-          ) : (
-            <div className="c-tags-select__no-options">
-              <Trans id="labels.notagsavailable">No tags available</Trans>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -178,10 +228,10 @@ export const TagsSelect = (props: TagsSelectProps) => {
   }
 
   return (
-    <VStack className="c-tags-select">
+    <div ref={containerRef} className="c-tags-select">
       <HStack spacing={2} align="center" className="text-primary-base text-xs">
         {isEditing || props.alwaysEditing ? editTagsList : viewModeTagsList}
       </HStack>
-    </VStack>
+    </div>
   )
 }

@@ -1,5 +1,6 @@
 import "./Hint.scss"
 
+import { i18n } from "@lingui/core"
 import React, { useState } from "react"
 import IconX from "@fider/assets/images/heroicons-x.svg"
 import { HStack } from "@fider/components/layout"
@@ -30,7 +31,11 @@ export const Hint: React.FC<HintProps> = (props) => {
   return (
     <HStack className="c-hint" justify="between" spacing={2}>
       <span>{props.children}</span>
-      {cacheKey && <Icon sprite={IconX} onClick={close} className="c-hint__close h-5" />}
+      {cacheKey && (
+        <button type="button" onClick={close} className="c-hint__close" aria-label={i18n._({ id: "action.close", message: "Close" })}>
+          <Icon sprite={IconX} className="h-4" />
+        </button>
+      )}
     </HStack>
   )
 }

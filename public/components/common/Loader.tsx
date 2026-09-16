@@ -1,5 +1,6 @@
 import "./Loader.scss"
 
+import { i18n } from "@lingui/core"
 import React, { useState } from "react"
 import { useTimeout } from "@fider/hooks"
 import { classSet } from "@fider/services"
@@ -22,8 +23,8 @@ export function Loader(props: LoaderProps) {
   })
 
   return show ? (
-    <div className={className}>
-      <div className="c-loader__spinner" />
+    <div className={className} role="status" aria-label={props.text || i18n._({ id: "label.loading", message: "Loading" })}>
+      <div className="c-loader__spinner" aria-hidden="true" />
       {props.text && <span className="c-loader__text">{props.text}</span>}
     </div>
   ) : null

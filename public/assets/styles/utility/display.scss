@@ -192,34 +192,34 @@
 }
 
 .shadow-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-control);
 }
 .shadow {
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-control);
 }
 .shadow-md {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-floating);
 }
 .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-floating);
 }
 
 .rounded {
-  border-radius: sizing(1);
+  border-radius: var(--radius-sm);
 }
 
 .rounded-md {
-  border-radius: sizing(2);
+  border-radius: var(--radius-control);
 }
 
 .rounded-md-t {
-  border-top-left-radius: sizing(2);
-  border-top-right-radius: sizing(2);
+  border-top-left-radius: var(--radius-control);
+  border-top-right-radius: var(--radius-control);
 }
 
 .rounded-md-b {
-  border-bottom-left-radius: sizing(2);
-  border-bottom-right-radius: sizing(2);
+  border-bottom-left-radius: var(--radius-control);
+  border-bottom-right-radius: var(--radius-control);
 }
 
 .rounded-full {
@@ -270,7 +270,6 @@
 }
 
 .hover {
-  transition: all 0.15s ease;
   &:hover {
     background-color: var(--colors-gray-50);
   }

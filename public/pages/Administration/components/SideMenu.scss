@@ -1,27 +1,38 @@
-@use "~@fider/assets/styles/variables.scss" as *;
-
 .c-side-menu {
+  padding: 5px;
+  background: var(--paper-soft);
+  border-radius: var(--radius-card);
+  box-shadow: none;
   &__item {
-    padding: spacing(4);
-    border-bottom: 1px solid var(--colors-gray-200);
-    color: var(--colors-gray-900);
-
-    &:hover {
-      background-color: var(--colors-gray-100);
-    }
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &--active {
-      color: var(--colors-primary-base);
-      border-inline-start: 2px solid var(--colors-primary-base);
-      font-weight: 600;
-      background-color: var(--colors-white);
-      &:hover {
-        color: var(--colors-primary-base);
-      }
-    }
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: var(--radius-pill);
+    color: var(--ink-700);
+    font-size: 13px;
   }
+  &__item:hover {
+    background: var(--control-hover);
+  }
+  &__item:active {
+    background: var(--control-active);
+  }
+  &__item--active {
+    color: var(--ink-950);
+    background: var(--brand-soft);
+    box-shadow: var(--shadow-control);
+    font-weight: 500;
+  }
+  &__item--active:hover {
+    background: var(--brand-soft);
+  }
+}
+.c-side-menu-toggle {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
 }

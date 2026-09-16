@@ -18,6 +18,10 @@ export interface Result<T = void> {
 async function toResult<T>(response: Response): Promise<Result<T>> {
   const body = await response.json()
 
+  if (response.status === 401 || response.status === 403) {
+    window.dispatchEvent(new CustomEvent("fider:access-denied", { detail: { status: response.status } }))
+  }
+
   if (response.status < 400) {
     return {
       ok: true,

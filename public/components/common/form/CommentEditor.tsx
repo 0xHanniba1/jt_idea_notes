@@ -251,6 +251,8 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
   const [markdownText, setMarkdownText] = useState(props.initialValue ?? "")
   const [contentLength, setContentLength] = useState((props.initialValue ?? "").length)
   const allowedProtocols = useAllowedProtocols()
+  const disabledRef = useRef(props.disabled)
+  disabledRef.current = props.disabled
 
   // Use a ref instead of state for tracking document images
   // This avoids the async state update issue and prevents unnecessary re-renders
@@ -382,6 +384,7 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
   }
 
   const handleImageUpload = async (file: File) => {
+    if (disabledRef.current) return
     // Validate the image upload
     const errorMessage = validateImageUpload(file)
     if (errorMessage) {
@@ -391,6 +394,7 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
 
     try {
       const base64 = await fileToBase64(file)
+      if (disabledRef.current) return
 
       // Generate a bkey for this image that matches the server-side format
       const bkey = generateBkey(file.name)
@@ -454,7 +458,7 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
   }
 
   const handleInsertLink = (text: string, url: string) => {
-    if (!editor) return
+    if (!editor || !editor.isEditable) return
 
     editor
       .chain()
@@ -470,7 +474,7 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
 
   // Handle keyboard shortcuts
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (!editor) return
+    if (!editor || !editor.isEditable) return
 
     const isMac = navigator.userAgent.toUpperCase().indexOf("MAC") >= 0
     const isCmdK = (isMac && event.metaKey && event.key === "k") || (!isMac && event.ctrlKey && event.key === "k")
@@ -542,6 +546,7 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
     {
       extensions,
       content: initialContentRef.current,
+      editable: !props.disabled,
       onUpdate: updated,
       onFocus: () => {
         if (props.onFocus) {
@@ -551,8 +556,14 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
       editorProps: {
         attributes: {
           class: "no-focus",
+          role: "textbox",
+          "aria-multiline": "true",
+          "aria-label": props.placeholder || props.field,
+          "aria-readonly": String(props.disabled),
+          tabindex: "0",
         },
         handlePaste: (view, event) => {
+          if (disabledRef.current) return true
           // Check if the clipboard has files
           if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
             // Get the first file (assuming it's an image)
@@ -615,6 +626,12 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
     // leaving the paste handler bound to the destroyed one, silently dropping pasted images.
     []
   )
+
+  useEffect(() => {
+    // useEditor preserves editable when syncing options; change the live
+    // instance explicitly without recreating its document or emitting edits.
+    if (editor && editor.isEditable !== !props.disabled) editor.setEditable(!props.disabled, false)
+  }, [editor, props.disabled])
 
   // Initialize document images when editor is ready
   useEffect(() => {
@@ -702,8 +719,6 @@ const Tiptap: React.FunctionComponent<CommentEditorProps> = (props) => {
   )
 }
 
-const CommentEditor = React.memo(Tiptap, (prevProps, nextProps) => {
-  return prevProps.placeholder === nextProps.placeholder
-})
+const CommentEditor = React.memo(Tiptap)
 
 export default CommentEditor

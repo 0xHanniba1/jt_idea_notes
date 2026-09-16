@@ -17,6 +17,7 @@ interface ShowCommentProps {
   comment: Comment
   highlighted?: boolean
   onToggleReaction?: () => void
+  onDataChanged?: () => void | Promise<void>
 }
 
 export const ShowComment = (props: ShowCommentProps) => {
@@ -25,13 +26,25 @@ export const ShowComment = (props: ShowCommentProps) => {
   const [isEditing, setIsEditing] = useState(false)
   const [newContent, setNewContent] = useState<string>(props.comment.content)
   const [isDeleteConfirmationModalOpen, setIsDeleteConfirmationModalOpen] = useState(false)
-  const { attachments, handleImageUploaded, getImageSrc } = useAttachments({
+  const { attachments, handleImageUploaded, getImageSrc, clearAttachments } = useAttachments({
     maxAttachments: 2,
   })
   const [localReactionCounts, setLocalReactionCounts] = useState(props.comment.reactionCounts)
   const emojiSelectorRef = useRef<HTMLDivElement>(null)
 
   const [error, setError] = useState<Failure>()
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    setLocalReactionCounts(props.comment.reactionCounts)
+  }, [props.comment.reactionCounts])
+
+  const mutationFailed = () =>
+    setError({ errors: [{ message: t({ id: "showpost.action.failed", message: "Unable to save. Please check your connection and try again." }) }] })
+  const changed = async () => {
+    if (props.onDataChanged) await props.onDataChanged()
+    else location.reload()
+  }
 
   const handleClick = (e: MouseEvent) => {
     if (node.current == null || !node.current.contains(e.target as Node)) {
@@ -60,84 +73,116 @@ export const ShowComment = (props: ShowCommentProps) => {
   const cancelEdit = async () => {
     setIsEditing(false)
     setNewContent(props.comment.content)
+    clearAttachments()
     clearError()
   }
 
   const saveEdit = async () => {
-    const response = await actions.updateComment(props.post.number, props.comment.id, newContent, attachments)
-    if (response.ok) {
-      location.reload()
-    } else {
-      setError(response.error)
+    if (submitting) return
+    setSubmitting(true)
+    clearError()
+    try {
+      const response = await actions.updateComment(props.post.number, props.comment.id, newContent, attachments)
+      if (response.ok) {
+        setIsEditing(false)
+        clearAttachments()
+        await changed()
+      } else {
+        setError(response.error)
+      }
+    } catch {
+      mutationFailed()
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const closeModal = async () => {
-    setIsDeleteConfirmationModalOpen(false)
-  }
+  const closeModal = () => setIsDeleteConfirmationModalOpen(false)
 
   const deleteComment = async () => {
-    const response = await actions.deleteComment(props.post.number, props.comment.id)
-    if (response.ok) {
-      location.reload()
+    if (submitting) return
+    setSubmitting(true)
+    clearError()
+    try {
+      const response = await actions.deleteComment(props.post.number, props.comment.id)
+      if (response.ok) {
+        closeModal()
+        await changed()
+      } else setError(response.error)
+    } catch {
+      mutationFailed()
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const handleApproveComment = async () => {
-    const result = await actions.approveComment(props.comment.id)
-    if (result.ok) {
-      notify.success(<Trans id="showpost.moderation.comment.approved">Comment approved successfully</Trans>)
-      setTimeout(() => location.reload(), 1500)
-    } else {
-      notify.error(<Trans id="showpost.moderation.comment.approveerror">Failed to approve comment</Trans>)
+  const moderate = async (approve: boolean) => {
+    if (submitting) return
+    setSubmitting(true)
+    clearError()
+    try {
+      const result = await (approve ? actions.approveComment(props.comment.id) : actions.declineComment(props.comment.id))
+      if (result.ok) {
+        notify.success(
+          approve ? (
+            <Trans id="showpost.moderation.comment.approved">Comment approved successfully</Trans>
+          ) : (
+            <Trans id="showpost.moderation.comment.declined">Comment declined successfully</Trans>
+          )
+        )
+        await changed()
+      } else setError(result.error)
+    } catch {
+      mutationFailed()
+    } finally {
+      setSubmitting(false)
     }
   }
-
-  const handleDeclineComment = async () => {
-    const result = await actions.declineComment(props.comment.id)
-    if (result.ok) {
-      notify.success(<Trans id="showpost.moderation.comment.declined">Comment declined successfully</Trans>)
-      setTimeout(() => location.reload(), 1500)
-    } else {
-      notify.error(<Trans id="showpost.moderation.comment.declineerror">Failed to decline comment</Trans>)
-    }
-  }
+  const handleApproveComment = () => moderate(true)
+  const handleDeclineComment = () => moderate(false)
 
   const toggleReaction = async (emoji: string) => {
-    const response = await actions.toggleCommentReaction(props.post.number, comment.id, emoji)
-    if (response.ok) {
-      const added = response.data.added
-
-      setLocalReactionCounts((prevCounts) => {
-        const newCounts = [...(prevCounts ?? [])]
-        const reactionIndex = newCounts.findIndex((r) => r.emoji === emoji)
-        if (reactionIndex !== -1) {
-          const newCount = added ? newCounts[reactionIndex].count + 1 : newCounts[reactionIndex].count - 1
-          if (newCount === 0) {
-            newCounts.splice(reactionIndex, 1)
-          } else {
-            newCounts[reactionIndex] = {
-              ...newCounts[reactionIndex],
-              count: newCount,
-              includesMe: added,
-            }
-          }
-        } else if (added) {
-          newCounts.push({ emoji, count: 1, includesMe: true })
-        }
-        return newCounts
-      })
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      const response = await actions.toggleCommentReaction(props.post.number, props.comment.id, emoji)
+      if (response.ok) {
+        const added = response.data.added
+        setLocalReactionCounts((prevCounts) => {
+          const newCounts = [...(prevCounts ?? [])]
+          const reactionIndex = newCounts.findIndex((r) => r.emoji === emoji)
+          if (reactionIndex !== -1) {
+            const newCount = added ? newCounts[reactionIndex].count + 1 : newCounts[reactionIndex].count - 1
+            if (newCount === 0) newCounts.splice(reactionIndex, 1)
+            else newCounts[reactionIndex] = { ...newCounts[reactionIndex], count: newCount, includesMe: added }
+          } else if (added) newCounts.push({ emoji, count: 1, includesMe: true })
+          return newCounts
+        })
+        props.onToggleReaction?.()
+      } else setError(response.error)
+    } catch {
+      mutationFailed()
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const onActionSelected = (action: string) => () => {
     if (action === "copylink") {
-      window.location.hash = `#comment-${props.comment.id}`
+      const hash = `#comment-${props.comment.id}`
+      if (window.history.state?.jtPostOverlay?.kind === "post") {
+        window.history.replaceState(window.history.state, "", `${location.pathname}${location.search}${hash}`)
+        window.dispatchEvent(new HashChangeEvent("hashchange"))
+      } else {
+        window.location.hash = hash
+      }
       copyToClipboard(window.location.href).then(
         () => notify.success(t({ id: "showpost.comment.copylink.success", message: "Successfully copied comment link to clipboard" })),
         () => notify.error(t({ id: "showpost.comment.copylink.error", message: "Could not copy comment link, please copy page URL" }))
       )
     } else if (action === "edit") {
+      setNewContent(props.comment.content)
+      clearAttachments()
       setIsEditing(true)
       clearError()
     } else if (action === "delete") {
@@ -147,23 +192,25 @@ export const ShowComment = (props: ShowCommentProps) => {
 
   const modal = () => {
     return (
-      <Modal.Window isOpen={isDeleteConfirmationModalOpen} onClose={closeModal} center={false} size="small">
+      <Modal.Window isOpen={isDeleteConfirmationModalOpen} onClose={closeModal} canClose={!submitting} center={false} size="small">
         <Modal.Header>
           <Trans id="modal.deletecomment.header">Delete Comment</Trans>
         </Modal.Header>
         <Modal.Content>
-          <p>
-            <Trans id="modal.deletecomment.text">
-              This process is irreversible. <strong>Are you sure?</strong>
-            </Trans>
-          </p>
+          <Form error={error}>
+            <p>
+              <Trans id="modal.deletecomment.text">
+                This process is irreversible. <strong>Are you sure?</strong>
+              </Trans>
+            </p>
+          </Form>
         </Modal.Content>
 
         <Modal.Footer>
-          <Button variant="danger" onClick={deleteComment}>
+          <Button variant="danger" onClick={deleteComment} disabled={submitting}>
             <Trans id="action.delete">Delete</Trans>
           </Button>
-          <Button variant="tertiary" onClick={closeModal}>
+          <Button variant="tertiary" onClick={closeModal} disabled={submitting}>
             <Trans id="action.cancel">Cancel</Trans>
           </Button>
         </Modal.Footer>
@@ -221,7 +268,7 @@ export const ShowComment = (props: ShowCommentProps) => {
               <Form error={error}>
                 <CommentEditor
                   field="content"
-                  disabled={!fider.session.isAuthenticated}
+                  disabled={!fider.session.isAuthenticated || submitting}
                   initialValue={newContent}
                   onChange={setNewContent}
                   placeholder={comment.content}
@@ -232,16 +279,17 @@ export const ShowComment = (props: ShowCommentProps) => {
                   onImageUploaded={handleImageUploaded}
                 />
                 <div className="mt-2">
-                  <Button size="small" onClick={saveEdit} variant="primary" disabled={newContent.length > 4000}>
+                  <Button size="small" onClick={saveEdit} variant="primary" disabled={newContent.length > 4000 || submitting}>
                     <Trans id="action.save">Save</Trans>
                   </Button>
-                  <Button variant="tertiary" size="small" onClick={cancelEdit}>
+                  <Button variant="tertiary" size="small" onClick={cancelEdit} disabled={submitting}>
                     <Trans id="action.cancel">Cancel</Trans>
                   </Button>
                 </div>
               </Form>
             ) : (
               <>
+                {error && !isDeleteConfirmationModalOpen && <Form error={error} />}
                 <Markdown text={comment.content} style="full" />
 
                 {/* Moderation status banner for unapproved comments */}
@@ -263,10 +311,10 @@ export const ShowComment = (props: ShowCommentProps) => {
                           <Trans id="showpost.moderation.comment.admin.description">This comment needs your approval before being published</Trans>
                         </div>
                         <HStack spacing={1}>
-                          <Button variant="primary" size="small" onClick={handleApproveComment}>
+                          <Button variant="primary" size="small" onClick={handleApproveComment} disabled={submitting}>
                             <Trans id="action.publish">Publish</Trans>
                           </Button>
-                          <Button variant="danger" size="small" onClick={handleDeclineComment}>
+                          <Button variant="danger" size="small" onClick={handleDeclineComment} disabled={submitting}>
                             <Trans id="action.delete">Delete</Trans>
                           </Button>
                         </HStack>

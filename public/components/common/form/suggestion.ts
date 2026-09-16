@@ -25,127 +25,61 @@ export default {
     return cachedUsers.filter((item) => item.label?.toLowerCase().startsWith(query.toLowerCase())).slice(0, 100)
   },
   render: () => {
-    let reactRenderer: ReactRenderer<MentionListHandle, MentionListProps>
-    let containerElement: HTMLElement | null = null
-    let scrollListener: EventListener | null = null
-    let clickOutsideListener: EventListener | null = null
-    let initialPosition: { top: number; left: number } | null = null
-
+    let reactRenderer: ReactRenderer<MentionListHandle, MentionListProps> | undefined
+    let container: HTMLElement | undefined
+    let getRect: (() => DOMRect | null) | null | undefined
+    const position = () => {
+      const rect = getRect?.()
+      if (!container || !rect) return
+      const height = container.offsetHeight
+      container.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - container.offsetWidth - 8))}px`
+      container.style.top = `${rect.bottom + height + 8 > window.innerHeight && rect.top > height ? rect.top - height - 6 : rect.bottom + 6}px`
+    }
+    const dismiss = (event: Event) => {
+      if (container && !container.contains(event.target as Node)) cleanup()
+    }
+    const cleanup = () => {
+      window.removeEventListener("scroll", position, true)
+      window.removeEventListener("resize", position)
+      document.removeEventListener("mousedown", dismiss)
+      container?.remove()
+      container = undefined
+    }
     return {
       onStart: (props: { editor: any; clientRect?: (() => DOMRect | null) | null }) => {
-        reactRenderer = new ReactRenderer(MentionList, {
-          props,
-          editor: props.editor,
-        })
-
-        if (!props.clientRect) {
-          return
-        }
-        // Add click outside listener
-        clickOutsideListener = (event: Event) => {
-          if (event instanceof MouseEvent && containerElement && event.target instanceof Node && !containerElement.contains(event.target)) {
-            // Click was outside the container, clean up
-            if (scrollListener) {
-              window.removeEventListener("scroll", scrollListener)
-            }
-            if (clickOutsideListener) {
-              document.removeEventListener("click", clickOutsideListener)
-            }
-            if (containerElement && containerElement.parentNode) {
-              document.body.removeChild(containerElement)
-              containerElement = null
-            }
-
-            // Important: Return focus to editor
-            props.editor.view.focus()
-          }
-        }
-        // Use setTimeout to avoid immediate trigger when creating the popup
-        setTimeout(() => {
-          document.addEventListener("click", clickOutsideListener as EventListener)
-        }, 100)
-
-        // Create container for the suggestion list
-        containerElement = document.createElement("div")
-        containerElement.style.position = "absolute"
-        containerElement.style.zIndex = "1000"
-        document.body.appendChild(containerElement)
-        containerElement.appendChild(reactRenderer.element)
-
-        // Get initial position
-        const rect = props.clientRect()
-        if (rect) {
-          // Store initial position relative to the document
-          initialPosition = {
-            top: rect.bottom + window.scrollY,
-            left: rect.left + window.scrollX,
-          }
-
-          // Set initial position
-          containerElement.style.left = `${initialPosition.left}px`
-          containerElement.style.top = `${initialPosition.top}px`
-        }
-
-        // Add scroll listener to maintain position during scrolling
-        scrollListener = () => {
-          if (containerElement && initialPosition) {
-            containerElement.style.top = `${initialPosition.top}px`
-          }
-        }
-
-        window.addEventListener("scroll", scrollListener, { passive: true })
+        reactRenderer = new ReactRenderer(MentionList, { props, editor: props.editor })
+        if (!props.clientRect) return
+        getRect = props.clientRect
+        container = document.createElement("div")
+        container.style.position = "fixed"
+        container.style.zIndex = "1000"
+        // Keep suggestions in their owning dialog, so modal inert/focus handling permits them.
+        const owner = props.editor.view.dom.closest('[role="dialog"]') || document.body
+        owner.appendChild(container)
+        container.appendChild(reactRenderer.element)
+        position()
+        window.addEventListener("scroll", position, true)
+        window.addEventListener("resize", position)
+        document.addEventListener("mousedown", dismiss)
       },
-      onUpdate(props: { clientRect?: (() => DOMRect | null) | null | undefined }) {
-        if (!props.clientRect || !containerElement) {
-          return
-        }
-
-        const rect = props.clientRect()
-        if (!rect) {
-          return
-        }
-
-        reactRenderer.updateProps(props)
-
-        // Update position
-        initialPosition = {
-          top: rect.bottom + window.scrollY,
-          left: rect.left + window.scrollX,
-        }
-
-        containerElement.style.left = `${initialPosition.left}px`
-        containerElement.style.top = `${initialPosition.top}px`
+      onUpdate(props: { clientRect?: (() => DOMRect | null) | null }) {
+        getRect = props.clientRect
+        reactRenderer?.updateProps(props)
+        position()
       },
-
       onKeyDown(props: { event: KeyboardEvent }) {
-        if (props.event.key === "Escape" && containerElement) {
-          // Clean up
-          if (scrollListener) {
-            window.removeEventListener("scroll", scrollListener)
-          }
-
-          document.body.removeChild(containerElement)
-          containerElement = null
+        if (props.event.isComposing || !container) return false
+        if (props.event.key === "Escape") {
+          props.event.preventDefault()
+          props.event.stopPropagation()
+          cleanup()
           return true
         }
-
-        return reactRenderer.ref?.onKeyDown(props) || false
+        return reactRenderer?.ref?.onKeyDown(props) || false
       },
-
       onExit() {
-        if (containerElement) {
-          if (scrollListener) {
-            window.removeEventListener("scroll", scrollListener)
-          }
-          if (clickOutsideListener) {
-            document.removeEventListener("click", clickOutsideListener)
-          }
-
-          document.body.removeChild(containerElement)
-          containerElement = null
-        }
-
-        reactRenderer.destroy()
+        cleanup()
+        reactRenderer?.destroy()
       },
     }
   },

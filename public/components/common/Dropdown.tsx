@@ -1,6 +1,7 @@
 import "./Dropdown.scss"
 
-import React, { createContext, useContext, useEffect, useRef, useState } from "react"
+import React, { createContext, useContext, useEffect, useId, useRef, useState } from "react"
+import { i18n } from "@lingui/core"
 import { classSet } from "@fider/services"
 import { Icon } from "@fider/components/common/Icon"
 
@@ -11,38 +12,50 @@ interface DropdownListItemProps {
   className?: string
   children: React.ReactNode
   icon?: SpriteSymbol
+  checked?: boolean
+  checkType?: "radio" | "checkbox"
+  disabled?: boolean
 }
+
+const DropdownContext = createContext<{ close(restoreFocus?: boolean): void } | null>(null)
+DropdownContext.displayName = "DropdownContext"
 
 const ListItem = (props: DropdownListItemProps) => {
   const ctx = useContext(DropdownContext)
-  const handleClick = () => {
-    if (props.onClick) {
-      props.onClick()
+  const handleClick = (event: React.MouseEvent) => {
+    if (props.disabled) {
+      event.preventDefault()
+      return
     }
-
-    ctx?.close()
+    props.onClick?.()
+    ctx?.close(!props.href)
   }
-
-  if (props.href) {
-    return (
-      <a href={props.href} className={`c-dropdown__listitem ${props.className}`} type={props.type || "button"}>
-        {props.icon && <Icon sprite={props.icon} className="mr-2" width="16" height="16" />}
-        {props.children}
-      </a>
-    )
+  const common = {
+    className: `c-dropdown__listitem ${props.className || ""}`,
+    role: props.checked !== undefined ? (props.checkType === "checkbox" ? "menuitemcheckbox" : "menuitemradio") : "menuitem",
+    "aria-checked": props.checked,
+    "aria-disabled": props.disabled || undefined,
+    tabIndex: -1,
+    onClick: handleClick,
   }
-
-  return (
-    <div onClick={handleClick} className={`c-dropdown__listitem ${props.className}`}>
-      {props.icon && <Icon sprite={props.icon} className="mr-2" width="16" height="16" />}
+  const content = (
+    <>
+      {props.icon && <Icon sprite={props.icon} width="16" height="16" />}
       {props.children}
-    </div>
+    </>
+  )
+  return props.href ? (
+    <a {...common} href={props.href}>
+      {content}
+    </a>
+  ) : (
+    <button {...common} type="button" disabled={props.disabled}>
+      {content}
+    </button>
   )
 }
 
-const Divider = () => {
-  return <hr className="c-dropdown__divider" />
-}
+const Divider = () => <hr className="c-dropdown__divider" role="separator" />
 
 interface DropdownProps {
   renderHandle: JSX.Element
@@ -51,65 +64,137 @@ interface DropdownProps {
   children: React.ReactNode
   wide?: boolean
   fullsceenSm?: boolean
+  ariaLabel?: string
+  contentRole?: "menu" | "dialog"
 }
-
-interface DropdownContextFuncs {
-  close(): void
-}
-
-const DropdownContext = createContext<DropdownContextFuncs | null>(null)
-DropdownContext.displayName = "DropdownContext"
 
 export const Dropdown = (props: DropdownProps) => {
-  const node = useRef<HTMLDivElement | null>(null)
+  const contentRole = props.contentRole || "menu"
+  const ariaLabel = props.ariaLabel || (props.renderHandle.type === Icon ? i18n._({ id: "action.moreoptions", message: "More options" }) : undefined)
+  const node = useRef<HTMLDivElement>(null)
+  const handle = useRef<HTMLButtonElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  const initialFocus = useRef<"first" | "last" | null>(null)
+  const id = useId()
   const [isOpen, setIsOpen] = useState(false)
-  const position = props.position || "right"
+  const [above, setAbove] = useState(false)
+  const onToggled = useRef(props.onToggled)
+  onToggled.current = props.onToggled
 
-  const changeToggleState = (newState: boolean) => {
-    setIsOpen(newState)
-    if (props.onToggled) {
-      props.onToggled(newState)
-    }
+  const changeToggleState = (open: boolean) => {
+    setIsOpen(open)
+    onToggled.current?.(open)
   }
-
-  const toggleIsOpen = () => {
-    changeToggleState(!isOpen)
-  }
-
-  const close = () => {
+  const close = (restoreFocus = false) => {
     changeToggleState(false)
+    if (restoreFocus) handle.current?.focus()
   }
-
-  const handleClick = (e: MouseEvent) => {
-    if (node.current && node.current.contains(e.target as Node)) {
-      return
-    }
-
-    close()
-  }
+  const items = () =>
+    Array.from(
+      list.current?.querySelectorAll<HTMLElement>(
+        contentRole === "menu" ? '[role^="menuitem"]:not([aria-disabled="true"])' : 'a[href], button:not(:disabled), input:not(:disabled), [tabindex="0"]'
+      ) || []
+    )
 
   useEffect(() => {
-    document.addEventListener("mousedown", handleClick)
-
-    return () => {
-      document.removeEventListener("mousedown", handleClick)
+    if (!isOpen) return
+    const positionMenu = () => {
+      const rect = handle.current?.getBoundingClientRect()
+      if (rect && list.current) setAbove(window.innerHeight - rect.bottom < list.current.scrollHeight + 12 && rect.top > window.innerHeight - rect.bottom)
     }
-  }, [])
+    positionMenu()
+    if (initialFocus.current) {
+      const available = items()
+      const search = list.current?.querySelector<HTMLInputElement>("input")
+      if (search && initialFocus.current === "first") search.focus()
+      else available[initialFocus.current === "last" ? available.length - 1 : 0]?.focus()
+      initialFocus.current = null
+    }
+    const dismiss = (event: MouseEvent | FocusEvent) => {
+      if (!node.current?.contains(event.target as Node)) close()
+    }
+    document.addEventListener("mousedown", dismiss)
+    document.addEventListener("focusin", dismiss)
+    window.addEventListener("resize", positionMenu)
+    return () => {
+      document.removeEventListener("mousedown", dismiss)
+      document.removeEventListener("focusin", dismiss)
+      window.removeEventListener("resize", positionMenu)
+    }
+  }, [isOpen])
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.nativeEvent.isComposing) return
+    if (event.key === "Tab" && isOpen) {
+      // A menu uses roving focus; Tab exits from its trigger's place in the
+      // page order. Returning focus before the native Tab step also lets an
+      // enclosing modal compute its first/last targets correctly.
+      close(true)
+      return
+    }
+    if (event.key === "Escape" && isOpen) {
+      event.preventDefault()
+      event.stopPropagation()
+      close(true)
+      return
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
+    // Editable content inside a custom dropdown retains its normal cursor keys.
+    const target = event.target as HTMLElement
+    if (target.matches("textarea, [contenteditable=true]") || (target.matches("input") && ["Home", "End"].includes(event.key))) return
+    if (contentRole === "dialog" && isOpen) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (!isOpen) {
+      initialFocus.current = event.key === "ArrowUp" || event.key === "End" ? "last" : "first"
+      changeToggleState(true)
+      return
+    }
+    const available = items()
+    const current = available.indexOf(document.activeElement as HTMLElement)
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+        ? available.length - 1
+        : event.key === "ArrowDown"
+        ? (current + 1) % available.length
+        : current < 0
+        ? available.length - 1
+        : (current - 1 + available.length) % available.length
+    available[next]?.focus()
+  }
 
   const listClassName = classSet({
+    "c-dropdown__list": true,
     "c-dropdown__list--wide": props.wide,
-    "c-dropdown__list shadow-lg": true,
     "c-dropdown__list--fullscreen-small": props.fullsceenSm,
-    [`c-dropdown__list--${position}`]: position === "left",
+    "c-dropdown__list--left": props.position === "left",
   })
 
   return (
     <DropdownContext.Provider value={{ close }}>
-      <div ref={node} className="c-dropdown">
-        <button type="button" className="c-dropdown__handle" onClick={toggleIsOpen}>
+      <div ref={node} className="c-dropdown" onKeyDown={onKeyDown}>
+        <button
+          ref={handle}
+          type="button"
+          className="c-dropdown__handle"
+          aria-label={ariaLabel}
+          aria-haspopup={contentRole}
+          aria-expanded={isOpen}
+          aria-controls={isOpen ? id : undefined}
+          onClick={() => {
+            initialFocus.current = !isOpen ? "first" : null
+            changeToggleState(!isOpen)
+          }}
+        >
           {props.renderHandle}
         </button>
-        {isOpen && <div className={listClassName}>{props.children}</div>}
+        {isOpen && (
+          <div ref={list} id={id} role={contentRole} aria-label={ariaLabel} className={listClassName} data-side={above ? "top" : "bottom"}>
+            {props.children}
+          </div>
+        )}
       </div>
     </DropdownContext.Provider>
   )

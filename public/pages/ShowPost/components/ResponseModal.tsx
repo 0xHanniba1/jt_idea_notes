@@ -6,13 +6,14 @@ import { Post, PostStatus } from "@fider/models"
 import { actions, Failure } from "@fider/services"
 import { PostSearch } from "./PostSearch"
 import { i18n } from "@lingui/core"
+import { t } from "@lingui/core/macro"
 import { Trans } from "@lingui/react/macro"
 
 interface ResponseModalProps {
   post: Post
   showModal: boolean
   onCloseModal: () => void
-  onResponded?: () => void
+  onResponded?: () => void | Promise<void>
 }
 
 interface ResponseModalState {
@@ -20,6 +21,7 @@ interface ResponseModalState {
   text: string
   originalNumber: number
   error?: Failure
+  submitting: boolean
 }
 
 export class ResponseModal extends React.Component<ResponseModalProps, ResponseModalState> {
@@ -28,23 +30,29 @@ export class ResponseModal extends React.Component<ResponseModalProps, ResponseM
 
     this.state = {
       status: this.props.post.status,
+      submitting: false,
       originalNumber: 0,
       text: this.props.post.response ? this.props.post.response.text : "",
     }
   }
 
   private submit = async () => {
-    const result = await actions.respond(this.props.post.number, this.state)
-    if (result.ok) {
-      if (this.props.onResponded) {
-        this.props.onResponded()
+    if (this.state.submitting) return
+    this.setState({ submitting: true, error: undefined })
+    try {
+      const result = await actions.respond(this.props.post.number, this.state)
+      if (result.ok) {
+        if (this.props.onResponded) await this.props.onResponded()
+        else location.reload()
       } else {
-        location.reload()
+        this.setState({ error: result.error })
       }
-    } else {
+    } catch {
       this.setState({
-        error: result.error,
+        error: { errors: [{ message: t({ id: "showpost.action.failed", message: "Unable to save. Please check your connection and try again." }) }] },
       })
+    } finally {
+      this.setState({ submitting: false })
     }
   }
 
@@ -72,14 +80,24 @@ export class ResponseModal extends React.Component<ResponseModalProps, ResponseM
     })
 
     const modal = (
-      <Modal.Window isOpen={this.props.showModal} onClose={this.props.onCloseModal} center={false} size="large">
+      <Modal.Window isOpen={this.props.showModal} onClose={this.props.onCloseModal} canClose={!this.state.submitting} center={false} size="large">
+        <Modal.Header>
+          <Trans id="action.respond">Update Status</Trans>
+        </Modal.Header>
         <Modal.Content>
           <Form error={this.state.error} className="c-response-form">
-            <Select field="status" label="Status" defaultValue={this.state.status} options={options} onChange={this.setStatus} />
+            <Select
+              field="status"
+              label={i18n._({ id: "label.status", message: "Status" })}
+              defaultValue={this.state.status}
+              options={options}
+              onChange={this.setStatus}
+              disabled={this.state.submitting}
+            />
             {this.state.status === PostStatus.Duplicate.value ? (
               <>
                 <Field>
-                  <PostSearch exclude={[this.props.post.number]} onChanged={this.setOriginalNumber} />
+                  <PostSearch exclude={[this.props.post.number]} onChanged={this.setOriginalNumber} disabled={this.state.submitting} />
                 </Field>
                 <DisplayError fields={["originalNumber"]} error={this.state.error} />
                 <span className="text-muted">
@@ -91,6 +109,7 @@ export class ResponseModal extends React.Component<ResponseModalProps, ResponseM
                 field="text"
                 onChange={this.setText}
                 value={this.state.text}
+                disabled={this.state.submitting}
                 minRows={5}
                 placeholder={i18n._({
                   id: "showpost.responseform.text.placeholder",
@@ -102,10 +121,10 @@ export class ResponseModal extends React.Component<ResponseModalProps, ResponseM
         </Modal.Content>
 
         <Modal.Footer>
-          <Button variant="primary" onClick={this.submit}>
+          <Button variant="primary" onClick={this.submit} disabled={this.state.submitting}>
             <Trans id="action.submit">Submit</Trans>
           </Button>
-          <Button variant="tertiary" onClick={this.props.onCloseModal}>
+          <Button variant="tertiary" onClick={this.props.onCloseModal} disabled={this.state.submitting}>
             <Trans id="action.cancel">Cancel</Trans>
           </Button>
         </Modal.Footer>

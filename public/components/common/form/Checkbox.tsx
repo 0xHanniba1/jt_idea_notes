@@ -9,6 +9,7 @@ interface CheckboxProps {
   children?: React.ReactNode
   field: string
   checked?: boolean
+  disabled?: boolean
   onChange?: (checked: boolean) => void
 }
 
@@ -39,6 +40,8 @@ export const Checkbox: React.FC<CheckboxProps> = (props) => {
               <input
                 id={`input-${props.field}`}
                 type="checkbox"
+                disabled={props.disabled}
+                aria-invalid={hasError(props.field, ctx.error) || undefined}
                 checked={checked}
                 onChange={(e) => {
                   // Clear error for this field when user interacts with it

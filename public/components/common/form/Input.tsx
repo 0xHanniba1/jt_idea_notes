@@ -11,6 +11,8 @@ interface InputProps {
   children?: React.ReactNode
   field: string
   label?: string
+  ariaLabel?: string
+  iconAriaLabel?: string
   className?: string
   autoComplete?: string
   autoFocus?: boolean
@@ -53,7 +55,20 @@ export const Input: React.FunctionComponent<InputProps> = (props) => {
 
   const suffix = typeof props.suffix === "string" ? <span className="c-input__suffix">{props.suffix}</span> : props.suffix
 
-  const icon = props.icon ? <Icon sprite={props.icon} onClick={props.onIconClick} className={classSet({ clickable: !!props.onIconClick })} /> : undefined
+  const icon = props.icon ? (
+    props.onIconClick ? (
+      <button
+        type="button"
+        className="c-input__icon-button"
+        onClick={props.onIconClick}
+        aria-label={props.iconAriaLabel || props.ariaLabel || props.label || props.placeholder}
+      >
+        <Icon sprite={props.icon} width="18" height="18" />
+      </button>
+    ) : (
+      <Icon sprite={props.icon} />
+    )
+  ) : undefined
 
   return (
     <ValidationContext.Consumer>
@@ -80,6 +95,8 @@ export const Input: React.FunctionComponent<InputProps> = (props) => {
               })}
               id={`input-${props.field}`}
               type="text"
+              aria-label={props.ariaLabel || (!props.label ? props.placeholder : undefined)}
+              aria-invalid={hasError(props.field, ctx.error) || undefined}
               autoComplete={props.autoComplete}
               inputMode={props.inputMode}
               tabIndex={props.noTabFocus ? -1 : undefined}

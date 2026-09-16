@@ -1,21 +1,17 @@
-@use "~@fider/assets/styles/variables.scss" as *;
-
 .c-form-field {
-  margin-bottom: spacing(7);
-
+  margin-bottom: 16px;
+  min-width: 0;
   > label {
     display: block;
-    font-size: get("font.size.base");
-    margin-bottom: spacing(1);
-    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--ink-700);
+    font-size: 13px;
+    font-weight: 550;
   }
-
-  &:last-child {
-    &:not(.flex-x > &) {
-      margin-bottom: 0;
-    }
-    .flex-x > & {
-      // margin-bottom: spacing(2);
-    }
+  &:last-child:not(.flex-x > &) {
+    margin-bottom: 0;
+  }
+  .c-button {
+    min-height: 44px;
   }
 }

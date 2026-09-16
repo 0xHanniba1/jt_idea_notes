@@ -1,8 +1,8 @@
-*:focus {
-  outline: 0;
-  &:not(.no-focus) {
-    border-color: var(--colors-primary-base) !important;
-    box-shadow: 0 0 0 3px rgba(45, 87, 237, 0.1) !important;
-  }
-  transition: all 0.15s ease;
+:where(a, button, input, textarea, select, summary, [tabindex], [contenteditable]):focus-visible {
+  outline: 1px solid var(--ink-500);
+  outline-offset: 2px;
+}
+// Text-entry controls use the caret and their normal border, as in JT auth fields.
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, [contenteditable="true"]):focus-visible {
+  outline: none;
 }

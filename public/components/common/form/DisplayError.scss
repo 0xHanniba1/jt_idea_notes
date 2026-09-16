@@ -2,7 +2,9 @@
 
 .c-form-error {
   color: var(--colors-red-600);
-  font-size: get("font.size.sm");
+  font-size: 12px;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
   ul {
     list-style: none;
     padding-inline-start: sizing(1);

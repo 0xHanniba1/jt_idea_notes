@@ -10,6 +10,7 @@ import { Dropdown } from "./common/Dropdown"
 import { Notification } from "@fider/models"
 import { VStack } from "./layout"
 
+import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
 
 export const NotificationItem = ({ notification }: { notification: Notification }) => {
@@ -29,8 +30,8 @@ export const NotificationItem = ({ notification }: { notification: Notification 
 const NotificationIcon = ({ unreadNotifications }: { unreadNotifications: number }) => {
   return (
     <>
-      <span className="c-notification-indicator mr-3">
-        <Icon sprite={IconBell} className="h-6 text-gray-500" />
+      <span className="c-notification-indicator">
+        <Icon sprite={IconBell} className="h-5 text-gray-500" />
         {unreadNotifications > 0 && <div className="c-notification-indicator-unread-counter" />}
       </span>
     </>
@@ -83,6 +84,8 @@ export const NotificationIndicator = () => {
 
   return (
     <Dropdown
+      contentRole="dialog"
+      ariaLabel={i18n._({ id: "menu.mynotifications", message: "Notifications" })}
       wide={true}
       position="left"
       fullsceenSm={true}

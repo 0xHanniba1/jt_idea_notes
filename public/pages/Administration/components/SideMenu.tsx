@@ -1,5 +1,6 @@
 import "./SideMenu.scss"
 
+import { i18n } from "@lingui/core"
 import React, { useState } from "react"
 import { classSet } from "@fider/services"
 import { Icon } from "@fider/components"
@@ -27,7 +28,7 @@ const SideMenuItem = (props: SideMenuItemProps) => {
   })
 
   return (
-    <a key={props.name} className={className} href={props.href}>
+    <a key={props.name} className={className} href={props.href} aria-current={props.isActive ? "page" : undefined}>
       {props.title}
     </a>
   )
@@ -39,7 +40,7 @@ export const SideMenu = (props: SiteMenuProps) => {
 
   return (
     <div className="js-admin-menu sm:hidden md:hidden lg:block">
-      <VStack spacing={0} className="c-side-menu rounded-md shadow bg-white">
+      <VStack spacing={0} className="c-side-menu">
         <SideMenuItem name="general" title="General" href="/admin" isActive={activeItem === "general"} />
         <SideMenuItem name="privacy" title="Privacy" href="/admin/privacy" isActive={activeItem === "privacy"} />
         <SideMenuItem name="users" title="Users" href="/admin/users" isActive={activeItem === "users"} />
@@ -77,8 +78,14 @@ export const SideMenuToggler = () => {
   }
 
   return (
-    <div className="h-8 w-8 lg:hidden xl:hidden" onClick={toggle}>
+    <button
+      type="button"
+      className="c-side-menu-toggle lg:hidden xl:hidden"
+      aria-label={i18n._({ id: "admin.menu.toggle", message: "Toggle settings menu" })}
+      aria-expanded={isActive}
+      onClick={toggle}
+    >
       {isActive ? <Icon sprite={IconX} /> : <Icon sprite={IconMenu} />}
-    </div>
+    </button>
   )
 }

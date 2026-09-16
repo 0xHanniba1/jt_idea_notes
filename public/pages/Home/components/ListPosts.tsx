@@ -12,7 +12,7 @@ interface ListPostsProps {
   emptyText: string
   minimalView?: boolean
   showStatus?: boolean
-  onPostClick?: (postNumber: number, slug: string) => void
+  onPostClick?: (postNumber: number, slug: string, event?: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 const ListPostItem = (props: {
@@ -20,7 +20,7 @@ const ListPostItem = (props: {
   user?: CurrentUser
   tags: Tag[]
   showStatus?: boolean
-  onPostClick?: (postNumber: number, slug: string) => void
+  onPostClick?: (postNumber: number, slug: string, event?: React.MouseEvent<HTMLAnchorElement>) => void
 }) => {
   const fider = useFider()
   const isModerationEnabled = fider.session.tenant.isModerationEnabled
@@ -28,57 +28,62 @@ const ListPostItem = (props: {
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (props.onPostClick) {
-      e.preventDefault()
-      props.onPostClick(props.post.number, props.post.slug)
+      props.onPostClick(props.post.number, props.post.slug, e)
     }
   }
 
   return (
-    <a href={`/posts/${props.post.number}/${props.post.slug}`} className="c-posts-container__post-link" onClick={handleClick}>
-      <VStack className="c-posts-container__post w-full" spacing={4}>
-        <HStack justify="between" align="start">
-          <HStack spacing={2} align="start" className="w-full">
-            <h3 className="c-posts-container__post-title text-break">{props.post.title}</h3>
+    <a
+      href={`/posts/${props.post.number}/${props.post.slug}`}
+      data-post-number={props.post.number}
+      className="c-posts-container__post-link"
+      onClick={handleClick}
+    >
+      <div className="c-posts-container__post">
+        <div className="c-posts-container__post-main">
+          <h3 className="c-posts-container__post-title">{props.post.title}</h3>
+          <Markdown className="c-posts-container__postdescription" maxLength={300} text={props.post.description} style="plainText" />
+        </div>
+        <div className="c-posts-container__post-meta">
+          <div className="c-posts-container__post-status">
             {isPending && (
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded flex-shrink-0">
+              <span className="c-posts-container__pending">
                 <Trans id="post.pending">pending</Trans>
               </span>
             )}
-          </HStack>
-          {props.post.commentsCount > 0 && (
-            <HStack spacing={1} className="c-posts-container__post-comments flex-shrink-0">
-              <span>{props.post.commentsCount}</span>
-              <Icon sprite={IconChatAlt2} className="h-5 w-5" />
-            </HStack>
+            {props.showStatus !== false && <ResponseLozenge status={props.post.status} response={props.post.response} size="small" />}
+            {props.post.commentsCount > 0 && (
+              <span className="c-posts-container__post-comments">
+                <Icon sprite={IconChatAlt2} />
+                <span>{props.post.commentsCount}</span>
+              </span>
+            )}
+          </div>
+          {props.tags.length > 0 && (
+            <div className="c-posts-container__post-tags">
+              {props.tags.map((tag) => (
+                <ShowTag key={tag.id} tag={tag} />
+              ))}
+            </div>
           )}
-        </HStack>
-        <Markdown className="c-posts-container__postdescription" maxLength={300} text={props.post.description} style="plainText" />
-        {props.tags.length >= 1 && (
-          <HStack spacing={0} className="gap-x-4 flex-wrap">
-            {props.tags.map((tag) => (
-              <ShowTag key={tag.id} tag={tag} />
-            ))}
-          </HStack>
-        )}
-        {props.showStatus !== false && props.post.status !== "open" && (
-          <HStack className="justify-end">
-            <ResponseLozenge status={props.post.status} response={props.post.response} size={"small"} />
-          </HStack>
-        )}
-      </VStack>
+        </div>
+      </div>
     </a>
   )
 }
 
-const MinimalListPostItem = (props: { post: Post; tags: Tag[]; onPostClick?: (postNumber: number, slug: string) => void }) => {
+const MinimalListPostItem = (props: {
+  post: Post
+  tags: Tag[]
+  onPostClick?: (postNumber: number, slug: string, event?: React.MouseEvent<HTMLAnchorElement>) => void
+}) => {
   const fider = useFider()
   const isModerationEnabled = fider.session.tenant.isModerationEnabled
   const isPending = isModerationEnabled && !props.post.isApproved
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (props.onPostClick) {
-      e.preventDefault()
-      props.onPostClick(props.post.number, props.post.slug)
+      props.onPostClick(props.post.number, props.post.slug, e)
     }
   }
 
@@ -86,10 +91,14 @@ const MinimalListPostItem = (props: { post: Post; tags: Tag[]; onPostClick?: (po
     <HStack spacing={4} align="start" className="c-posts-container__post-minimal">
       <HStack className="w-full" justify="between" align="start">
         <HStack spacing={2} align="start" justify="between" className="w-full">
-          <a className="text-link" href={`/posts/${props.post.number}/${props.post.slug}`} onClick={handleClick}>
+          <a className="text-link" data-post-number={props.post.number} href={`/posts/${props.post.number}/${props.post.slug}`} onClick={handleClick}>
             {props.post.title}
           </a>
-          {isPending && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">pending</span>}
+          {isPending && (
+            <span className="c-posts-container__pending">
+              <Trans id="post.pending">pending</Trans>
+            </span>
+          )}
         </HStack>
         {props.post.status !== "open" && (
           <div>

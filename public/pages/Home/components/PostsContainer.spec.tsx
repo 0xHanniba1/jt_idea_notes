@@ -114,3 +114,68 @@ test("keeps My Posts available after removing My Votes", () => {
   expect(screen.getByText("My Posts")).toBeInTheDocument()
   expect(screen.queryByText("My Votes")).not.toBeInTheDocument()
 })
+
+test("ignores results from an earlier search after the query changes", async () => {
+  const mock = httpMock.alwaysOk()
+  const resolveRequests: Array<(value: unknown) => void> = []
+  ;(mock.get as jest.Mock).mockImplementation(() => new Promise((resolve) => resolveRequests.push(resolve)))
+  renderPosts()
+  const input = screen.getByPlaceholderText("Search")
+  fireEvent.change(input, { target: { value: "first" } })
+  await act(async () => {
+    jest.advanceTimersByTime(500)
+  })
+  fireEvent.change(input, { target: { value: "second" } })
+  await act(async () => {
+    jest.advanceTimersByTime(500)
+  })
+  await act(async () => {
+    resolveRequests[1]({ ok: true, data: [{ ...post, title: "Current result" }] })
+  })
+  await act(async () => {
+    resolveRequests[0]({ ok: true, data: [{ ...post, title: "Stale result" }] })
+  })
+  expect(screen.getByText("Current result")).toBeInTheDocument()
+  expect(screen.queryByText("Stale result")).not.toBeInTheDocument()
+})
+
+test("shows a failed search separately from an empty result and retries the same query", async () => {
+  const mock = httpMock.alwaysOk()
+  ;(mock.get as jest.Mock).mockRejectedValueOnce(new Error("offline")).mockResolvedValue({ ok: true, data: [post] })
+  renderPosts()
+  fireEvent.change(screen.getByPlaceholderText("Search"), { target: { value: "idea" } })
+  await act(async () => {
+    jest.advanceTimersByTime(500)
+  })
+  expect(screen.getByRole("alert")).toHaveTextContent("Unable to load ideas")
+  expect(screen.queryByText("No results matched your search, try something different.")).not.toBeInTheDocument()
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+  })
+  expect(screen.getByText(post.title)).toBeInTheDocument()
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  expect(new URL((mock.get as jest.Mock).mock.calls[1][0], "http://localhost").searchParams.get("query")).toBe("idea")
+})
+
+test("refreshes the original filtered page after a mutation without rewriting the detail URL", async () => {
+  window.history.replaceState({ source: "keep" }, "", "/?statuses=started&view=most-discussed&limit=40&query=idea")
+  const mock = httpMock.alwaysOk()
+  ;(mock.get as jest.Mock).mockResolvedValue({ ok: true, data: [] })
+  const ref = React.createRef<PostsContainer>()
+  render(
+    <FiderContext.Provider value={Fider}>
+      <PostsContainer ref={ref} posts={[post]} tags={[]} countPerStatus={{}} />
+    </FiderContext.Provider>
+  )
+  window.history.pushState({ selectedPostId: 1 }, "", "/posts/1/example")
+  await act(async () => {
+    await ref.current?.refreshPosts()
+  })
+  const url = new URL((mock.get as jest.Mock).mock.calls[0][0], "http://localhost")
+  expect(url.searchParams.get("statuses")).toBe("started")
+  expect(url.searchParams.get("view")).toBe("most-discussed")
+  expect(url.searchParams.get("limit")).toBe("40")
+  expect(url.searchParams.get("query")).toBe("idea")
+  expect(window.location.pathname).toBe("/posts/1/example")
+  expect(screen.queryByText(post.title)).not.toBeInTheDocument()
+})

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-16 — JT UI and compact idea layout
+
+### Changed
+
+- Adapt jt_case_platform's light/dark tokens, controls, menus, dialogs, editor surfaces, Toast effects and Lucide icons within Fider's existing React/TypeScript/SCSS architecture.
+- Replace the home layout with a compact list, collapsible welcome text, top creation button and search/filter/sort toolbar. Home and Roadmap use a right-side detail drawer that fills narrow viewports.
+- Preserve list query, limit, scroll and focus across drawer close, Back/Forward and nested dialogs. Keep standalone record links, refresh and comment anchors working.
+- Refresh records, comments and source lists after mutations without reloading the page. Handle stale requests, permission failures, unsaved edits and pending-submit input protection.
+- Correct narrow member/tag layouts, rich-editor Escape handling and Toast focus/reduced-motion timing. No database migration or voting behavior change.
+
+### Validation
+
+- 20 frontend suites / 182 tests, frontend ESLint, SSR and production UI builds, and related Go handlers/apiv1/web tests pass. Raw tsc retains the same 25 third-party declaration errors as the clean baseline.
+- Isolated Chrome checks cover desktop/narrow and light/dark layouts, image creation, editing, comments, status, tags, duplicate links, following, deletion and navigation restoration.
+- See [verification details](docs/jt-ui-refresh-verification.md) and [Issue #3](https://github.com/0xHanniba1/jt_idea_notes/issues/3). The Issue records main delivery and the separate 4180 upgrade, preserving its data and backup.
+
 ## 2026-09-16 — Retire voting
 
 ### Changed

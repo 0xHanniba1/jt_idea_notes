@@ -1,7 +1,7 @@
 @use "~@fider/assets/styles/variables.scss" as *;
 
 .c-input {
-  line-height: get("font.size.xl");
+  line-height: 1.55;
   background-color: var(--colors-white);
   color: var(--colors-black);
   width: 100%;
@@ -10,17 +10,17 @@
   border-radius: get("border.radius.medium");
   -webkit-appearance: none;
   appearance: none;
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
-
-  &:hover {
-    border-color: var(--colors-gray-400);
-  }
-
+  min-height: 44px;
+  box-shadow: none;
+  border-color: var(--line);
+  color: var(--ink-950);
+  background: var(--paper);
   &:focus {
     outline: none;
-    border-color: var(--colors-primary-base);
-    box-shadow: 0 0 0 3px rgba(45, 87, 237, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    box-shadow: none;
+  }
+  &::placeholder {
+    color: var(--ink-500);
   }
 
   &:disabled {
@@ -78,4 +78,28 @@
     left: 0;
     right: unset;
   }
+}
+
+@media (max-width: 680px) {
+  .c-input {
+    font-size: 16px;
+  }
+}
+
+.c-input__icon-button {
+  position: absolute;
+  inset-inline-end: 3px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-500);
+  cursor: pointer;
+}
+.c-input__icon-button:hover {
+  background: var(--control-hover);
 }
