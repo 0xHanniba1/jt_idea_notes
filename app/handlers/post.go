@@ -18,14 +18,11 @@ func Index() web.HandlerFunc {
 		c.SetCanonicalURL("")
 
 		searchPosts := &query.SearchPosts{
-			Query: c.QueryParam("query"),
-			View:  c.QueryParam("view"),
-			Limit: c.QueryParam("limit"),
-			Tags:  c.QueryParamAsArray("tags"),
-		}
-
-		if myVotesOnly, err := c.QueryParamAsBool("myvotes"); err == nil {
-			searchPosts.MyVotesOnly = myVotesOnly
+			Query:            c.QueryParam("query"),
+			View:             query.NormalizePostView(c.QueryParam("view")),
+			Limit:            c.QueryParam("limit"),
+			Tags:             c.QueryParamAsArray("tags"),
+			ModerationFilter: c.QueryParam("moderation"),
 		}
 
 		if noTagsOnly, err := c.QueryParamAsBool("notags"); err == nil {
@@ -65,7 +62,7 @@ func Index() web.HandlerFunc {
 		if c.Tenant().WelcomeMessage != "" {
 			description = markdown.PlainText(c.Tenant().WelcomeMessage)
 		} else {
-			description = "We'd love to hear what you're thinking about. What can we do better? This is the place for you to vote, discuss and share posts."
+			description = "We'd love to hear what you're thinking about. What can we do better? This is the place for you to discuss and share posts."
 		}
 
 		data := web.Map{
@@ -104,9 +101,8 @@ func PostDetails() web.HandlerFunc {
 		isSubscribed := &query.UserSubscribedTo{PostID: getPost.Result.ID}
 		getComments := &query.GetCommentsByPost{Post: getPost.Result}
 		getAllTags := &query.GetAllTags{}
-		listVotes := &query.ListPostVotes{PostID: getPost.Result.ID, Limit: 24, IncludeEmail: false}
 		getAttachments := &query.GetAttachments{Post: getPost.Result}
-		if err := bus.Dispatch(c, getAllTags, getComments, listVotes, isSubscribed, getAttachments); err != nil {
+		if err := bus.Dispatch(c, getAllTags, getComments, isSubscribed, getAttachments); err != nil {
 			return c.Failure(err)
 		}
 
@@ -119,7 +115,6 @@ func PostDetails() web.HandlerFunc {
 				"subscribed":  isSubscribed.Result,
 				"post":        getPost.Result,
 				"tags":        getAllTags.Result,
-				"votes":       listVotes.Result,
 				"attachments": getAttachments.Result,
 			},
 		})

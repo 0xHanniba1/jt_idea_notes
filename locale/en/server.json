@@ -70,11 +70,10 @@
   "email.delete_account_requested.cancel": "Didn't request this, or changed your mind? Use the link below to cancel the deletion before then:",
   "email.delete_account_completed.subject": "Your Fider site {tenantName} has been deleted",
   "email.delete_account_completed.text": "Your Fider site <strong>{tenantName}</strong> ({subdomain}) and all of its data have now been permanently deleted. This cannot be undone.",
-  "feed.global.title": "{count, plural, one {({count} Vote) {title}} other {({count} Votes) {title}}}",
   "feed.comment.title": "Comment by {author}",
   "feed.comment.op": "Original Post by {author}",
   "feed.comment.response": "Response by {author}",
-  "feed.post.title": "# {title}\n{votes, plural, one {# vote} other {# votes}}, {comments, plural, one {# comment} other {# comments}}\n\n---\n",
+  "feed.post.title": "# {title}\n{comments, plural, one {# comment} other {# comments}}\n\n---\n",
   "feed.post.footer.response": "Response by {responder} on {date}:\n\n>{response}\n",
-  "feed.post.footer": "\n\n---\n{response_footer}\n{votes, plural, one {# vote} other {# votes}}, {comments, plural, one {# comment} other {# comments}} - view [in the web]({web_link}) or [as a feed]({feed_link})"
+  "feed.post.footer": "\n\n---\n{response_footer}\n{comments, plural, one {# comment} other {# comments}} - view [in the web]({web_link}) or [as a feed]({feed_link})"
 }

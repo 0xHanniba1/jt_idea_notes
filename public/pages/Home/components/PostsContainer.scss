@@ -101,12 +101,6 @@
     line-height: 1.6;
   }
 
-  &__post-votes {
-    display: flex;
-    align-items: baseline;
-    gap: spacing(2);
-  }
-
   &__post-minimal {
     // Minimal styling for compact post lists (e.g., similar posts)
     padding: spacing(2) 0;

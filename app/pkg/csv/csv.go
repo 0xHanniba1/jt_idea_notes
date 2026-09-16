@@ -10,7 +10,7 @@ import (
 	"github.com/getfider/fider/app/models/entity"
 )
 
-//FromPosts return a byte array of CSV file containing all posts
+// FromPosts return a byte array of CSV file containing all posts
 func FromPosts(posts []*entity.Post) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	writer := gocsv.NewWriter(buffer)
@@ -21,7 +21,6 @@ func FromPosts(posts []*entity.Post) ([]byte, error) {
 		"description",
 		"created_at",
 		"created_by",
-		"votes_count",
 		"comments_count",
 		"status",
 		"responded_by",
@@ -60,7 +59,6 @@ func FromPosts(posts []*entity.Post) ([]byte, error) {
 			post.Description,
 			post.CreatedAt.Format(time.RFC3339),
 			post.User.Name,
-			strconv.Itoa(post.VotesCount),
 			strconv.Itoa(post.CommentsCount),
 			post.Status.Name(),
 			respondedBy,

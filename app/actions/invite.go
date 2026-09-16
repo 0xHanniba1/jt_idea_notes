@@ -34,7 +34,7 @@ func DefaultInviteSubject(tenant *entity.Tenant) string {
 // DefaultInviteMessage returns the default invite message for the given tenant and inviter.
 // Mirrors the placeholder shown in the admin UI so non-pro tenants get a sensible default.
 func DefaultInviteMessage(tenant *entity.Tenant, inviter *entity.User) string {
-	return fmt.Sprintf("Hi,\n\nWe are inviting you to join the %s feedback site, a place where you can vote, discuss and share your ideas and thoughts on how to improve our services!\n\nClick the link below to join!\n\n%s\n\nRegards,\n%s (%s)",
+	return fmt.Sprintf("Hi,\n\nWe are inviting you to join the %s feedback site, a place where you can discuss and share your ideas and thoughts on how to improve our services!\n\nClick the link below to join!\n\n%s\n\nRegards,\n%s (%s)",
 		tenant.Name, app.InvitePlaceholder, inviter.Name, tenant.Name)
 }
 

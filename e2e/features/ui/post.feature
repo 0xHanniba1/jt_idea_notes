@@ -8,7 +8,8 @@ Feature: Post
     And I click submit your feedback
     Then I should be on the show post page
     And I should see "This is just an example of a feature suggestion in fider" as the post title
-    And I should see 1 vote(s)
+    And the post should have no voting controls or voter list
+    And I should be following the post
 
   Scenario: Non-logged in user can view a post
     Given I go to the home page
@@ -16,7 +17,7 @@ Feature: Post
     And I click on the first post
     Then I should be on the show post page
     And I should see "This is just an example of a feature suggestion in fider" as the post title
-    And I should see 1 vote(s)
+    And the post should have no voting controls or voter list
 
   Scenario: Non-logged in user can draft a post and submit once signed up
     Given I go to the home page

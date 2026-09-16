@@ -15,7 +15,6 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/lib/pq"
 
-	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
 
 	"github.com/getfider/fider/app/models/cmd"
@@ -41,7 +40,6 @@ var (
 													agg_comments AS (
 															SELECT
 																	post_id,
-																	COUNT(CASE WHEN comments.created_at > CURRENT_DATE - INTERVAL '30 days' AND comments.is_approved = true THEN 1 END) as recent,
 																	COUNT(CASE WHEN comments.is_approved = true THEN 1 END) as all
 															FROM comments
 															INNER JOIN posts
@@ -49,18 +47,6 @@ var (
 															AND posts.tenant_id = comments.tenant_id
 															WHERE posts.tenant_id = $1
 															AND comments.deleted_at IS NULL
-															GROUP BY post_id
-													),
-													agg_votes AS (
-															SELECT
-															post_id,
-																	COUNT(CASE WHEN post_votes.created_at > CURRENT_DATE - INTERVAL '30 days'  THEN 1 END) as recent,
-																	COUNT(*) as all
-															FROM post_votes
-															INNER JOIN posts
-															ON posts.id = post_votes.post_id
-															AND posts.tenant_id = post_votes.tenant_id
-															WHERE posts.tenant_id = $1
 															GROUP BY post_id
 													)
 													SELECT p.id,
@@ -70,10 +56,7 @@ var (
 																p.description,
 																p.created_at,
 																p.search,
-																COALESCE(agg_s.all, 0) as votes_count,
 																COALESCE(agg_c.all, 0) as comments_count,
-																COALESCE(agg_s.recent, 0) AS recent_votes_count,
-																COALESCE(agg_c.recent, 0) AS recent_comments_count,
 																p.status,
 																u.id AS user_id,
 																u.name AS user_name,
@@ -96,7 +79,6 @@ var (
 																d.slug AS original_slug,
 																d.status AS original_status,
 																COALESCE(agg_t.tags, ARRAY[]::text[]) AS tags,
-																COALESCE(%s, false) AS has_voted,
 																p.is_approved
 													FROM posts p
 													INNER JOIN users u
@@ -110,8 +92,6 @@ var (
 													AND d.tenant_id = $1
 													LEFT JOIN agg_comments agg_c
 													ON agg_c.post_id = p.id
-													LEFT JOIN agg_votes agg_s
-													ON agg_s.post_id = p.id
 													LEFT JOIN agg_tags agg_t
 													ON agg_t.post_id = p.id
 													WHERE p.status != ` + strconv.Itoa(int(enum.PostDeleted)) + ` AND %s`
@@ -174,20 +154,7 @@ func markPostAsDuplicate(ctx context.Context, c *cmd.MarkPostAsDuplicate) error 
 			respondedAt = c.Post.Response.RespondedAt
 		}
 
-		var users []*dbEntities.User
-		err := trx.Select(&users, "SELECT user_id AS id FROM post_votes WHERE post_id = $1 AND tenant_id = $2", c.Post.ID, tenant.ID)
-		if err != nil {
-			return errors.Wrap(err, "failed to get votes of post with id '%d'", c.Post.ID)
-		}
-
-		for _, u := range users {
-			err := bus.Dispatch(ctx, &cmd.AddVote{Post: c.Original, User: u.ToModel(ctx)})
-			if err != nil {
-				return err
-			}
-		}
-
-		_, err = trx.Execute(`
+		_, err := trx.Execute(`
 		UPDATE posts
 		SET response = '', original_id = $3, response_date = $4, response_user_id = $5, status = $6
 		WHERE id = $1 and tenant_id = $2
@@ -528,10 +495,6 @@ func buildPostQuery(user *entity.User, filter string, moderationFilter string) s
 	if user != nil && user.IsCollaborator() {
 		tagCondition = ``
 	}
-	hasVotedSubQuery := "null"
-	if user != nil {
-		hasVotedSubQuery = fmt.Sprintf("(SELECT true FROM post_votes WHERE post_id = p.id AND user_id = %d)", user.ID)
-	}
 
 	// Add approval filtering based on moderation filter and user permissions
 	approvalFilter := ""
@@ -556,7 +519,7 @@ func buildPostQuery(user *entity.User, filter string, moderationFilter string) s
 	}
 
 	combinedFilter := filter + approvalFilter
-	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, hasVotedSubQuery, combinedFilter)
+	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, combinedFilter)
 }
 
 // buildSinglePostQuery is used for fetching individual posts (by ID, slug, or number)
@@ -565,10 +528,6 @@ func buildSinglePostQuery(user *entity.User, filter string) string {
 	tagCondition := `AND tags.is_public = true`
 	if user != nil && user.IsCollaborator() {
 		tagCondition = ``
-	}
-	hasVotedSubQuery := "null"
-	if user != nil {
-		hasVotedSubQuery = fmt.Sprintf("(SELECT true FROM post_votes WHERE post_id = p.id AND user_id = %d)", user.ID)
 	}
 
 	// Approval filtering for single post views
@@ -585,5 +544,5 @@ func buildSinglePostQuery(user *entity.User, filter string) string {
 	}
 
 	combinedFilter := filter + approvalFilter
-	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, hasVotedSubQuery, combinedFilter)
+	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, combinedFilter)
 }

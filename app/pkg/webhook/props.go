@@ -51,7 +51,8 @@ func (p Props) SetPost(post *entity.Post, keyPrefix, baseURL string, includeAllF
 
 		if includeAllFields {
 			postResponse := post.Response
-			p[keyPrefix+"_votes"] = post.VotesCount
+			// Deprecated compatibility value for existing templates; never query historical votes.
+			p[keyPrefix+"_votes"] = 0
 			p[keyPrefix+"_comments"] = post.CommentsCount
 			p[keyPrefix+"_status"] = post.Status.Name()
 			p[keyPrefix+"_tags"] = post.Tags

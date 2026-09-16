@@ -23,7 +23,7 @@ func countTenantRows(table string, tenantID int) int {
 	return count
 }
 
-// seedTenantContent creates a post, comment, reaction, vote and tag so deletion exercises
+// seedTenantContent creates a post, comment, reaction, historical vote and tag so deletion exercises
 // the full FK-ordered teardown (including the tenant-less reactions table).
 func seedTenantContent(tenantCtx, userCtx context.Context) {
 	post := &cmd.AddNewPost{Title: "A feature request to delete", Description: "please"}
@@ -36,7 +36,7 @@ func seedTenantContent(tenantCtx, userCtx context.Context) {
 	Expect(bus.Dispatch(userCtx, &cmd.ToggleCommentReaction{
 		Comment: &entity.Comment{ID: comment.Result.ID}, Emoji: "👍", User: user,
 	})).IsNil()
-	Expect(bus.Dispatch(userCtx, &cmd.AddVote{Post: post.Result, User: user})).IsNil()
+	seedHistoricalVote(post.Result, user)
 
 	tag := &cmd.AddNewTag{Name: "doomed", Color: "ffffff", IsPublic: true}
 	Expect(bus.Dispatch(tenantCtx, tag)).IsNil()
@@ -57,6 +57,7 @@ func TestTenantDeletion_DeletesEverythingForTenantOnly(t *testing.T) {
 	avengersUsersBefore := countTenantRows("users", avengersTenant.ID)
 	avengersPostsBefore := countTenantRows("posts", avengersTenant.ID)
 	avengersCommentsBefore := countTenantRows("comments", avengersTenant.ID)
+	avengersVotesBefore := countTenantRows("post_votes", avengersTenant.ID)
 	Expect(avengersPostsBefore > 0).IsTrue()
 
 	err := bus.Dispatch(ctx, &cmd.DeleteTenant{TenantID: demoTenant.ID})
@@ -81,6 +82,7 @@ func TestTenantDeletion_DeletesEverythingForTenantOnly(t *testing.T) {
 	Expect(countTenantRows("users", avengersTenant.ID)).Equals(avengersUsersBefore)
 	Expect(countTenantRows("posts", avengersTenant.ID)).Equals(avengersPostsBefore)
 	Expect(countTenantRows("comments", avengersTenant.ID)).Equals(avengersCommentsBefore)
+	Expect(countTenantRows("post_votes", avengersTenant.ID)).Equals(avengersVotesBefore)
 }
 
 func TestTenantDeletion_ScheduleAndCancel(t *testing.T) {

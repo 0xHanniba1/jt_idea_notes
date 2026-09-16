@@ -19,11 +19,7 @@ type Post struct {
 	CreatedAt      time.Time      `db:"created_at"`
 	Search         []byte         `db:"search"`
 	User           *User          `db:"user"`
-	HasVoted       bool           `db:"has_voted"`
-	VotesCount     int            `db:"votes_count"`
 	CommentsCount  int            `db:"comments_count"`
-	RecentVotes    int            `db:"recent_votes_count"`
-	RecentComments int            `db:"recent_comments_count"`
 	Status         int            `db:"status"`
 	Response       dbx.NullString `db:"response"`
 	RespondedAt    dbx.NullTime   `db:"response_date"`
@@ -45,8 +41,6 @@ func (i *Post) ToModel(ctx context.Context) *entity.Post {
 		Description:   i.Description,
 		CreatedAt:     i.CreatedAt,
 		User:          i.User.ToModel(ctx),
-		HasVoted:      i.HasVoted,
-		VotesCount:    i.VotesCount,
 		CommentsCount: i.CommentsCount,
 		Status:        enum.PostStatus(i.Status),
 		Tags:          i.Tags,

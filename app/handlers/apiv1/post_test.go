@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/getfider/fider/app"
+	"github.com/getfider/fider/app/middlewares"
 	"github.com/getfider/fider/app/models/entity"
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
@@ -40,7 +42,6 @@ func TestCreatePostHandler(t *testing.T) {
 	})
 
 	bus.AddHandler(func(ctx context.Context, c *cmd.SetAttachments) error { return nil })
-	bus.AddHandler(func(ctx context.Context, c *cmd.AddVote) error { return nil })
 	bus.AddHandler(func(ctx context.Context, c *cmd.UploadImages) error { return nil })
 
 	code, _ := mock.NewServer().
@@ -63,8 +64,8 @@ func TestCreatePostHandler_AppendsUnreferencedAttachments(t *testing.T) {
 		return nil
 	})
 	bus.AddHandler(func(ctx context.Context, q *query.GetPostBySlug) error { return app.ErrNotFound })
-	bus.AddHandler(func(ctx context.Context, c *cmd.SetAttachments) error { return nil })
-	bus.AddHandler(func(ctx context.Context, c *cmd.AddVote) error { return nil })
+	var attachments *cmd.SetAttachments
+	bus.AddHandler(func(ctx context.Context, c *cmd.SetAttachments) error { attachments = c; return nil })
 	bus.AddHandler(func(ctx context.Context, c *cmd.UploadImages) error { return nil })
 
 	code, _ := mock.NewServer().
@@ -83,6 +84,10 @@ func TestCreatePostHandler_AppendsUnreferencedAttachments(t *testing.T) {
 	// The already-referenced attachment is left as-is (not duplicated), and the
 	// unreferenced one is appended at the end as a fider-image markdown reference.
 	Expect(newPost.Description).Equals("Already referenced: ![](fider-image:attachments/referenced.png)\n\n![](fider-image:attachments/standalone.png)")
+	Expect(attachments.Post).Equals(newPost.Result)
+	Expect(attachments.Attachments).HasLen(2)
+	Expect(attachments.Attachments[0].BlobKey).Equals("attachments/referenced.png")
+	Expect(attachments.Attachments[1].BlobKey).Equals("attachments/standalone.png")
 }
 
 func TestCreatePostHandler_WithoutTitle(t *testing.T) {
@@ -189,7 +194,6 @@ func TestCreatePostHandler_WithPublicTagAsVisitor(t *testing.T) {
 		})
 
 		bus.AddHandler(func(ctx context.Context, c *cmd.SetAttachments) error { return nil })
-		bus.AddHandler(func(ctx context.Context, c *cmd.AddVote) error { return nil })
 		bus.AddHandler(func(ctx context.Context, c *cmd.UploadImages) error { return nil })
 
 		code, _ := mock.NewServer().
@@ -260,7 +264,6 @@ func TestCreatePostHandler_WithPublicTagAndPrivateTagAsCollaborator(t *testing.T
 		})
 
 		bus.AddHandler(func(ctx context.Context, c *cmd.SetAttachments) error { return nil })
-		bus.AddHandler(func(ctx context.Context, c *cmd.AddVote) error { return nil })
 		bus.AddHandler(func(ctx context.Context, c *cmd.UploadImages) error { return nil })
 
 		code, _ := mock.NewServer().
@@ -668,74 +671,6 @@ func TestSetResponseHandler_Duplicate_Itself(t *testing.T) {
 	Expect(code).Equals(http.StatusBadRequest)
 }
 
-func TestAddVoteHandler(t *testing.T) {
-	RegisterT(t)
-
-	post := &entity.Post{ID: 1, Number: 1, Title: "The Post #1", Description: "The Description #1"}
-	bus.AddHandler(func(ctx context.Context, q *query.GetPostByNumber) error {
-		q.Result = post
-		return nil
-	})
-
-	var addVote *cmd.AddVote
-	bus.AddHandler(func(ctx context.Context, c *cmd.AddVote) error {
-		addVote = c
-		return nil
-	})
-
-	code, _ := mock.NewServer().
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.AryaStark).
-		AddParam("number", post.Number).
-		Execute(apiv1.AddVote())
-
-	Expect(code).Equals(http.StatusOK)
-	Expect(addVote.Post).Equals(post)
-	Expect(addVote.User).Equals(mock.AryaStark)
-}
-
-func TestAddVoteHandler_InvalidPost(t *testing.T) {
-	RegisterT(t)
-
-	bus.AddHandler(func(ctx context.Context, q *query.GetPostByNumber) error {
-		return app.ErrNotFound
-	})
-
-	code, _ := mock.NewServer().
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.AryaStark).
-		AddParam("number", 999).
-		Execute(apiv1.AddVote())
-
-	Expect(code).Equals(http.StatusNotFound)
-}
-
-func TestRemoveVoteHandler(t *testing.T) {
-	RegisterT(t)
-
-	post := &entity.Post{ID: 1, Number: 1, Title: "The Post #1", Description: "The Description #1"}
-	bus.AddHandler(func(ctx context.Context, q *query.GetPostByNumber) error {
-		q.Result = post
-		return nil
-	})
-
-	var removeVote *cmd.RemoveVote
-	bus.AddHandler(func(ctx context.Context, c *cmd.RemoveVote) error {
-		removeVote = c
-		return nil
-	})
-
-	code, _ := mock.NewServer().
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.AryaStark).
-		AddParam("number", post.ID).
-		Execute(apiv1.RemoveVote())
-
-	Expect(code).Equals(http.StatusOK)
-	Expect(removeVote.Post).Equals(post)
-	Expect(removeVote.User).Equals(mock.AryaStark)
-}
-
 func TestDeletePostHandler_Authorized(t *testing.T) {
 	RegisterT(t)
 
@@ -1054,4 +989,125 @@ func TestCommentReactionToggleHandler_MismatchingTenantAndComment(t *testing.T) 
 		ExecutePost(apiv1.ToggleReaction(), ``)
 
 	Expect(code).Equals(http.StatusNotFound)
+}
+
+func TestSearchPostsHandler_ViewCompatibility(t *testing.T) {
+	for _, tc := range []struct{ queryString, view string }{
+		{"", "all"},
+		{"?view=all", "all"},
+		{"?view=recent", "recent"},
+		{"?view=trending", "recent"},
+		{"?view=most-wanted", "recent"},
+		{"?view=my-votes", "recent"},
+		{"?view=unknown", "recent"},
+		{"?view=most-discussed&myvotes=true", "most-discussed"},
+		{"?view=planned", "planned"},
+		{"?view=completed", "completed"},
+	} {
+		t.Run(tc.queryString, func(t *testing.T) {
+			RegisterT(t)
+			var search *query.SearchPosts
+			bus.AddHandler(func(ctx context.Context, q *query.SearchPosts) error { search = q; return nil })
+			code, _ := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.JonSnow).
+				WithURL("/api/v1/posts" + tc.queryString).Execute(apiv1.SearchPosts())
+			Expect(code).Equals(http.StatusOK)
+			Expect(search.View).Equals(tc.view)
+		})
+	}
+}
+
+func TestSearchPostsHandler_IgnoresRetiredVoteFilter(t *testing.T) {
+	for _, value := range []string{"true", "false", "invalid"} {
+		t.Run(value, func(t *testing.T) {
+			RegisterT(t)
+			searches := []*query.SearchPosts{}
+			bus.AddHandler(func(ctx context.Context, q *query.SearchPosts) error { searches = append(searches, q); return nil })
+			url := "/api/v1/posts?view=most-discussed&query=kanban&tags=bug&statuses=completed&myposts=true&notags=true&moderation=pending&limit=20"
+			for _, suffix := range []string{"", "&myvotes=" + value} {
+				code, _ := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.JonSnow).WithURL(url + suffix).Execute(apiv1.SearchPosts())
+				Expect(code).Equals(http.StatusOK)
+			}
+			if !reflect.DeepEqual(searches[0], searches[1]) {
+				t.Fatalf("retired myvotes changed active filters: %#v vs %#v", searches[0], searches[1])
+			}
+			Expect(searches[1].View).Equals("most-discussed")
+			Expect(searches[1].Query).Equals("kanban")
+			Expect(searches[1].Tags).Equals([]string{"bug"})
+			Expect(searches[1].Statuses).Equals([]enum.PostStatus{enum.PostCompleted})
+			Expect(searches[1].MyPostsOnly).IsTrue()
+			Expect(searches[1].NoTagsOnly).IsTrue()
+			Expect(searches[1].ModerationFilter).Equals("pending")
+			Expect(searches[1].Limit).Equals("20")
+		})
+	}
+}
+
+func TestGetSubscriptionHandler(t *testing.T) {
+	for _, subscribed := range []bool{true, false} {
+		for _, user := range []*entity.User{mock.JonSnow, mock.AryaStark} {
+			t.Run(fmt.Sprintf("role=%d/subscribed=%t", user.Role, subscribed), func(t *testing.T) {
+				RegisterT(t)
+				post := &entity.Post{ID: 5, Number: 3}
+				bus.AddHandler(func(ctx context.Context, q *query.GetPostByNumber) error {
+					Expect(q.Number).Equals(post.Number)
+					Expect(ctx.Value(app.TenantCtxKey)).Equals(mock.DemoTenant)
+					q.Result = post
+					return nil
+				})
+				bus.AddHandler(func(ctx context.Context, q *query.UserSubscribedTo) error {
+					Expect(q.PostID).Equals(post.ID)
+					Expect(ctx.Value(app.UserCtxKey)).Equals(user)
+					q.Result = subscribed
+					return nil
+				})
+				code, response := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(user).
+					Use(middlewares.IsAuthenticated()).AddParam("number", post.Number).
+					ExecuteAsJSON(apiv1.GetSubscription())
+				Expect(code).Equals(http.StatusOK)
+				Expect(string(response.Raw("subscribed"))).Equals(fmt.Sprint(subscribed))
+			})
+		}
+	}
+}
+
+func TestGetSubscriptionHandler_InaccessiblePost(t *testing.T) {
+	for _, number := range []string{"invalid", "999"} {
+		t.Run(number, func(t *testing.T) {
+			RegisterT(t)
+			bus.AddHandler(func(ctx context.Context, q *query.GetPostByNumber) error {
+				// The same not-found result protects records outside the tenant or moderation scope.
+				return app.ErrNotFound
+			})
+			code, _ := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.AryaStark).
+				Use(middlewares.IsAuthenticated()).AddParam("number", number).
+				Execute(apiv1.GetSubscription())
+			Expect(code).Equals(http.StatusNotFound)
+			Expect(bus.GetCallCount(&query.UserSubscribedTo{})).Equals(0)
+		})
+	}
+}
+
+func TestGetSubscriptionHandler_Unauthenticated(t *testing.T) {
+	RegisterT(t)
+	code, _ := mock.NewServer().OnTenant(mock.DemoTenant).
+		Use(middlewares.IsAuthenticated()).AddParam("number", 1).
+		Execute(apiv1.GetSubscription())
+	Expect(code).Equals(http.StatusUnauthorized)
+	Expect(bus.GetCallCount(&query.GetPostByNumber{})).Equals(0)
+	Expect(bus.GetCallCount(&query.UserSubscribedTo{})).Equals(0)
+}
+
+func TestGetSubscriptionHandler_QueryFailure(t *testing.T) {
+	RegisterT(t)
+	bus.AddHandler(func(ctx context.Context, q *query.GetPostByNumber) error {
+		q.Result = &entity.Post{ID: 5, Number: 3}
+		return nil
+	})
+	bus.AddHandler(func(ctx context.Context, q *query.UserSubscribedTo) error {
+		return fmt.Errorf("subscription lookup failed")
+	})
+	code, _ := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.AryaStark).
+		Use(middlewares.IsAuthenticated()).AddParam("number", 3).
+		Execute(apiv1.GetSubscription())
+	Expect(code).Equals(http.StatusInternalServerError)
 }

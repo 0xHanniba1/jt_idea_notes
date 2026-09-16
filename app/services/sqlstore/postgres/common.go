@@ -51,21 +51,11 @@ func getViewData(query query.SearchPosts, tagsPlaceholder int) (string, []enum.P
 		}
 	}
 
-	if query.MyVotesOnly {
-		condition = "AND has_voted = true"
-	}
-
 	switch query.View {
 	case "recent":
 		sort = "id"
-	case "most-wanted":
-		sort = "votes_count"
 	case "most-discussed":
 		sort = "comments_count"
-	case "my-votes":
-		// Deprecated: You can instead filter on my votes only for more flexibility than using this view.
-		condition = "AND has_voted = true"
-		sort = "id"
 	case "planned":
 		// Deprecated: Use status filters instead
 		sort = "response_date"
@@ -91,10 +81,8 @@ func getViewData(query query.SearchPosts, tagsPlaceholder int) (string, []enum.P
 			enum.PostCompleted,
 			enum.PostDeclined,
 		}
-	case "trending":
-		fallthrough
 	default:
-		sort = "((COALESCE(recent_votes_count, 0)*5 + COALESCE(recent_comments_count, 0) *3)-1) / pow((EXTRACT(EPOCH FROM current_timestamp - created_at)/3600) + 2, 1.4)"
+		sort = "id"
 	}
 
 	if query.NoTagsOnly {

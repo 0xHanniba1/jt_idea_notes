@@ -55,13 +55,10 @@ func SearchPosts() web.HandlerFunc {
 		}
 		searchPosts := &query.SearchPosts{
 			Query:            c.QueryParam("query"),
-			View:             viewQueryParams,
+			View:             query.NormalizePostView(viewQueryParams),
 			Limit:            c.QueryParam("limit"),
 			Tags:             c.QueryParamAsArray("tags"),
 			ModerationFilter: c.QueryParam("moderation"),
-		}
-		if myVotesOnly, err := c.QueryParamAsBool("myvotes"); err == nil {
-			searchPosts.MyVotesOnly = myVotesOnly
 		}
 		if noTagsOnly, err := c.QueryParamAsBool("notags"); err == nil {
 			searchPosts.NoTagsOnly = noTagsOnly
@@ -114,8 +111,7 @@ func CreatePost() web.HandlerFunc {
 		}
 
 		setAttachments := &cmd.SetAttachments{Post: newPost.Result, Attachments: action.Attachments}
-		addVote := &cmd.AddVote{Post: newPost.Result, User: c.User()}
-		if err = bus.Dispatch(c, setAttachments, addVote); err != nil {
+		if err = bus.Dispatch(c, setAttachments); err != nil {
 			return c.Failure(err)
 		}
 
@@ -132,9 +128,9 @@ func CreatePost() web.HandlerFunc {
 
 		metrics.TotalPosts.Inc()
 		return c.Ok(web.Map{
-			"id":     newPost.Result.ID,
-			"number": newPost.Result.Number,
-			"title":  newPost.Result.Title,
+			"id":         newPost.Result.ID,
+			"number":     newPost.Result.Number,
+			"title":      newPost.Result.Title,
 			"slug":       newPost.Result.Slug,
 			"isApproved": newPost.Result.IsApproved,
 		})
@@ -439,31 +435,8 @@ func DeleteComment() web.HandlerFunc {
 	}
 }
 
-// AddVote adds current user to given post list of votes
-func AddVote() web.HandlerFunc {
-	return func(c *web.Context) error {
-		err := addOrRemove(c, func(post *entity.Post, user *entity.User) bus.Msg {
-			return &cmd.AddVote{Post: post, User: user}
-		})
-
-		if err == nil {
-			metrics.TotalVotes.Inc()
-		}
-
-		return err
-	}
-}
-
-// RemoveVote removes current user from given post list of votes
-func RemoveVote() web.HandlerFunc {
-	return func(c *web.Context) error {
-		return addOrRemove(c, func(post *entity.Post, user *entity.User) bus.Msg {
-			return &cmd.RemoveVote{Post: post, User: user}
-		})
-	}
-}
-
-func ToggleVote() web.HandlerFunc {
+// GetSubscription returns the current user's subscription for an accessible post.
+func GetSubscription() web.HandlerFunc {
 	return func(c *web.Context) error {
 		number, err := c.ParamAsInt("number")
 		if err != nil {
@@ -475,37 +448,11 @@ func ToggleVote() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
-		if getPost.Result == nil {
-			return c.NotFound()
-		}
-
-		listVotes := &query.ListPostVotes{PostID: getPost.Result.ID}
-		if err := bus.Dispatch(c, listVotes); err != nil {
+		isSubscribed := &query.UserSubscribedTo{PostID: getPost.Result.ID}
+		if err := bus.Dispatch(c, isSubscribed); err != nil {
 			return c.Failure(err)
 		}
-
-		hasVoted := false
-		for _, vote := range listVotes.Result {
-			if vote.User.ID == c.User().ID {
-				hasVoted = true
-				break
-			}
-		}
-
-		if hasVoted {
-			err := bus.Dispatch(c, &cmd.RemoveVote{Post: getPost.Result, User: c.User()})
-			if err != nil {
-				return c.Failure(err)
-			}
-			return c.Ok(web.Map{"voted": false})
-		}
-
-		err = bus.Dispatch(c, &cmd.AddVote{Post: getPost.Result, User: c.User()})
-		if err != nil {
-			return c.Failure(err)
-		}
-		metrics.TotalVotes.Inc()
-		return c.Ok(web.Map{"voted": true})
+		return c.Ok(web.Map{"subscribed": isSubscribed.Result})
 	}
 }
 
@@ -524,29 +471,6 @@ func Unsubscribe() web.HandlerFunc {
 		return addOrRemove(c, func(post *entity.Post, user *entity.User) bus.Msg {
 			return &cmd.RemoveSubscriber{Post: post, User: user}
 		})
-	}
-}
-
-// ListVotes returns a list of all votes on given post
-func ListVotes() web.HandlerFunc {
-	return func(c *web.Context) error {
-		number, err := c.ParamAsInt("number")
-		if err != nil {
-			return c.NotFound()
-		}
-
-		getPost := &query.GetPostByNumber{Number: number}
-		if err := bus.Dispatch(c, getPost); err != nil {
-			return c.Failure(err)
-		}
-
-		includeEmail := c.User() != nil && c.User().IsCollaborator()
-		listVotes := &query.ListPostVotes{PostID: getPost.Result.ID, IncludeEmail: includeEmail}
-		if err := bus.Dispatch(c, listVotes); err != nil {
-			return c.Failure(err)
-		}
-
-		return c.Ok(listVotes.Result)
 	}
 }
 

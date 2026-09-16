@@ -2,7 +2,7 @@ import "./PostDetails.scss"
 
 import React, { useState, useEffect, useCallback } from "react"
 
-import { Comment, Post, Tag, Vote, CurrentUser, PostStatus } from "@fider/models"
+import { Comment, Post, Tag, CurrentUser, PostStatus } from "@fider/models"
 import { actions, cache, clearUrlHash, Failure, Fider, notify, timeAgo } from "@fider/services"
 import IconDuplicate from "@fider/assets/images/heroicons-duplicate.svg"
 import { i18n } from "@lingui/core"
@@ -13,7 +13,6 @@ import IconChat from "@fider/assets/images/heroicons-chat-alt-2.svg"
 import { ResponseDetails, Button, UserName, Moment, Markdown, Input, Form, Icon, Avatar, PoweredByFider, RSSModal, ResponseLozenge } from "@fider/components"
 import { CommentInput } from "@fider/pages/ShowPost/components/CommentInput"
 import { ShowComment } from "@fider/pages/ShowPost/components/ShowComment"
-import { VoteSection } from "@fider/pages/ShowPost/components/VoteSection"
 import CommentEditor from "@fider/components/common/form/CommentEditor"
 
 import IconX from "@fider/assets/images/heroicons-x.svg"
@@ -23,7 +22,6 @@ import { HStack, VStack } from "@fider/components/layout"
 import { Trans } from "@lingui/react/macro"
 import { DeletePostModal } from "@fider/pages/ShowPost/components/DeletePostModal"
 import { ResponseModal } from "@fider/pages/ShowPost/components/ResponseModal"
-import { VotesPanel } from "@fider/pages/ShowPost/components/VotesPanel"
 import { TagsPanel } from "@fider/pages/ShowPost/components/TagsPanel"
 import { ActionButton } from "@fider/pages/ShowPost/components/ActionButton"
 import { t } from "@lingui/macro"
@@ -39,7 +37,6 @@ interface PostDetailsProps {
   initialSubscribed?: boolean
   initialComments?: Comment[]
   initialTags?: Tag[]
-  initialVotes?: Vote[]
   initialAttachments?: string[]
 }
 
@@ -71,7 +68,6 @@ export const PostDetails: React.FC<PostDetailsProps> = (props) => {
   const [subscribed, setSubscribed] = useState(props.initialSubscribed || false)
   const [comments, setComments] = useState<Comment[]>(props.initialComments || [])
   const [tags, setTags] = useState<Tag[]>(props.initialTags || [])
-  const [votes, setVotes] = useState<Vote[]>(props.initialVotes || [])
   const [loading, setLoading] = useState(!props.initialPost)
 
   const [editMode, setEditMode] = useState(false)
@@ -110,10 +106,6 @@ export const PostDetails: React.FC<PostDetailsProps> = (props) => {
 
         setComments(commentsResult || [])
         setTags(tagsResult || [])
-
-        const votesResult = await actions.listVotes(props.postNumber)
-        // Limit votes to 24 to match SSR behavior
-        setVotes(votesResult.ok ? votesResult.data.slice(0, 24) : [])
 
         // Fetch subscription status if authenticated
         if (Fider.session.isAuthenticated) {
@@ -302,13 +294,6 @@ export const PostDetails: React.FC<PostDetailsProps> = (props) => {
 
   return (
     <div className="p-show-post">
-      {/* Left Sidebar - hidden on mobile, shown on desktop */}
-      <div className="p-show-post__action-col p-show-post__action-col--desktop">
-        <VotesPanel post={post} votes={votes} />
-
-        <PoweredByFider slot="show-post" className="mt-3" />
-      </div>
-
       <div className="p-show-post__main-col">
         {/* Post Card */}
         <div className="p-show-post__post-card">
@@ -399,13 +384,6 @@ export const PostDetails: React.FC<PostDetailsProps> = (props) => {
             </div>
           )}
 
-          {/* Vote Section */}
-          {!editMode && (
-            <div className="p-show-post__vote-section">
-              <VoteSection post={post} votes={post.votesCount} onDataChanged={props.onDataChanged} />
-            </div>
-          )}
-
           {/* Edit Mode Actions */}
           {editMode && (
             <HStack className="mt-6">
@@ -464,11 +442,6 @@ export const PostDetails: React.FC<PostDetailsProps> = (props) => {
           )}
         </div>
 
-        {/* Mobile Sidebar - shown after post card on mobile */}
-        <div className="p-show-post__action-col p-show-post__action-col--mobile">
-          <VotesPanel post={post} votes={votes} />
-        </div>
-
         {/* Discussion Section */}
         <div className="p-show-post__discussion-section">
           {/* Discussion Header */}
@@ -497,8 +470,8 @@ export const PostDetails: React.FC<PostDetailsProps> = (props) => {
           )}
         </div>
 
-        {/* Powered by Fider - bottom of page on mobile only */}
-        <div className="p-show-post__powered-by-mobile">
+        {/* Attribution is shared by standalone and overlay views. */}
+        <div className="p-show-post__powered-by">
           <PoweredByFider slot="show-post" />
         </div>
       </div>

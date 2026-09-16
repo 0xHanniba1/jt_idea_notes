@@ -25,3 +25,8 @@ type SetPostResponse struct {
 	Text   string
 	Status enum.PostStatus
 }
+
+type MarkPostAsDuplicate struct {
+	Post     *entity.Post
+	Original *entity.Post
+}

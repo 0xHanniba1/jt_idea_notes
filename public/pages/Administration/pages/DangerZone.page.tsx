@@ -94,8 +94,8 @@ export default class DangerZonePage extends AdminBasePage<DangerZonePageProps, D
           <Modal.Header>Are you sure you want to delete everything?</Modal.Header>
           <Modal.Content>
             <p>
-              To confirm, This will <strong>permanently delete</strong> this fider board and everything in it — all users, posts, comments and votes — and
-              cancel any active subscription.
+              To confirm, This will <strong>permanently delete</strong> this fider board and everything in it — all users, posts and comments — and cancel any
+              active subscription.
             </p>
             <h4 className="text-title mb-2">How it works</h4>
             <p>
@@ -122,8 +122,8 @@ export default class DangerZonePage extends AdminBasePage<DangerZonePageProps, D
           Delete this fider board
         </h4>
         <p className="text-muted text-red">
-          Careful! This will permanently delete this fider board and <strong>everything</strong> in it — all users, posts, comments and votes — and cancels any
-          active subscription to fider Pro.
+          Careful! This will permanently delete this fider board and <strong>everything</strong> in it — all users, posts and comments — and cancels any active
+          subscription to fider Pro.
         </p>
         <Button variant="danger" size="small" onClick={this.openModal}>
           I understand, delete this fider board

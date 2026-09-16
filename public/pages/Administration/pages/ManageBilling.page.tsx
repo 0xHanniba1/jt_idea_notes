@@ -145,7 +145,7 @@ const ManageBillingPage = (props: ManageBillingPageProps) => {
     }
   }
 
-  const freeFeatures = ["250 suggestions", "Unlimited voters", "Your own subdomain or custom domain", "All core functionality"]
+  const freeFeatures = ["250 suggestions", "Unlimited participants", "Your own subdomain or custom domain", "All core functionality"]
 
   const startAnnualCheckout = async () => {
     setIsLoading(true)

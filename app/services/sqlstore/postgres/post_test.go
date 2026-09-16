@@ -40,7 +40,6 @@ func TestPostStorage_GetAll(t *testing.T) {
 	Expect(allPosts.Result[0].Number).Equals(2)
 	Expect(allPosts.Result[0].Description).Equals("no description")
 	Expect(allPosts.Result[0].User.Name).Equals("Arya Stark")
-	Expect(allPosts.Result[0].VotesCount).Equals(0)
 	Expect(allPosts.Result[0].Status).Equals(enum.PostCompleted)
 
 	Expect(allPosts.Result[1].Title).Equals("add twitter integration")
@@ -48,7 +47,6 @@ func TestPostStorage_GetAll(t *testing.T) {
 	Expect(allPosts.Result[1].Number).Equals(1)
 	Expect(allPosts.Result[1].Description).Equals("Would be great to see it integrated with twitter")
 	Expect(allPosts.Result[1].User.Name).Equals("Jon Snow")
-	Expect(allPosts.Result[1].VotesCount).Equals(0)
 	Expect(allPosts.Result[1].Status).Equals(enum.PostStarted)
 
 	search10 := &query.SearchPosts{Query: "twitter", Limit: "10"}
@@ -255,8 +253,6 @@ func TestPostStorage_AddAndGet(t *testing.T) {
 
 	Expect(postByID.Result.ID).Equals(newPost.Result.ID)
 	Expect(postByID.Result.Number).Equals(1)
-	Expect(postByID.Result.HasVoted).IsFalse()
-	Expect(postByID.Result.VotesCount).Equals(0)
 	Expect(postByID.Result.Status).Equals(enum.PostOpen)
 	Expect(postByID.Result.Title).Equals("My new post")
 	Expect(postByID.Result.Description).Equals("with this description")
@@ -266,8 +262,6 @@ func TestPostStorage_AddAndGet(t *testing.T) {
 
 	Expect(postBySlug.Result.ID).Equals(newPost.Result.ID)
 	Expect(postBySlug.Result.Number).Equals(1)
-	Expect(postBySlug.Result.HasVoted).IsFalse()
-	Expect(postBySlug.Result.VotesCount).Equals(0)
 	Expect(postBySlug.Result.Status).Equals(enum.PostOpen)
 	Expect(postBySlug.Result.Title).Equals("My new post")
 	Expect(postBySlug.Result.Description).Equals("with this description")
@@ -416,100 +410,6 @@ func TestPostStorage_Update(t *testing.T) {
 	Expect(getPost.Result.Slug).Equals("the-new-title")
 }
 
-func TestPostStorage_AddVote(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	newPost := &cmd.AddNewPost{Title: "My new post", Description: "with this description"}
-	err := bus.Dispatch(jonSnowCtx, newPost)
-	Expect(err).IsNil()
-
-	err = bus.Dispatch(jonSnowCtx, &cmd.AddVote{Post: newPost.Result, User: aryaStark})
-	Expect(err).IsNil()
-
-	getPost := &query.GetPostByID{PostID: newPost.Result.ID}
-	err = bus.Dispatch(jonSnowCtx, getPost)
-	Expect(err).IsNil()
-	Expect(getPost.Result.HasVoted).IsFalse()
-	Expect(getPost.Result.VotesCount).Equals(1)
-
-	err = bus.Dispatch(jonSnowCtx, &cmd.AddVote{Post: newPost.Result, User: jonSnow})
-	Expect(err).IsNil()
-
-	getPost = &query.GetPostByID{PostID: newPost.Result.ID}
-	err = bus.Dispatch(jonSnowCtx, getPost)
-	Expect(err).IsNil()
-	Expect(getPost.Result.HasVoted).IsTrue()
-	Expect(getPost.Result.VotesCount).Equals(2)
-}
-
-func TestPostStorage_AddVote_Twice(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	newPost := &cmd.AddNewPost{Title: "My new post", Description: "with this description"}
-	err := bus.Dispatch(jonSnowCtx, newPost)
-	Expect(err).IsNil()
-
-	err = bus.Dispatch(
-		jonSnowCtx,
-		&cmd.AddVote{Post: newPost.Result, User: jonSnow},
-		&cmd.AddVote{Post: newPost.Result, User: jonSnow},
-	)
-	Expect(err).IsNil()
-
-	getPost := &query.GetPostByID{PostID: newPost.Result.ID}
-	err = bus.Dispatch(jonSnowCtx, getPost)
-	Expect(err).IsNil()
-	Expect(getPost.Result.HasVoted).IsTrue()
-	Expect(getPost.Result.VotesCount).Equals(1)
-}
-
-func TestPostStorage_RemoveVote(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	newPost := &cmd.AddNewPost{Title: "My new post", Description: "with this description"}
-	err := bus.Dispatch(jonSnowCtx, newPost)
-	Expect(err).IsNil()
-
-	err = bus.Dispatch(
-		jonSnowCtx,
-		&cmd.AddVote{Post: newPost.Result, User: jonSnow},
-		&cmd.RemoveVote{Post: newPost.Result, User: jonSnow},
-	)
-	Expect(err).IsNil()
-
-	getPost := &query.GetPostByID{PostID: newPost.Result.ID}
-	err = bus.Dispatch(jonSnowCtx, getPost)
-	Expect(err).IsNil()
-	Expect(getPost.Result.HasVoted).IsFalse()
-	Expect(getPost.Result.VotesCount).Equals(0)
-}
-
-func TestPostStorage_RemoveVote_Twice(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	newPost := &cmd.AddNewPost{Title: "My new post", Description: "with this description"}
-	err := bus.Dispatch(jonSnowCtx, newPost)
-	Expect(err).IsNil()
-
-	err = bus.Dispatch(
-		jonSnowCtx,
-		&cmd.AddVote{Post: newPost.Result, User: jonSnow},
-		&cmd.RemoveVote{Post: newPost.Result, User: jonSnow},
-		&cmd.RemoveVote{Post: newPost.Result, User: jonSnow},
-	)
-	Expect(err).IsNil()
-
-	getPost := &query.GetPostByID{PostID: newPost.Result.ID}
-	err = bus.Dispatch(jonSnowCtx, getPost)
-	Expect(err).IsNil()
-	Expect(getPost.Result.HasVoted).IsFalse()
-	Expect(getPost.Result.VotesCount).Equals(0)
-}
-
 func TestPostStorage_SetResponse(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
@@ -576,12 +476,9 @@ func TestPostStorage_SetResponse_AsDuplicate(t *testing.T) {
 	err = bus.Dispatch(aryaStarkCtx, newPost2)
 	Expect(err).IsNil()
 
-	err = bus.Dispatch(
-		jonSnowCtx,
-		&cmd.AddVote{Post: newPost1.Result, User: jonSnow},
-		&cmd.AddVote{Post: newPost2.Result, User: aryaStark},
-		&cmd.MarkPostAsDuplicate{Post: newPost2.Result, Original: newPost1.Result},
-	)
+	seedHistoricalVote(newPost1.Result, jonSnow)
+	seedHistoricalVote(newPost2.Result, aryaStark)
+	err = bus.Dispatch(jonSnowCtx, &cmd.MarkPostAsDuplicate{Post: newPost2.Result, Original: newPost1.Result})
 	Expect(err).IsNil()
 
 	getPost1 := &query.GetPostByID{PostID: newPost1.Result.ID}
@@ -589,18 +486,23 @@ func TestPostStorage_SetResponse_AsDuplicate(t *testing.T) {
 	err = bus.Dispatch(aryaStarkCtx, getPost1, getPost2)
 	Expect(err).IsNil()
 
-	Expect(getPost1.Result.VotesCount).Equals(2)
+	Expect(historicalVoteCount(newPost1.Result)).Equals(1)
 	Expect(getPost1.Result.Status).Equals(enum.PostOpen)
 	Expect(getPost1.Result.Response).IsNil()
 
 	Expect(getPost2.Result.Response.Text).Equals("")
-	Expect(getPost2.Result.VotesCount).Equals(1)
+	Expect(historicalVoteCount(newPost2.Result)).Equals(1)
 	Expect(getPost2.Result.Status).Equals(enum.PostDuplicate)
 	Expect(getPost2.Result.Response.User.ID).Equals(1)
 	Expect(getPost2.Result.Response.Original.Number).Equals(newPost1.Result.Number)
 	Expect(getPost2.Result.Response.Original.Title).Equals(newPost1.Result.Title)
 	Expect(getPost2.Result.Response.Original.Slug).Equals(newPost1.Result.Slug)
 	Expect(getPost2.Result.Response.Original.Status).Equals(newPost1.Result.Status)
+
+	// Linking a duplicate must not migrate its followers to the original.
+	var originalFollowers int
+	Expect(trx.Scalar(&originalFollowers, "SELECT COUNT(*) FROM post_subscribers WHERE post_id = $1 AND user_id = $2", newPost1.Result.ID, aryaStark.ID)).IsNil()
+	Expect(originalFollowers).Equals(0)
 }
 
 func TestPostStorage_SetResponse_AsDeleted(t *testing.T) {
@@ -622,47 +524,6 @@ func TestPostStorage_SetResponse_AsDeleted(t *testing.T) {
 	err = bus.Dispatch(aryaStarkCtx, postByNumber)
 	Expect(errors.Cause(err)).Equals(app.ErrNotFound)
 	Expect(postByNumber.Result).IsNil()
-}
-
-func TestPostStorage_AddVote_ClosedPost(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	newPost := &cmd.AddNewPost{Title: "My new post", Description: "with this description"}
-	err := bus.Dispatch(jonSnowCtx, newPost)
-	Expect(err).IsNil()
-
-	err = bus.Dispatch(jonSnowCtx,
-		&cmd.SetPostResponse{Post: newPost.Result, Text: "We liked this post", Status: enum.PostCompleted},
-		&cmd.AddVote{Post: newPost.Result, User: jonSnow},
-	)
-	Expect(err).IsNil()
-
-	getPost := &query.GetPostByNumber{Number: newPost.Result.Number}
-	err = bus.Dispatch(aryaStarkCtx, getPost)
-	Expect(err).IsNil()
-	Expect(getPost.Result.VotesCount).Equals(0)
-}
-
-func TestPostStorage_RemoveVote_ClosedPost(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	newPost := &cmd.AddNewPost{Title: "My new post", Description: "with this description"}
-	err := bus.Dispatch(jonSnowCtx, newPost)
-	Expect(err).IsNil()
-
-	bus.MustDispatch(
-		jonSnowCtx,
-		&cmd.AddVote{Post: newPost.Result, User: jonSnow},
-		&cmd.SetPostResponse{Post: newPost.Result, Text: "We liked this post", Status: enum.PostCompleted},
-		&cmd.RemoveVote{Post: newPost.Result, User: jonSnow},
-	)
-
-	getPost := &query.GetPostByNumber{Number: newPost.Result.Number}
-	err = bus.Dispatch(jonSnowCtx, getPost)
-	Expect(err).IsNil()
-	Expect(getPost.Result.VotesCount).Equals(1)
 }
 
 func TestPostStorage_WithTags(t *testing.T) {
@@ -707,8 +568,7 @@ func TestGetPosts_Different_Statuses(t *testing.T) {
 
 	addBug := &cmd.AddNewTag{Name: "Bug", Color: "FF0000", IsPublic: true}
 	addFeatureRequest := &cmd.AddNewTag{Name: "Feature Request", Color: "00FF00", IsPublic: false}
-	voteForPostRequest := &cmd.AddVote{Post: newPost.Result, User: aryaStark}
-	bus.MustDispatch(aryaStarkCtx, addBug, addFeatureRequest, voteForPostRequest)
+	bus.MustDispatch(aryaStarkCtx, addBug, addFeatureRequest)
 	bus.MustDispatch(aryaStarkCtx, &cmd.AssignTag{Tag: addBug.Result, Post: newPost.Result})
 	bus.MustDispatch(aryaStarkCtx, &cmd.AssignTag{Tag: addFeatureRequest.Result, Post: newPost.Result})
 	bus.MustDispatch(aryaStarkCtx, &cmd.AssignTag{Tag: addBug.Result, Post: completedPost.Result})
@@ -752,20 +612,12 @@ func TestGetPosts_Different_Statuses(t *testing.T) {
 			expectedIDs:   []int{startedPost.Result.ID},
 		},
 		{
-			name: "My votes only",
-			searchParams: &query.SearchPosts{
-				MyVotesOnly: true,
-			},
-			expectedCount: 1,
-			expectedIDs:   []int{newPost.Result.ID},
-		},
-		{
-			name: "Legacy view for my votes only should still work",
+			name: "Legacy voting view falls back to active records",
 			searchParams: &query.SearchPosts{
 				View: "my-votes",
 			},
-			expectedCount: 1,
-			expectedIDs:   []int{newPost.Result.ID},
+			expectedCount: 3,
+			expectedIDs:   []int{startedPost.Result.ID, newPost.Result.ID, plannedPost.Result.ID},
 		},
 		{
 			name: "All statuses",
@@ -840,8 +692,6 @@ func TestSearchPosts_RespectsFilters(t *testing.T) {
 	bus.MustDispatch(aryaStarkCtx, addBug)
 	bus.MustDispatch(aryaStarkCtx, &cmd.AssignTag{Tag: addBug.Result, Post: startedPost.Result})
 
-	bus.MustDispatch(aryaStarkCtx, &cmd.AddVote{Post: openPost.Result, User: aryaStark})
-
 	testCases := []struct {
 		name          string
 		searchParams  *query.SearchPosts
@@ -880,15 +730,6 @@ func TestSearchPosts_RespectsFilters(t *testing.T) {
 			},
 			expectedCount: 1,
 			expectedIDs:   []int{startedPost.Result.ID},
-		},
-		{
-			name: "Search with MyVotesOnly",
-			searchParams: &query.SearchPosts{
-				Query:       "kanban",
-				MyVotesOnly: true,
-			},
-			expectedCount: 1,
-			expectedIDs:   []int{openPost.Result.ID},
 		},
 		{
 			name: "Search with MyPostsOnly",
@@ -947,31 +788,6 @@ func TestPostStorage_IsReferenced(t *testing.T) {
 	Expect(isReferenced1.Result).IsTrue()
 	Expect(isReferenced2.Result).IsFalse()
 	Expect(isReferenced3.Result).IsTrue()
-}
-
-func TestPostStorage_ListVotesOfPost(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	newPost := &cmd.AddNewPost{Title: "My new post", Description: "with this description"}
-	err := bus.Dispatch(jonSnowCtx, newPost)
-	Expect(err).IsNil()
-
-	bus.MustDispatch(jonSnowCtx, &cmd.AddVote{Post: newPost.Result, User: jonSnow})
-	bus.MustDispatch(jonSnowCtx, &cmd.AddVote{Post: newPost.Result, User: aryaStark})
-
-	listVotes := &query.ListPostVotes{PostID: newPost.Result.ID, IncludeEmail: true}
-	err = bus.Dispatch(jonSnowCtx, listVotes)
-	Expect(err).IsNil()
-	Expect(listVotes.Result).HasLen(2)
-
-	Expect(listVotes.Result[0].CreatedAt).TemporarilySimilar(time.Now(), 5*time.Second)
-	Expect(listVotes.Result[0].User.Name).Equals("Jon Snow")
-	Expect(listVotes.Result[0].User.Email).Equals("jon.snow@got.com")
-
-	Expect(listVotes.Result[1].CreatedAt).TemporarilySimilar(time.Now(), 5*time.Second)
-	Expect(listVotes.Result[1].User.Name).Equals("Arya Stark")
-	Expect(listVotes.Result[1].User.Email).Equals("arya.stark@got.com")
 }
 
 func TestPostStorage_Attachments(t *testing.T) {

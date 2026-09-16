@@ -60,7 +60,6 @@ var declinedPost = &entity.Post{
 	User: &entity.User{
 		Name: "Faceless",
 	},
-	VotesCount:    4,
 	CommentsCount: 2,
 	Status:        enum.PostDeclined,
 	Response: &entity.PostResponse{
@@ -81,7 +80,6 @@ var openPost = &entity.Post{
 	User: &entity.User{
 		Name: "Someone else",
 	},
-	VotesCount:    4,
 	CommentsCount: 2,
 	Status:        enum.PostOpen,
 }
@@ -94,7 +92,6 @@ var duplicatePost = &entity.Post{
 	User: &entity.User{
 		Name: "Faceless",
 	},
-	VotesCount:    4,
 	CommentsCount: 2,
 	Status:        enum.PostDuplicate,
 	Response: &entity.PostResponse{
