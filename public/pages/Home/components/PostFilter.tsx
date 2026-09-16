@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { PostStatus, Tag } from "@fider/models"
-import { Checkbox, Dropdown, Icon } from "@fider/components"
+import { Dropdown, Icon } from "@fider/components"
 import { HStack } from "@fider/components/layout"
 import HeroIconFilter from "@fider/assets/images/heroicons-filter.svg"
 import { useFider } from "@fider/hooks"
@@ -108,7 +108,7 @@ export const PostFilter = (props: PostFilterProps) => {
   // Add Pending status for collaborators and admins
   if (fider.session.isAuthenticated && fider.session.user.isCollaborator) {
     options.push({
-      label: "Pending",
+      label: i18n._({ id: "post.pending", message: "pending" }),
       value: "pending",
       type: "status",
     })
@@ -147,13 +147,14 @@ export const PostFilter = (props: PostFilterProps) => {
           const fieldKey = `${o.type}:${o.value.toString()}`
 
           return (
-            <Dropdown.ListItem onClick={handleChangeFilter(o)} key={fieldKey}>
-              <Checkbox field={fieldKey} checked={isChecked}>
-                <HStack spacing={2}>
-                  <span className={isChecked ? "text-semibold" : ""}>{o.label}</span>
-                  {o.count && o.count > 0 && <span className="bg-gray-200 inline-block rounded-full px-1 w-min-4 text-2xs text-center">{o.count}</span>}
-                </HStack>
-              </Checkbox>
+            <Dropdown.ListItem onClick={handleChangeFilter(o)} key={fieldKey} checked={isChecked} checkType="checkbox">
+              <span className="c-post-filter-check" aria-hidden="true">
+                {isChecked ? "✓" : ""}
+              </span>
+              <HStack spacing={2}>
+                <span className={isChecked ? "text-semibold" : ""}>{o.label}</span>
+                {o.count && o.count > 0 && <span className="bg-gray-200 inline-block rounded-full px-1 w-min-4 text-2xs text-center">{o.count}</span>}
+              </HStack>
             </Dropdown.ListItem>
           )
         })}
@@ -162,7 +163,7 @@ export const PostFilter = (props: PostFilterProps) => {
   }
 
   return (
-    <HStack className="mr-4">
+    <HStack>
       <Dropdown
         onToggled={() => setQuery("")}
         renderHandle={
@@ -175,6 +176,7 @@ export const PostFilter = (props: PostFilterProps) => {
       >
         <input
           type="text"
+          aria-label={i18n._({ id: "home.filter.search.label", message: "Search in filters..." })}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="c-input filter-input"

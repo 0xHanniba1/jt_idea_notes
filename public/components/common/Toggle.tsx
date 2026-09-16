@@ -43,7 +43,15 @@ export const Toggle: React.FC<ToggleProps> = (props) => {
       {(ctx) => (
         <>
           <HStack spacing={2}>
-            <button onClick={toggle} type="button" className={className} role="switch">
+            <button
+              onClick={toggle}
+              type="button"
+              className={className}
+              role="switch"
+              aria-checked={active}
+              aria-label={props.label || props.field}
+              disabled={props.disabled}
+            >
               <span aria-hidden="true" className="shadow"></span>
             </button>
             {props.label && <span className="text-sm">{props.label}</span>}

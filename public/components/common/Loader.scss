@@ -5,7 +5,7 @@
     display: block;
     position: relative;
     text-align: center;
-    z-index: 1000;
+    z-index: 0;
     width: 30px;
     height: 30px;
     margin: 10px auto;
@@ -31,7 +31,7 @@
       animation: loader 0.6s linear;
       animation-iteration-count: infinite;
       border-radius: 500rem;
-      border-color: get("colors.gray.700") transparent transparent;
+      border-color: var(--ink-500) transparent transparent;
       border-style: solid;
       border-width: 0.2em;
       box-shadow: 0 0 0 1px transparent;

@@ -1,3 +1,5 @@
+import "./ManageTags.page.scss"
+
 import React from "react"
 import { Button, Icon } from "@fider/components"
 
@@ -133,7 +135,7 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
 
   public content() {
     const tags = this.sortedTags()
-    const gridTemplateColumns = "minmax(200px, 1fr) minmax(100px, 150px) 200px"
+    const gridTemplateColumns = "var(--tag-columns)"
     const canAdd = Fider.session.user.isAdministrator
     const lastTagIsLast = !canAdd
 
@@ -155,7 +157,7 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
     return (
       <VStack spacing={8}>
         <VStack className="rounded-md border border-gray-200 relative">
-          <div className="grid rounded-md-t gap-4 py-3 px-4 bg-gray-100 text-category" style={{ gridTemplateColumns }}>
+          <div className="c-tag-row c-tag-row--header grid rounded-md-t gap-4 py-3 px-4 bg-gray-100 text-category" style={{ gridTemplateColumns }}>
             <div>Tag</div>
             <div>Visibility</div>
             <div></div>
@@ -188,7 +190,7 @@ export default class ManageTagsPage extends AdminBasePage<ManageTagsPageProps, M
               Download all your tags as a JSON file, or upload a <code>tags.json</code> file to restore or add tags. Existing tags with the same name will be
               skipped.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="secondary" href="/admin/export/tags.json">
                 <Icon sprite={IconDownload} />
                 <span>Export tags.json</span>

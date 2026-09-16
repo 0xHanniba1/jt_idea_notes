@@ -1,3 +1,4 @@
+import "./ShowPostResponse.scss"
 import React from "react"
 import { PostResponse, PostStatus } from "@fider/models"
 import { Icon, Markdown, UserName, Moment, Avatar } from "@fider/components"
@@ -60,22 +61,22 @@ export const ResponseDetails = (props: PostResponseProps): JSX.Element | null =>
   )
 }
 
-const getLozengeProps = (status: PostStatus): { icon: SpriteSymbol; bg: string; color: string; border: string } => {
+const getLozengeProps = (status: PostStatus): { icon: SpriteSymbol } => {
   switch (status) {
     case PostStatus.Declined:
-      return { icon: HeroIconThumbsDown, bg: "bg-red-100", color: "text-red-800", border: "border-red-300" }
+      return { icon: HeroIconThumbsDown }
     case PostStatus.Duplicate:
-      return { icon: HeroIconDuplicate, bg: "bg-yellow-100", color: "text-yellow-800", border: "border-yellow-400" }
+      return { icon: HeroIconDuplicate }
     case PostStatus.Completed:
-      return { icon: HeroIconCheck, bg: "bg-green-100", color: "text-green-800", border: "border-green-400" }
+      return { icon: HeroIconCheck }
     case PostStatus.Planned:
-      return { icon: HeroIconThumbsUp, bg: "bg-blue-100", color: "text-blue-700", border: "border-blue-400" }
+      return { icon: HeroIconThumbsUp }
     case PostStatus.Started:
-      return { icon: HeroIconSparkles, bg: "bg-blue-100", color: "text-blue-700", border: "border-blue-400" }
+      return { icon: HeroIconSparkles }
     case PostStatus.Open:
-      return { icon: HeroIconLightBulb, bg: "bg-blue-100", color: "text-blue-700", border: "border-blue-400" }
+      return { icon: HeroIconLightBulb }
     default:
-      return { icon: HeroIconSparkles, bg: "bg-blue-100", color: "text-blue-700", border: "border-blue-400" }
+      return { icon: HeroIconSparkles }
   }
 }
 
@@ -102,30 +103,13 @@ const getStatusTranslation = (status: PostStatus): JSX.Element => {
 
 export const ResponseLozenge = (props: PostResponseProps): JSX.Element | null => {
   const status = PostStatus.Get(props.status)
-  const { icon, bg, color, border } = getLozengeProps(status)
+  const { icon } = getLozengeProps(status)
   const translatedStatus = getStatusTranslation(status)
 
-  if (props.size == "micro") {
-    return <span className={`${color} text-sm`}>{translatedStatus}</span>
-  }
-
-  if (props.size === "xsmall") {
-    return (
-      <div>
-        <HStack align="center" className={`${color} ${bg} rounded-full p-0 px-3`}>
-          <Icon sprite={icon} className={`h-4 c-status-col--${status.value}`} />
-          <span className={`c-status-col--${status.value} text-xs uppercase`}>{translatedStatus}</span>
-        </HStack>
-      </div>
-    )
-  }
-
   return (
-    <div>
-      <HStack align="center" className={`${color} ${bg} border ${border} rounded-full p-1 px-3`}>
-        {!props.size && <Icon sprite={icon} className={`h-5 c-status-col--${status.value}`} />}
-        <span className={`c-status-col--${status.value} ${props.size === "small" ? "text-sm" : "text-semibold"}`}>{translatedStatus}</span>
-      </HStack>
-    </div>
+    <span className={`c-response-lozenge c-response-lozenge--${status.value} c-response-lozenge--${props.size || "normal"}`}>
+      {(!props.size || props.size === "xsmall") && <Icon sprite={icon} />}
+      <span>{translatedStatus}</span>
+    </span>
   )
 }

@@ -83,7 +83,7 @@ export const TagListItem = (props: TagListItemProps) => {
   }
 
   return (
-    <div className={`${rowClass} grid gap-4 flex-items-center hover`} style={{ gridTemplateColumns: props.gridTemplateColumns }}>
+    <div className={`c-tag-row ${rowClass} grid gap-4 flex-items-center hover`} style={{ gridTemplateColumns: props.gridTemplateColumns }}>
       <div>
         <ShowTag tag={tag} link />
       </div>
@@ -94,7 +94,7 @@ export const TagListItem = (props: TagListItemProps) => {
           <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">private</span>
         )}
       </div>
-      <div className="flex justify-end gap-2">
+      <div className="c-tag-row__actions flex justify-end flex-wrap gap-2">
         {fider.session.user.isAdministrator && (
           <>
             <Button size="small" onClick={startEdit}>

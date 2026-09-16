@@ -1,3 +1,5 @@
+import "./ManageMembers.page.scss"
+
 import React, { useState, useEffect, useCallback } from "react"
 import { Input, Avatar, Icon, Dropdown, Pagination } from "@fider/components"
 import { User, UserRole, UserStatus } from "@fider/models"
@@ -37,16 +39,13 @@ const UserListItem = (props: UserListItemExtendedProps) => {
   }
 
   return (
-    <div
-      className={`border-b border-gray-200 grid gap-4 py-4 px-4 flex-items-center bg-white hover ${props.isLast ? "rounded-md-b" : ""}`}
-      style={{ gridTemplateColumns: "minmax(200px, 1fr) minmax(280px, 2fr) minmax(120px, 150px) 100px" }}
-    >
+    <div className={`c-members-row ${props.isLast ? "c-members-row--last" : ""}`}>
       <HStack>
         <Avatar user={props.user} />
         <div className="text-subtitle">{props.user.name}</div>
       </HStack>
 
-      <div className="text-muted nowrap" title={props.user.email}>
+      <div className="c-members-email text-muted" title={props.user.email}>
         {props.user.email || "No email"}
       </div>
 
@@ -55,10 +54,10 @@ const UserListItem = (props: UserListItemExtendedProps) => {
         {isMember && !blocked && !trusted && <span className="text-xs text-gray-600">member</span>}
       </div>
 
-      <div className="flex justify-end relative">
+      <div className="c-members-actions flex justify-end relative">
         {Fider.session.user.id !== props.user.id && Fider.session.user.isAdministrator && (
           <div className="relative z-10">
-            <Dropdown renderHandle={<Icon sprite={IconDotsHorizontal} width="16" height="16" />}>
+            <Dropdown position="left" renderHandle={<Icon sprite={IconDotsHorizontal} width="16" height="16" />}>
               {!blocked && (!!collaborator || isMember) && (
                 <Dropdown.ListItem onClick={actionSelected("to-administrator")}>Promote to Administrator</Dropdown.ListItem>
               )}
@@ -216,7 +215,7 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
 
   return (
     <AdminPageContainer id="p-admin-members" name="users" title="Members" subtitle="Manage your site administrators and collaborators">
-      <div className="flex gap-4 flex-items-center mb-4">
+      <div className="c-members-toolbar flex gap-4 flex-items-center mb-4">
         <div className="flex-grow">
           <Input
             field="query"
@@ -229,7 +228,7 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
         </div>
         <Dropdown
           renderHandle={
-            <div className="flex flex-items-center h-10 text-medium text-xs rounded-md uppercase border border-gray-400 text-gray-800 p-2 px-3 hover">
+            <div className="flex flex-items-center text-medium text-xs">
               <Icon sprite={HeroIconFilter} className="h-5 pr-1" />
               Role
               {roleFilter !== "all" && <div className="bg-gray-200 inline-block rounded-full px-2 py-1 w-min-4 text-2xs text-center ml-2">1</div>}
@@ -252,10 +251,7 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
       </div>
 
       <VStack className="rounded-md border border-gray-200 relative">
-        <div
-          className="grid rounded-md-t gap-4 py-3 px-4 bg-gray-100 text-category"
-          style={{ gridTemplateColumns: "minmax(200px, 1fr) minmax(280px, 2fr) minmax(120px, 150px) 100px" }}
-        >
+        <div className="c-members-row c-members-row--header">
           <div>Name</div>
           <div>Email</div>
           <div>Role</div>

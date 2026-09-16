@@ -34,10 +34,10 @@ export const Header = (props: HeaderProps) => {
   const hideRSSModal = () => setIsRSSModalOpen(false)
 
   return (
-    <div id="c-header" className="bg-white" style={{ borderBottom: "1px solid var(--colors-gray-200)" }} {...(props.hasInert && { inert: "true" })}>
+    <div id="c-header" {...(props.hasInert && { inert: "true" })}>
       <SignInModal isOpen={isSignInModalOpen} onClose={hideSignInModal} />
       <RSSModal isOpen={isRSSModalOpen} onClose={hideRSSModal} url={`${fider.settings.baseURL}/feed/global.atom`} />
-      <HStack className="c-menu p-4 w-full">
+      <HStack className="c-menu w-full">
         <div className="container c-header__container">
           <div className="c-header__row">
             <a href="/" className="c-header__brand flex flex-x flex-items-center flex--spacing-2 h-8">
@@ -45,10 +45,18 @@ export const Header = (props: HeaderProps) => {
               <h1 className="text-header">{fider.session.tenant.name}</h1>
             </a>
             <HStack spacing={4} className="c-header__nav flex-items-center">
-              <a href="/" className={`c-header__nav-link ${isFeedbackActive ? "c-header__nav-link--active" : ""}`}>
+              <a
+                href="/"
+                aria-current={isFeedbackActive ? "page" : undefined}
+                className={`c-header__nav-link ${isFeedbackActive ? "c-header__nav-link--active" : ""}`}
+              >
                 <Trans id="header.nav.feedback">All Feedback</Trans>
               </a>
-              <a href="/roadmap" className={`c-header__nav-link ${isRoadmapActive ? "c-header__nav-link--active" : ""}`}>
+              <a
+                href="/roadmap"
+                aria-current={isRoadmapActive ? "page" : undefined}
+                className={`c-header__nav-link ${isRoadmapActive ? "c-header__nav-link--active" : ""}`}
+              >
                 <Trans id="header.nav.roadmap">Roadmap</Trans>
               </a>
             </HStack>
@@ -61,7 +69,7 @@ export const Header = (props: HeaderProps) => {
               <HStack spacing={2} className="c-header__actions">
                 {fider.session.tenant.isFeedEnabled && (
                   <button title={atomFeedTitle} className="c-themeswitcher" onClick={showRSSModal}>
-                    <Icon sprite={IconRss} className="h-6 text-gray-500" />
+                    <Icon sprite={IconRss} className="h-5 text-gray-500" />
                   </button>
                 )}
                 <ThemeSwitcher />
@@ -73,7 +81,7 @@ export const Header = (props: HeaderProps) => {
               <HStack spacing={2} className="c-header__actions">
                 {fider.session.tenant.isFeedEnabled && (
                   <button title={atomFeedTitle} className="c-themeswitcher" onClick={showRSSModal}>
-                    <Icon sprite={IconRss} className="h-6 text-gray-500" />
+                    <Icon sprite={IconRss} className="h-5 text-gray-500" />
                   </button>
                 )}
                 <ThemeSwitcher />

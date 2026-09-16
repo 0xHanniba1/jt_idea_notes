@@ -6,7 +6,7 @@
   border: 1px solid var(--colors-gray-300);
   height: sizing(4);
   width: sizing(4);
-  color: var(--colors-primary-base);
+  color: var(--button-primary-bg);
   border-radius: get("border.radius.full");
   -webkit-appearance: none;
   appearance: none;
@@ -22,4 +22,9 @@
     background-position: center;
     background-repeat: no-repeat;
   }
+}
+
+.c-radiobutton input:disabled {
+  opacity: 0.55;
+  cursor: default;
 }

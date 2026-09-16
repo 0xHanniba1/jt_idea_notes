@@ -3,7 +3,7 @@ import "./PostsContainer.scss"
 import React from "react"
 
 import { Post, Tag, CurrentUser, normalizePostView } from "@fider/models"
-import { Loader, Input } from "@fider/components"
+import { Loader, Input, Button } from "@fider/components"
 import { actions, navigator, querystring } from "@fider/services"
 import IconSearch from "@fider/assets/images/heroicons-search.svg"
 import IconX from "@fider/assets/images/heroicons-x.svg"
@@ -18,11 +18,12 @@ interface PostsContainerProps {
   posts: Post[]
   tags: Tag[]
   countPerStatus: { [key: string]: number }
-  onPostClick?: (postNumber: number, slug: string) => void
+  onPostClick?: (postNumber: number, slug: string, event?: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 interface PostsContainerState {
   loading: boolean
+  failed: boolean
   posts?: Post[] // All posts
   view: string
   filterState: FilterState // Filter state
@@ -47,6 +48,7 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     this.state = {
       posts: this.props.posts,
       loading: false,
+      failed: false,
       view,
       query: querystring.get("query"),
       moderation: querystring.get("moderation"),
@@ -70,6 +72,7 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
 
   public componentWillUnmount() {
     window.clearTimeout(this.timer)
+    this.requestVersion += 1
   }
 
   private getNormalizedURL(): URL {
@@ -111,6 +114,7 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
   }
 
   private timer?: number
+  private requestVersion = 0
   private async searchPosts(
     query: string,
     view: string,
@@ -122,34 +126,48 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     reset: boolean
   ) {
     window.clearTimeout(this.timer)
-    this.setState({ posts: reset ? undefined : this.state.posts, loading: true })
+    const version = ++this.requestVersion
+    this.setState({ posts: reset ? undefined : this.state.posts, loading: true, failed: false })
     this.timer = window.setTimeout(() => {
-      // Check if "pending" is in the statuses
-      const hasPending = statuses.includes("pending")
-      // Filter out "pending" from actual statuses to send to API
-      const actualStatuses = statuses.filter((s) => s !== "pending")
-      // Determine moderation filter
-      let moderation = this.state.moderation
-      if (hasPending) {
-        moderation = "pending"
-      }
-
-      actions.searchPosts({ query, view: view, limit, tags, statuses: actualStatuses, myPosts, noTags, moderation }).then((response) => {
-        if (response.ok && this.state.loading) {
-          this.setState({ loading: false, posts: response.data })
-        }
-      })
+      void this.fetchPosts(version, query, view, limit, tags, statuses, myPosts, noTags)
     }, 500)
   }
 
-  public updateSinglePost = async (postNumber: number) => {
-    // Fetch the updated post and replace it in the array without changing order
-    const response = await actions.getPost(postNumber)
-    if (response.ok && this.state.posts) {
-      const updatedPosts = this.state.posts.map((post) => (post.number === postNumber ? response.data : post))
-      this.setState({ posts: updatedPosts })
+  private async fetchPosts(
+    version: number,
+    query: string,
+    view: string,
+    limit: number | undefined,
+    tags: string[],
+    statuses: string[],
+    myPosts: boolean,
+    noTags: boolean
+  ) {
+    const moderation = statuses.includes("pending") ? "pending" : this.state.moderation
+    try {
+      const response = await actions.searchPosts({ query, view, limit, tags, statuses: statuses.filter((s) => s !== "pending"), myPosts, noTags, moderation })
+      if (version !== this.requestVersion) return
+      if (!response.ok) {
+        this.setState({ loading: false, failed: true })
+        return
+      }
+      this.setState({ loading: false, failed: false, posts: response.data || [] })
+    } catch {
+      if (version === this.requestVersion) this.setState({ loading: false, failed: true })
     }
   }
+
+  // Re-run the same query so edits, status changes and comments respect the
+  // current filters, ordering and loaded page size, including removed records.
+  public refreshPosts = async () => {
+    window.clearTimeout(this.timer)
+    const version = ++this.requestVersion
+    const { query, view, limit, filterState } = this.state
+    this.setState({ loading: true, failed: false })
+    await this.fetchPosts(version, query.trim().toLowerCase(), view, limit, filterState.tags, filterState.statuses, filterState.myPosts, filterState.noTags)
+  }
+
+  public updateSinglePost = () => this.refreshPosts()
 
   private handleFilterChanged = (filterState: FilterState) => {
     this.changeFilterCriteria({ filterState }, true)
@@ -206,6 +224,8 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
           <div className="c-posts-container__search-col">
             <Input
               field="query"
+              ariaLabel={i18n._({ id: "home.postscontainer.query.placeholder", message: "Search" })}
+              iconAriaLabel={this.state.query ? i18n._({ id: "home.search.clear", message: "Clear search" }) : undefined}
               icon={this.state.query ? IconX : IconSearch}
               onIconClick={this.state.query ? this.clearSearch : undefined}
               placeholder={i18n._({ id: "home.postscontainer.query.placeholder", message: "Search" })}
@@ -215,13 +235,23 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
           </div>
         </div>
         <div className="c-posts-container__list">
+          {this.state.failed && (
+            <div className="c-posts-container__error" role="alert">
+              <p>{i18n._({ id: "home.load.failed", message: "Unable to load ideas. Please try again." })}</p>
+              <Button onClick={this.refreshPosts}>{i18n._({ id: "action.retry", message: "Retry" })}</Button>
+            </div>
+          )}
           <ListPosts
-            posts={this.state.posts}
+            posts={this.state.failed && !this.state.posts ? undefined : this.state.posts}
             tags={this.props.tags}
             emptyText={i18n._({ id: "home.postscontainer.label.noresults", message: "No results matched your search, try something different." })}
             onPostClick={this.props.onPostClick}
           />
-          {this.state.loading && <Loader />}
+          {this.state.loading && (
+            <div role="status" aria-label={i18n._({ id: "label.loading", message: "Loading" })}>
+              <Loader />
+            </div>
+          )}
           {showMoreLink && (
             <div className="my-4 text-center">
               <a href={showMoreLink} className="text-primary-base text-medium hover:underline" onClick={this.showMore}>

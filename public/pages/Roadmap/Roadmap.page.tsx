@@ -1,14 +1,13 @@
 import "./Roadmap.page.scss"
-import IconArrowLeft from "@fider/assets/images/heroicons-arrowleft.svg"
 import IconCheckCircle from "@fider/assets/images/heroicons-check-circle.svg"
 
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useRef, useEffect } from "react"
 import { Post, Tag } from "@fider/models"
 import { Header, Button, Icon, ResponseLozenge, ShowTag, Moment } from "@fider/components"
 import { VStack, HStack } from "@fider/components/layout"
 import { useFider, usePostOverlay } from "@fider/hooks"
 import { actions } from "@fider/services"
-import { PostDetails } from "@fider/components/PostDetails"
+import { PostDetails, PostDetailsOverlay } from "@fider/components/PostDetails"
 import { Trans } from "@lingui/react/macro"
 
 interface RoadmapPageProps {
@@ -24,7 +23,7 @@ interface RoadmapColumnProps {
   tags: Tag[]
   currentLimit: number
   onShowMore: () => void
-  onPostClick?: (postNumber: number, slug: string) => void
+  onPostClick?: (postNumber: number, slug: string, event?: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 // Must match the Limit sent by the server-side RoadmapPage handler. The "Show
@@ -35,7 +34,12 @@ const ROADMAP_LIMIT_STEP = 10
 
 type RoadmapView = "planned" | "started" | "completed"
 
-const RoadmapPost = (props: { post: Post; tags: Tag[]; status: string; onPostClick?: (postNumber: number, slug: string) => void }) => {
+const RoadmapPost = (props: {
+  post: Post
+  tags: Tag[]
+  status: string
+  onPostClick?: (postNumber: number, slug: string, event?: React.MouseEvent<HTMLAnchorElement>) => void
+}) => {
   const fider = useFider()
   const isModerationEnabled = fider.session.tenant.isModerationEnabled
   const isPending = isModerationEnabled && !props.post.isApproved
@@ -43,13 +47,12 @@ const RoadmapPost = (props: { post: Post; tags: Tag[]; status: string; onPostCli
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (props.onPostClick) {
-      e.preventDefault()
-      props.onPostClick(props.post.number, props.post.slug)
+      props.onPostClick(props.post.number, props.post.slug, e)
     }
   }
 
   return (
-    <a href={`/posts/${props.post.number}/${props.post.slug}`} className="c-roadmap-post-link" onClick={handleClick}>
+    <a href={`/posts/${props.post.number}/${props.post.slug}`} data-post-number={props.post.number} className="c-roadmap-post-link" onClick={handleClick}>
       <VStack className="c-roadmap-post w-full" spacing={2}>
         <HStack spacing={2} align="start" className="w-full">
           <h3 className="c-roadmap-post__title text-break">{props.post.title}</h3>
@@ -124,41 +127,80 @@ const RoadmapBoard = (props: RoadmapPageProps) => {
   const [startedLimit, setStartedLimit] = useState(ROADMAP_DEFAULT_LIMIT)
   const [completedLimit, setCompletedLimit] = useState(ROADMAP_DEFAULT_LIMIT)
   const tags = props.tags || []
+  const [loadFailed, setLoadFailed] = useState(false)
+  const requestVersion = useRef(0)
+  const pendingMore = useRef(false)
+  const pendingRefresh = useRef<Promise<unknown>>()
+  useEffect(
+    () => () => {
+      requestVersion.current += 1
+    },
+    []
+  )
 
   const reloadPosts = useCallback(async () => {
-    const [planned, started, completed] = await Promise.all([
-      actions.searchPosts({ view: "planned", limit: plannedLimit }),
-      actions.searchPosts({ view: "started", limit: startedLimit }),
-      actions.searchPosts({ view: "completed", limit: completedLimit }),
-    ])
-    if (planned.ok) setPlannedPosts(planned.data)
-    if (started.ok) setStartedPosts(started.data)
-    if (completed.ok) setCompletedPosts(completed.data)
+    const version = ++requestVersion.current
+    setLoadFailed(false)
+    try {
+      const [planned, started, completed] = await Promise.all([
+        actions.searchPosts({ view: "planned", limit: plannedLimit }),
+        actions.searchPosts({ view: "started", limit: startedLimit }),
+        actions.searchPosts({ view: "completed", limit: completedLimit }),
+      ])
+      if (version !== requestVersion.current) return
+      if (planned.ok && started.ok && completed.ok) {
+        setPlannedPosts(planned.data)
+        setStartedPosts(started.data)
+        setCompletedPosts(completed.data)
+      } else setLoadFailed(true)
+    } catch {
+      if (version === requestVersion.current) setLoadFailed(true)
+    }
   }, [plannedLimit, startedLimit, completedLimit])
 
   const showMore = async (view: RoadmapView) => {
+    if (pendingMore.current) return
+    pendingMore.current = true
+    const version = ++requestVersion.current
     const currentLimit = view === "planned" ? plannedLimit : view === "started" ? startedLimit : completedLimit
     const nextLimit = currentLimit + ROADMAP_LIMIT_STEP
-    const result = await actions.searchPosts({ view, limit: nextLimit })
-    if (!result.ok) return
-    if (view === "planned") {
-      setPlannedLimit(nextLimit)
-      setPlannedPosts(result.data)
-    } else if (view === "started") {
-      setStartedLimit(nextLimit)
-      setStartedPosts(result.data)
-    } else {
-      setCompletedLimit(nextLimit)
-      setCompletedPosts(result.data)
+    setLoadFailed(false)
+    try {
+      const result = await actions.searchPosts({ view, limit: nextLimit })
+      if (version !== requestVersion.current) return
+      if (!result.ok) {
+        setLoadFailed(true)
+        return
+      }
+      if (view === "planned") {
+        setPlannedLimit(nextLimit)
+        setPlannedPosts(result.data)
+      } else if (view === "started") {
+        setStartedLimit(nextLimit)
+        setStartedPosts(result.data)
+      } else {
+        setCompletedLimit(nextLimit)
+        setCompletedPosts(result.data)
+      }
+    } catch {
+      if (version === requestVersion.current) setLoadFailed(true)
+    } finally {
+      pendingMore.current = false
     }
   }
 
-  const { selectedPostId, handlePostClick, handleCloseOverlay, setIsPostDirty } = usePostOverlay({
+  const { selectedPostId, handlePostClick, handleCloseOverlay, setCloseGuard, setIsPostDirty } = usePostOverlay({
     basePath: "/roadmap",
-    onPostClosed: () => reloadPosts(),
+    onPostClosed: () => pendingRefresh.current,
   })
 
-  const hasNoActivePosts = plannedPosts.length === 0 && startedPosts.length === 0
+  const refreshBackground = () => {
+    setIsPostDirty(true)
+    pendingRefresh.current = reloadPosts()
+    return pendingRefresh.current
+  }
+
+  const hasNoActivePosts = plannedPosts.length === 0 && startedPosts.length === 0 && completedPosts.length === 0
 
   if (hasNoActivePosts && selectedPostId === null) {
     return <RoadmapBlankState />
@@ -166,7 +208,20 @@ const RoadmapBoard = (props: RoadmapPageProps) => {
 
   return (
     <div id="p-roadmap" className="page container">
-      <div style={selectedPostId !== null ? { display: "none" } : undefined}>
+      <h1 className="c-roadmap-title" tabIndex={-1} data-post-list-focus>
+        <Trans id="label.roadmap">Roadmap</Trans>
+      </h1>
+      {loadFailed && (
+        <div role="alert" className="c-roadmap-error">
+          <p>
+            <Trans id="home.load.failed">Unable to load ideas. Please try again.</Trans>
+          </p>
+          <Button onClick={reloadPosts}>
+            <Trans id="action.retry">Retry</Trans>
+          </Button>
+        </div>
+      )}
+      <div>
         <VStack spacing={4}>
           <div className="c-roadmap-board">
             <RoadmapColumn
@@ -197,17 +252,18 @@ const RoadmapBoard = (props: RoadmapPageProps) => {
         </VStack>
       </div>
       {selectedPostId !== null && (
-        <div>
-          <Button onClick={handleCloseOverlay} variant="link">
-            <HStack spacing={2}>
-              <Icon sprite={IconArrowLeft} />
-              <span className="text-body clickable text-blue-600 hover">
-                <Trans id="postdetails.backtoroadmap">Back to roadmap</Trans>
-              </span>
-            </HStack>
-          </Button>
-          <PostDetails postNumber={selectedPostId} onDataChanged={() => setIsPostDirty(true)} />
-        </div>
+        <PostDetailsOverlay onClose={handleCloseOverlay}>
+          <PostDetails
+            key={selectedPostId}
+            postNumber={selectedPostId}
+            onCloseGuardChange={setCloseGuard}
+            onDataChanged={refreshBackground}
+            onDeleted={async () => {
+              await refreshBackground()
+              handleCloseOverlay()
+            }}
+          />
+        </PostDetailsOverlay>
       )}
     </div>
   )
@@ -275,7 +331,7 @@ const RoadmapBlankState = () => (
   <div id="p-roadmap-blank" className="page container">
     <RoadmapSkeletonBackdrop />
     <VStack spacing={4} className="c-roadmap-upsell flex-items-center text-center">
-      <h1 className="c-roadmap-upsell__title text-display">
+      <h1 className="c-roadmap-upsell__title text-display" tabIndex={-1} data-post-list-focus>
         <Trans id="roadmap.blank.title">Your roadmap is waiting for its first update</Trans>
       </h1>
       <p className="c-roadmap-upsell__subtitle text-muted">

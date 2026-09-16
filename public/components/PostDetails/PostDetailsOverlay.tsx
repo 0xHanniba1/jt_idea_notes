@@ -1,38 +1,24 @@
 import "./PostDetailsOverlay.scss"
 
-import React, { ReactNode, useEffect } from "react"
+import React, { ReactNode, useId } from "react"
+import { Modal, CloseIcon } from "../common/Modal"
+import { i18n } from "@lingui/core"
 
 interface PostDetailsOverlayProps {
   children: ReactNode
   onClose: () => void
+  title?: string
 }
 
-export const PostDetailsOverlay: React.FC<PostDetailsOverlayProps> = ({ children, onClose }) => {
-  // Handle escape key to close
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose()
-      }
-    }
-
-    document.addEventListener("keydown", handleEscape)
-    return () => document.removeEventListener("keydown", handleEscape)
-  }, [onClose])
-
-  // Prevent body scroll when overlay is open
-  useEffect(() => {
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = ""
-    }
-  }, [])
-
+export const PostDetailsOverlay: React.FC<PostDetailsOverlayProps> = ({ children, onClose, title }) => {
+  const titleId = useId()
   return (
-    <div className="post-details-overlay">
-      <div className="post-details-overlay__panel">
-        <div className="post-details-overlay__content">{children}</div>
+    <Modal.Window isOpen onClose={onClose} size="drawer" center={false} className="post-details-overlay__panel" ariaLabelledBy={titleId}>
+      <div className="post-details-overlay__header">
+        <h2 id={titleId}>{title || i18n._({ id: "postdetails.heading", message: "Idea details" })}</h2>
+        <CloseIcon closeModal={onClose} />
       </div>
-    </div>
+      <div className="post-details-overlay__content">{children}</div>
+    </Modal.Window>
   )
 }

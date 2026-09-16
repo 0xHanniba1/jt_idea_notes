@@ -1,5 +1,6 @@
 import "./ImageUploader.scss"
 
+import { i18n } from "@lingui/core"
 import React from "react"
 import { ValidationContext } from "./Form"
 import { DisplayError, hasError } from "./DisplayError"
@@ -103,7 +104,7 @@ export class ImageUploader extends React.Component<ImageUploaderProps, ImageUplo
   }
 
   public selectFile = async () => {
-    if (this.fileSelector) {
+    if (this.fileSelector && !this.props.disabled) {
       this.fileSelector.click()
     }
   }
@@ -149,21 +150,34 @@ export class ImageUploader extends React.Component<ImageUploaderProps, ImageUplo
 
             {hasFile && (
               <div className="preview h-20">
-                <img alt="" onClick={this.openModal} src={this.state.previewURL} />
+                <button
+                  type="button"
+                  className="c-image-upload__preview-button"
+                  onClick={this.openModal}
+                  aria-label={i18n._({ id: "action.previewimage", message: "Preview image" })}
+                >
+                  <img alt="" src={this.state.previewURL} />
+                </button>
                 {!this.props.disabled && (
-                  <Button onClick={() => this.removeFile(ctx)} variant="danger">
+                  <Button onClick={() => this.removeFile(ctx)} variant="danger" ariaLabel={i18n._({ id: "action.remove", message: "Remove" })}>
                     X
                   </Button>
                 )}
               </div>
             )}
 
-            <input ref={(e) => (this.fileSelector = e)} type="file" onChange={(e) => this.fileChanged(e, ctx)} accept="image/*" />
+            <input
+              ref={(e) => (this.fileSelector = e)}
+              type="file"
+              disabled={this.props.disabled}
+              onChange={(e) => this.fileChanged(e, ctx)}
+              accept="image/*"
+            />
             {!hasFile &&
               (this.props.addImageButton ? (
                 <div onClick={this.selectFile}>{this.props.addImageButton}</div>
               ) : (
-                <Button onClick={this.selectFile} disabled={this.props.disabled}>
+                <Button onClick={this.selectFile} disabled={this.props.disabled} ariaLabel={i18n._({ id: "action.addimage", message: "Add image" })}>
                   <Icon sprite={IconPhotograph} />
                 </Button>
               ))}

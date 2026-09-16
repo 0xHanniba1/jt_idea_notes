@@ -19,3 +19,35 @@
     }
   }
 }
+
+#p-ui-toolkit {
+  padding: 24px;
+  margin-block: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--paper);
+  .flex-x:not(.relative) {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .color-scale {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .c-tags-select,
+  .fider-tiptap-editor {
+    margin-block: 16px;
+  }
+  .color {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+  }
+  .grid-cols-4 {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+@media (max-width: 680px) {
+  #p-ui-toolkit {
+    padding: 16px;
+  }
+}

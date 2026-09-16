@@ -1,19 +1,29 @@
-@use "~@fider/assets/styles/variables.scss" as *;
-
 .c-hint {
-  position: relative;
-  padding: spacing(4);
-  margin-bottom: spacing(2);
-  color: var(--colors-blue-800);
-  border-inline-start: 2px solid var(--colors-blue-800);
-  background-color: var(--colors-blue-50);
-  text-align: left;
-
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  color: var(--ink-700);
+  background: var(--paper-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  text-align: start;
   span {
     flex: 1;
+    min-width: 0;
   }
-
   &__close {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--ink-500);
     cursor: pointer;
+  }
+  &__close:hover {
+    background: var(--control-hover);
   }
 }

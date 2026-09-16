@@ -1,37 +1,61 @@
-@use "~@fider/assets/styles/variables.scss" as *;
-
 .c-action-button {
   display: inline-flex;
   align-items: center;
-  padding: spacing(2) spacing(3);
-  border: none;
-  background-color: transparent;
-  border-radius: get("border.radius.medium");
-  color: var(--colors-gray-700);
-  font-size: get("font.size.sm");
-  font-weight: get("font.weight.medium");
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--control-bg);
+  color: var(--ink-700);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
 
-  &:hover {
-    background-color: var(--colors-gray-100);
+  &:hover:not(:disabled) {
+    background: var(--control-hover);
+    color: var(--ink-950);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--control-active);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 
   &--danger {
-    color: var(--colors-red-700);
+    color: var(--red);
 
-    &:hover {
-      background-color: var(--colors-red-50);
+    &:hover:not(:disabled) {
+      color: var(--red);
+      background: var(--red-soft);
     }
   }
 
   &__icon {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
   }
 
   &__text {
     white-space: nowrap;
+  }
+}
+
+@media (pointer: coarse) {
+  .c-action-button {
+    min-height: 44px;
   }
 }

@@ -1,6 +1,6 @@
 import "./ShowTag.scss"
 
-import React, { MouseEvent } from "react"
+import React from "react"
 import { Tag } from "@fider/models"
 import { classSet } from "@fider/services"
 import EyeSlash from "@fider/assets/images/heroicons-eyeslash.svg"
@@ -24,23 +24,23 @@ export const ShowTag = (props: TagProps) => {
     "c-tag--circular": props.circular === true,
   })
 
-  const clickHandler = (event: MouseEvent) => {
-    if (!props.link) {
-      event.preventDefault()
-    }
-  }
-
-  return (
-    <a
-      // always add an href, so the tag can be selected by keyboard in the TagsSelect
-      href={props.link && props.tag.slug ? `/?tags=${props.tag.slug}` : ""}
-      title={`${props.tag.name}${props.tag.isPublic ? "" : " (Private)"}`}
-      className={className}
-      onClick={clickHandler}
-    >
+  const content = (
+    <>
       <span style={{ backgroundColor: `#${props.tag.color}` }} />
       {!props.tag.isPublic && !props.circular && <Icon height="14" width="14" sprite={EyeSlash} className="mr-1" />}
       {props.circular ? "" : props.tag.name || "Tag"}
+    </>
+  )
+  const title = `${props.tag.name}${props.tag.isPublic ? "" : " (Private)"}`
+  // Read-only tags can live inside record links and listbox options.
+  // Only explicitly linked tags create their own navigation target.
+  return props.link && props.tag.slug ? (
+    <a href={`/?tags=${encodeURIComponent(props.tag.slug)}`} title={title} className={className}>
+      {content}
     </a>
+  ) : (
+    <span title={title} className={className}>
+      {content}
+    </span>
   )
 }

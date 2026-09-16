@@ -14,7 +14,8 @@
       padding: 5px;
       min-width: 50px;
       min-height: 50px;
-      border: 1px solid var(--colors-gray-300);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-control);
       cursor: pointer;
     }
     .c-button {
@@ -23,11 +24,21 @@
       right: 4px;
       border-radius: 50%;
       padding: 0;
-      width: 24px;
-      height: 24px;
+      width: 30px;
+      height: 30px;
       display: flex;
       justify-content: center;
       align-items: center;
     }
   }
+}
+
+.c-image-upload__preview-button {
+  display: block;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  cursor: pointer;
 }

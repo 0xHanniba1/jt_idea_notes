@@ -53,8 +53,8 @@ func TestReactRenderer_RenderEmptyHomeHTML(t *testing.T) {
 		},
 	})
 	Expect(html).ContainsSubstring(`<div class="c-dev-banner">DEV</div>`)
-	Expect(html).ContainsSubstring(`<button class="p-home__add-idea-btn">`)
-	Expect(html).ContainsSubstring(`Enter your suggestion here...`)
+	Expect(html).ContainsSubstring(`<main id="p-home" class="page container">`)
+	Expect(html).ContainsSubstring(`<span>New idea</span>`)
 	Expect(html).ContainsSubstring(`What can we do better? This is the place for you to discuss and share ideas.`)
 	Expect(html).ContainsSubstring(`No posts have been created yet.`)
 	Expect(html).ContainsSubstring(`Powered by Fider`)
@@ -118,8 +118,9 @@ func TestReactRenderer_RenderEmptyHomeHTML_Portuguese(t *testing.T) {
 		},
 	})
 	Expect(html).ContainsSubstring(`<div class="c-dev-banner">DEV</div>`)
-	Expect(html).ContainsSubstring(`<button class="p-home__add-idea-btn">`)
-	Expect(html).ContainsSubstring(`Insira sua sugestão aqui...`)
+	Expect(html).ContainsSubstring(`<main id="p-home" class="page container">`)
+	// Newly introduced CTA falls back to English; existing Portuguese content remains localized.
+	Expect(html).ContainsSubstring(`<span>New idea</span>`)
 	Expect(html).ContainsSubstring(`What can we do better? This is the place for you to discuss and share ideas.`)
 	Expect(strings.Contains(html, "votar")).IsFalse()
 	Expect(html).ContainsSubstring(`Nenhuma postagem foi criada ainda.`)

@@ -1,0 +1,86 @@
+// The vendor stylesheet is loaded in a separate lazy chunk. Scope the JT skin
+// so its appearance is independent of that chunk's load order.
+#root-toastify {
+  .Toastify__toast-container {
+    width: min(420px, calc(100vw - 24px));
+    padding: 0;
+    font-family: var(--font-sans);
+  }
+  .Toastify__toast-container--bottom-center {
+    bottom: max(28px, env(safe-area-inset-bottom));
+  }
+  .Toastify__toast {
+    min-height: 54px;
+    margin-bottom: 8px;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    background: var(--paper);
+    color: var(--ink-950);
+    box-shadow: var(--shadow-floating);
+    font: inherit;
+    font-size: 13px;
+  }
+  .Toastify__toast-body {
+    padding: 0;
+    align-items: center;
+    gap: 6px;
+    overflow-wrap: anywhere;
+  }
+  .Toastify__toast-icon {
+    width: 18px;
+    margin-inline-end: 0;
+  }
+  .Toastify__toast--success .Toastify__toast-icon {
+    color: var(--green);
+  }
+  .Toastify__toast--error .Toastify__toast-icon {
+    color: var(--red);
+  }
+  .Toastify__toast--success .Toastify__toast-icon svg {
+    fill: var(--green);
+  }
+  .Toastify__toast--error .Toastify__toast-icon svg {
+    fill: var(--red);
+  }
+  .Toastify__close-button {
+    align-self: center;
+    padding: 5px;
+    color: var(--ink-500);
+    opacity: 1;
+    border-radius: var(--radius-pill);
+  }
+  .Toastify__close-button:hover {
+    background: var(--control-hover);
+  }
+  .Toastify__progress-bar {
+    height: 2px;
+  }
+  .Toastify__progress-bar--success {
+    background: var(--green);
+  }
+  .Toastify__progress-bar--error {
+    background: var(--red);
+  }
+  .Toastify__toast:focus-within .Toastify__progress-bar {
+    animation-play-state: paused !important;
+  }
+  .jt-toast-enter,
+  .jt-toast-exit {
+    animation: jt-toast-state 1ms linear;
+  }
+  @keyframes jt-toast-state {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @media (max-width: 480px) {
+    .Toastify__toast-container--bottom-center {
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+}

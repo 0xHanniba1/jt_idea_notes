@@ -63,6 +63,8 @@ export const TextArea: React.FunctionComponent<TextAreaProps> = (props) => {
               })}
               id={`input-${props.field}`}
               disabled={props.disabled}
+              aria-invalid={hasError(props.field, ctx.error) || undefined}
+              aria-label={!props.label ? props.placeholder : undefined}
               onChange={(e) => {
                 // Clear error for this field when user interacts with it
                 if (ctx.clearError && hasError(props.field, ctx.error)) {

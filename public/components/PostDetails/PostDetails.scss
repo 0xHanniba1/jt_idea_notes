@@ -1,140 +1,150 @@
-@use "~@fider/assets/styles/variables.scss" as *;
-
-// PostDetails component uses the same styles as ShowPost page
-// These are duplicated here so the component can be used standalone
-
 .p-show-post {
-  &__loading {
+  min-width: 0;
+  color: var(--ink-950);
+
+  &__loading,
+  &__error {
+    padding: 32px 20px;
     text-align: center;
-    padding: spacing(8);
-    font-size: 1.2rem;
-    color: var(--colors-gray-500);
+    color: var(--ink-500);
   }
 
-  &__main-col {
+  &__error p {
+    margin-bottom: 12px;
+  }
+
+  &__main-col,
+  &__discussion-section {
     display: flex;
+    min-width: 0;
     flex-direction: column;
-    gap: spacing(6);
+    gap: 16px;
   }
 
   &__post-card {
-    background-color: var(--colors-white);
-    @include dark-mode {
-      background-color: var(--colors-gray-200);
-    }
-    border-radius: get("border.radius.xlarge");
-    padding: spacing(7);
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    transition: box-shadow 0.2s ease-in-out;
+    min-width: 0;
+    padding: 20px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
   }
 
   &__title {
-    font-size: 20px;
-    font-weight: get("font.weight.xbold");
-    line-height: 1.2;
-    color: var(--colors-gray-900);
-
-    @include media("md") {
-      font-size: 32px;
-    }
-
-    @include media("lg") {
-      font-size: 36px;
-    }
+    margin: 0;
+    font-size: 22px;
+    font-weight: 550;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    color: var(--ink-950);
   }
 
-  &__meta {
-    display: flex;
-    align-items: center;
+  &__meta > .flex-x {
     flex-wrap: wrap;
-    row-gap: spacing(2);
+    row-gap: 6px;
   }
 
   &__description-section {
-    margin-top: spacing(7);
+    min-width: 0;
+    margin-top: 20px;
   }
 
   &__description {
-    color: var(--colors-gray-800);
-    line-height: 1.6;
+    color: var(--ink-800);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+
+  &__tags {
+    margin-top: 16px;
   }
 
   &__actions {
-    border-top: 5px solid var(--colors-blue-500);
-    padding-top: spacing(4);
-    margin-top: spacing(8);
-
-    // Remove flex-grow on mobile so Following button doesn't get pushed to the right
-    @include media("sm") {
-      .flex-grow {
-        display: none;
-      }
-    }
-  }
-
-  &__discussion-section {
-    display: flex;
-    flex-direction: column;
-    gap: spacing(6);
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
   }
 
   &__discussion-header {
-    margin-bottom: spacing(2);
+    margin: 4px 0 0;
+  }
+
+  &__discussion-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 550;
+    color: var(--ink-950);
   }
 
   &__discussion-count {
-    width: 25px;
-    height: 25px;
-    margin-left: spacing(4);
-    border-radius: 9999px;
-    text-align: center;
-    background-color: var(--colors-blue-100);
-    color: var(--colors-blue-400);
-    @include dark-mode {
-      background-color: var(--colors-blue-500);
-      color: var(--colors-blue-800);
-    }
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: var(--radius-pill);
+    background: var(--control-bg);
+    color: var(--ink-500);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
   }
 
   &__powered-by {
-    margin-top: spacing(6);
+    padding: 8px 0;
   }
-}
 
-.c-comment-input {
-  // Hide avatar on mobile for comment input
-  @include media("sm") {
-    .c-avatar {
-      display: none;
+  .c-markdown {
+    min-width: 0;
+    overflow-wrap: anywhere;
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    pre,
+    table {
+      max-width: 100%;
+      overflow-x: auto;
     }
   }
 }
 
 .c-comment-input-card {
-  flex-grow: 1;
-  background-color: var(--colors-white);
-  @include dark-mode {
-    background-color: var(--colors-gray-200);
-  }
-  border-radius: get("border.radius.xlarge");
-  padding: spacing(6);
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  flex: 1;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
 }
 
 .c-response-details {
   &__card {
-    flex-grow: 1;
-    background-color: var(--colors-blue-50);
-    @include dark-mode {
-      background-color: var(--colors-gray-200);
-    }
-    border-radius: get("border.radius.xlarge");
-    padding: spacing(6);
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    flex: 1;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--paper-soft);
   }
 
   &__content {
-    color: var(--colors-gray-800);
-    line-height: 1.6;
+    color: var(--ink-800);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 600px) {
+  .p-show-post__post-card {
+    padding: 14px;
+  }
+
+  .p-show-post__title {
+    font-size: 20px;
+  }
+
+  .c-comment-input > .c-avatar {
+    display: none;
   }
 }

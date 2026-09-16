@@ -1,87 +1,105 @@
-@use "~@fider/assets/styles/variables.scss" as *;
-
 #c-header {
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+  .c-menu {
+    padding: 8px 20px;
+  }
   .c-header__row {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 41px;
     width: 100%;
-
-    // Once everything fits on a single row, stop wrapping so the action
-    // icons can never spill onto a second line.
-    @include media("xl") {
-      flex-wrap: nowrap;
-    }
   }
-
   .c-header__brand {
-    flex-basis: 100%;
-    min-width: 0; // allow a long tenant name to truncate instead of pushing items off the row
-
-    @include media("md") {
-      flex-basis: auto;
-    }
-
-    h1 {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    min-width: 0;
+    max-width: 260px;
+    gap: 8px;
+    margin-inline-end: 16px;
   }
-
+  .c-header__brand h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .c-header__brand img {
+    max-width: 32px;
+    max-height: 32px;
+    object-fit: contain;
+  }
   .c-header__nav {
     flex-shrink: 0;
-
-    @include media("md") {
-      margin-left: 0.5rem;
-    }
+    gap: 4px;
   }
-
-  .c-header__actions {
-    margin-left: auto;
-    flex-shrink: 0;
+  .c-header__nav > * {
+    margin: 0;
   }
-
-  .c-header__moderation {
-    order: 99;
-    flex-basis: 100%;
-
-    @include media("xl") {
-      order: 0;
-      flex: 0 1 auto;
-      flex-basis: auto;
-      // auto margins on both sides centre moderation in the free space between
-      // the nav and the actions group (the actions group drops its own auto
-      // margin at this breakpoint so only these two split the space evenly).
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
-
-  // Below xl the actions group is pushed right on the shared row; at xl
-  // moderation's auto margins handle the alignment instead, so reset this to
-  // keep the icons hard against the right edge with moderation centred.
-  @include media("xl") {
-    .c-header__moderation + .c-header__actions {
-      margin-left: 0;
-    }
-  }
-
   .c-header__nav-link {
-    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    color: var(--ink-700);
+    font-size: 12px;
     font-weight: 500;
-    color: var(--colors-gray-500);
     text-decoration: none;
-    transition: color 0.15s ease, box-shadow 0.15s ease;
-
-    &:hover {
-      color: var(--colors-gray-900);
+  }
+  .c-header__nav-link:hover {
+    background: var(--control-hover);
+    color: var(--ink-950);
+  }
+  .c-header__nav-link--active {
+    background: var(--brand-soft);
+    color: var(--ink-950);
+    box-shadow: var(--shadow-control);
+  }
+  .c-header__actions {
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+  }
+  .c-header__actions > * {
+    margin: 0;
+  }
+  .c-header__moderation {
+    margin-inline-start: auto;
+    font-size: 12px;
+  }
+  .c-header__actions .c-dropdown__handle {
+    padding: 3px 6px;
+  }
+  .c-header__actions .c-avatar {
+    width: 26px;
+    height: 26px;
+  }
+}
+@media (max-width: 900px) {
+  #c-header .c-header__moderation {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 680px) {
+  #c-header {
+    .c-menu {
+      padding: 6px 12px;
     }
-
-    &--active {
-      color: var(--colors-gray-900);
-      box-shadow: 0 2px 0 0 var(--colors-primary-base);
+    .c-header__brand {
+      max-width: calc(100% - 160px);
+      margin-inline-end: 0;
+    }
+    .c-header__nav {
+      order: 2;
+      flex-basis: 100%;
+    }
+    .c-header__nav-link {
+      min-height: 44px;
     }
   }
 }

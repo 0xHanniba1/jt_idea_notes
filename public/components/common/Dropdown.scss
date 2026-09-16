@@ -1,66 +1,109 @@
-@use "~@fider/assets/styles/variables.scss" as *;
-
 .c-dropdown {
   display: inline-block;
   position: relative;
-  font-size: get("font.size.sm");
-
+  font-size: 12px;
   &__handle {
-    text-align: left;
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: var(--colors-black);
     display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 6px 11px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    text-align: start;
+    background: var(--paper);
+    color: var(--ink-700);
+    box-shadow: var(--shadow-control);
+    cursor: pointer;
+    font: inherit;
   }
-
+  &__handle:hover {
+    background: var(--control-hover);
+  }
+  &__handle:active {
+    background: var(--control-active);
+  }
+  &__handle[aria-expanded="true"] {
+    background: var(--brand-soft);
+  }
   &__list {
-    margin-top: spacing(2);
     position: absolute;
-    overflow: auto;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
     width: max-content;
-    min-width: sizing(40);
-    max-width: sizing(60);
-    padding: spacing(1) 0;
-    background-color: var(--colors-white);
-    border-radius: get("border.radius.medium");
-    border: 1px solid var(--colors-gray-200);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    z-index: 10;
-
+    min-width: 160px;
+    max-width: min(280px, calc(100vw - 24px));
+    max-height: min(400px, 60vh);
+    overflow: auto;
+    padding: 5px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    color: var(--ink-700);
+    background: var(--paper);
+    box-shadow: var(--shadow-floating);
+    &[data-side="top"] {
+      top: auto;
+      bottom: calc(100% + 6px);
+    }
     &--left {
+      left: auto;
       right: 0;
     }
-
     &--wide {
-      max-width: sizing(180);
-    }
-
-    &--fullscreen-small {
-      @include media("sm") {
-        position: fixed;
-        left: 0;
-        width: 100vw;
-      }
+      max-width: min(720px, calc(100vw - 24px));
     }
   }
-
   &__listitem {
     display: flex;
     align-items: center;
-    padding: spacing(2);
-    transition: background-color 0.15s ease;
-    &:hover {
-      cursor: pointer;
-      background-color: var(--colors-gray-50);
+    gap: 8px;
+    min-height: 34px;
+    width: 100%;
+    padding: 6px 9px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    &:hover:not(:disabled) {
+      background: var(--control-hover);
+    }
+    &:focus-visible {
+      outline-offset: -2px;
+    }
+    &[aria-checked="true"] {
+      color: var(--brand);
+      background: var(--brand-soft);
+      font-weight: 550;
+    }
+    &:disabled {
+      opacity: 0.55;
+      cursor: default;
     }
   }
-
   &__divider {
-    margin: spacing(1);
-    background-color: var(--colors-gray-200);
+    margin: 5px;
+    background: var(--line);
     height: 1px;
-    border: none;
+    border: 0;
+  }
+}
+@media (max-width: 680px), (pointer: coarse) {
+  .c-dropdown__handle,
+  .c-dropdown__listitem {
+    min-height: 44px;
+  }
+}
+@media (max-width: 680px) {
+  .c-dropdown__list--fullscreen-small {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    width: auto;
+    max-width: none;
   }
 }

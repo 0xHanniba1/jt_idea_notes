@@ -1,4 +1,4 @@
-import { classSet, formatDate, timeSince, fileToBase64, sortTags } from "./utils"
+import { classSet, formatDate, timeSince, fileToBase64, sortTags, clearUrlHash } from "./utils"
 import { readFileSync } from "fs"
 
 // replaces non-breaking spaces with normal spaces
@@ -123,4 +123,29 @@ test("Can sort tags by not isPublic and then name", () => {
     { name: "ac", id: 3, color: "White", slug: "c", isPublic: true },
     { name: "e", id: 5, color: "Yellow", slug: "e", isPublic: true },
   ])
+})
+
+test("clearing a drawer comment highlight preserves its owned history entry", () => {
+  const state = { jtPostOverlay: { owner: "test", kind: "post", postNumber: 12, sourceURL: "/?limit=40" }, existing: "keep" }
+  window.history.replaceState(state, "", "/posts/12/idea#comment-1")
+  const length = window.history.length
+  const changed = jest.fn()
+  window.addEventListener("hashchange", changed)
+  clearUrlHash()
+  expect(window.location.hash).toBe("")
+  expect(window.history.state).toEqual(state)
+  expect(window.history.length).toBe(length)
+  expect(changed).toHaveBeenCalledTimes(1)
+  window.removeEventListener("hashchange", changed)
+})
+
+test("a rejected hash change restores its URL and all history state", () => {
+  const state = { jtPostOverlay: { owner: "test", kind: "post" }, existing: "keep" }
+  window.history.replaceState(state, "", "/posts/12/idea#comment-1")
+  const reject = (event: Event) => event.preventDefault()
+  window.addEventListener("hashchange", reject)
+  clearUrlHash(true)
+  expect(window.location.hash).toBe("#comment-1")
+  expect(window.history.state).toEqual(state)
+  window.removeEventListener("hashchange", reject)
 })

@@ -1,19 +1,18 @@
 import "./Home.page.scss"
 import NoDataIllustration from "@fider/assets/images/undraw-no-data.svg"
 import IconPlusCircle from "@fider/assets/images/heroicons-pluscircle.svg"
-import IconArrowLeft from "@fider/assets/images/heroicons-arrowleft.svg"
 
 import React, { useEffect, useState, useRef } from "react"
 import { Post, Tag, PostStatus } from "@fider/models"
 import { Markdown, Hint, PoweredByFider, Icon, Header, Button } from "@fider/components"
 import { PostsContainer } from "./components/PostsContainer"
 import { useFider, usePostOverlay } from "@fider/hooks"
-import { HStack, VStack } from "@fider/components/layout"
+import { HStack } from "@fider/components/layout"
 import { ShareFeedback } from "./components/ShareFeedback"
 import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
 import { isPostPending, setPostPending } from "./components/PostCache"
-import { PostDetails } from "@fider/components/PostDetails"
+import { PostDetails, PostDetailsOverlay } from "@fider/components/PostDetails"
 
 export interface HomePageProps {
   posts: Post[]
@@ -50,12 +49,34 @@ const Lonely = () => {
 const HomePage = (props: HomePageProps) => {
   const fider = useFider()
   const postsContainerRef = useRef<PostsContainer>(null)
+  const pendingRefresh = useRef<Promise<unknown>>()
   const [isShareFeedbackOpen, setIsShareFeedbackOpen] = useState(isPostPending())
+  const [welcomeExpanded, setWelcomeExpanded] = useState(false)
+  const [welcomeOverflow, setWelcomeOverflow] = useState(false)
+  const welcomeRef = useRef<HTMLDivElement>(null)
 
-  const { selectedPostId, handlePostClick, handleCloseOverlay, setIsPostDirty } = usePostOverlay({
+  useEffect(() => {
+    const welcome = welcomeRef.current
+    if (!welcome || welcomeExpanded) return
+    const measure = () => setWelcomeOverflow(welcome.scrollHeight > welcome.clientHeight + 1)
+    measure()
+    if (typeof ResizeObserver === "undefined") return
+    const observer = new ResizeObserver(measure)
+    observer.observe(welcome)
+    if (welcome.firstElementChild) observer.observe(welcome.firstElementChild)
+    return () => observer.disconnect()
+  }, [welcomeExpanded])
+
+  const { selectedPostId, handlePostClick, handleCloseOverlay, setCloseGuard, setIsPostDirty } = usePostOverlay({
     basePath: "/",
-    onPostClosed: (postNumber) => postsContainerRef.current?.updateSinglePost(postNumber),
+    onPostClosed: () => pendingRefresh.current,
   })
+
+  const refreshBackground = () => {
+    setIsPostDirty(true)
+    pendingRefresh.current = postsContainerRef.current?.refreshPosts()
+    return pendingRefresh.current
+  }
 
   useEffect(() => {
     // If we're showing the share feedback, make sure we clear the show pending flag (for draft posts)
@@ -128,60 +149,57 @@ What can we do better? This is the place for you to discuss and share ideas.`,
         isOpen={isShareFeedbackOpen && !fider.isReadOnly}
         onClose={() => setIsShareFeedbackOpen(false)}
       />
-      <div>
-        <Header hasInert={isShareFeedbackOpen && !fider.isReadOnly} />
-        <div
-          id="p-home"
-          className="page container"
-          style={selectedPostId !== null ? { display: "none" } : undefined}
-          {...(isShareFeedbackOpen && !fider.isReadOnly && { inert: "true" })}
-        >
-          <div className="p-home__welcome-col">
-            <VStack spacing={6}>
-              <div>
-                {fider.session.tenant.welcomeHeader && <h1 className="p-home__welcome-title mb-5">{parseWelcomeHeader(fider.session.tenant.welcomeHeader)}</h1>}
-                <Markdown className="p-home__welcome-body" text={fider.session.tenant.welcomeMessage || defaultWelcomeMessage} style="full" />
-              </div>
-            </VStack>
-            <div>
-              <PoweredByFider slot="home-input" className="sm:hidden md:hidden lg:block mt-3" />
+      <Header />
+      <main id="p-home" className="page container">
+        <div className="p-home__heading">
+          <div className="p-home__welcome">
+            <h1 className="p-home__welcome-title" tabIndex={-1} data-post-list-focus>
+              {fider.session.tenant.welcomeHeader ? parseWelcomeHeader(fider.session.tenant.welcomeHeader) : fider.session.tenant.name}
+            </h1>
+            <div ref={welcomeRef} id="home-welcome" className={`p-home__welcome-body${welcomeExpanded ? " is-expanded" : ""}`}>
+              <Markdown text={fider.session.tenant.welcomeMessage || defaultWelcomeMessage} style="full" />
             </div>
-          </div>
-          <div className="p-home__posts-col">
-            <button className="p-home__add-idea-btn" onClick={handleNewPost}>
-              <HStack spacing={4} align="center">
-                <Icon sprite={IconPlusCircle} className="p-home__add-idea-icon" />
-                <span>{fider.session.tenant.invitation || defaultInvitation}</span>
-              </HStack>
-            </button>
-            {isLonely() ? (
-              <Lonely />
-            ) : (
-              <PostsContainer
-                ref={postsContainerRef}
-                posts={props.posts}
-                tags={props.tags}
-                countPerStatus={props.countPerStatus}
-                onPostClick={handlePostClick}
-              />
+            {(welcomeOverflow || welcomeExpanded) && (
+              <button
+                className="p-home__welcome-toggle"
+                aria-expanded={welcomeExpanded}
+                aria-controls="home-welcome"
+                onClick={() => setWelcomeExpanded(!welcomeExpanded)}
+              >
+                {welcomeExpanded ? <Trans id="home.welcome.collapse">Show less</Trans> : <Trans id="home.welcome.expand">Read welcome message</Trans>}
+              </button>
             )}
-            <PoweredByFider slot="home-footer" className="lg:hidden xl:hidden mt-8" />
           </div>
+          <Button variant="primary" disabled={fider.isReadOnly} onClick={handleNewPost}>
+            <HStack spacing={2} align="center">
+              <Icon sprite={IconPlusCircle} />
+              <span>
+                <Trans id="home.newidea">New idea</Trans>
+              </span>
+            </HStack>
+          </Button>
         </div>
-        {selectedPostId !== null && (
-          <div className="page container">
-            <Button onClick={handleCloseOverlay} variant="link">
-              <HStack spacing={2}>
-                <Icon sprite={IconArrowLeft} />
-                <span className="text-body clickable text-blue-600 hover">
-                  <Trans id="postdetails.backtoall">Back to all suggestions</Trans>
-                </span>
-              </HStack>
-            </Button>
-            <PostDetails postNumber={selectedPostId} onDataChanged={() => setIsPostDirty(true)} />
-          </div>
+        {isLonely() ? (
+          <Lonely />
+        ) : (
+          <PostsContainer ref={postsContainerRef} posts={props.posts} tags={props.tags} countPerStatus={props.countPerStatus} onPostClick={handlePostClick} />
         )}
-      </div>
+        <PoweredByFider slot="home-footer" className="p-home__footer" />
+      </main>
+      {selectedPostId !== null && (
+        <PostDetailsOverlay onClose={handleCloseOverlay}>
+          <PostDetails
+            key={selectedPostId}
+            postNumber={selectedPostId}
+            onCloseGuardChange={setCloseGuard}
+            onDataChanged={refreshBackground}
+            onDeleted={async () => {
+              await refreshBackground()
+              handleCloseOverlay()
+            }}
+          />
+        </PostDetailsOverlay>
+      )}
     </>
   )
 }

@@ -1,0 +1,47 @@
+.c-response-lozenge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  > svg {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+  }
+  &--open {
+    background: var(--control-bg);
+    color: var(--ink-500);
+  }
+  &--completed {
+    background: var(--green-soft);
+    color: var(--green);
+  }
+  &--declined,
+  &--deleted {
+    background: var(--red-soft);
+    color: var(--red);
+  }
+  &--duplicate {
+    background: var(--gold-soft);
+    color: var(--gold);
+  }
+  &--small,
+  &--xsmall {
+    font-size: 11px;
+    padding: 2px 7px;
+  }
+  &--micro {
+    font-size: 11px;
+    padding: 0;
+    background: transparent;
+  }
+}

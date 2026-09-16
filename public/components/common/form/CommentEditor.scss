@@ -12,13 +12,13 @@
   }
 
   a {
-    color: #3b82f6;
+    color: var(--brand);
     text-decoration: underline;
   }
 }
 
 .c-editor-toolbar {
-  border-bottom: 1px solid var(--colors-gray-300);
+  border-bottom: 1px solid var(--line);
   padding: spacing(1);
   min-height: 40px;
   width: 100%;
@@ -47,12 +47,13 @@
   align-items: center;
   justify-content: center;
   padding: spacing(1.5);
-  border-radius: get("border.radius.small");
+  border-radius: var(--radius-pill);
   background: transparent;
   border: none;
   color: var(--colors-gray-700);
   cursor: pointer;
-  transition: all 0.2s ease;
+  min-width: 30px;
+  min-height: 30px;
 
   &:hover {
     background-color: var(--colors-gray-100);
@@ -72,8 +73,8 @@
 
 .c-editor-button {
   &.is-active {
-    background-color: var(--colors-gray-300);
-    color: var(--colors-gray-900);
+    background-color: var(--brand-soft);
+    color: var(--ink-950);
   }
 }
 
@@ -82,14 +83,10 @@
 }
 
 .fider-tiptap-editor {
-  border: 1px solid var(--colors-gray-400);
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
   overflow: hidden;
   background-color: var(--colors-white);
-
-  @include dark-mode {
-    background-color: var(--colors-gray-100);
-  }
 
   &.m-error {
     border-color: var(--colors-red-600);
@@ -170,5 +167,23 @@
       height: 0;
       pointer-events: none;
     }
+  }
+}
+
+.c-editor-button:disabled,
+.c-markdown-toggle:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.fider-tiptap-editor .tiptap,
+.fider-tiptap-editor .c-markdown-textarea {
+  color: var(--ink-950);
+  caret-color: var(--ink-950);
+}
+@media (pointer: coarse), (max-width: 680px) {
+  .c-editor-button,
+  .c-markdown-toggle {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

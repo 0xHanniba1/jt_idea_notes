@@ -15,6 +15,7 @@ interface SelectProps {
   field: string
   label?: string
   maxLength?: number
+  disabled?: boolean
   defaultValue?: string
   options: SelectOption[]
   onChange?: (option?: SelectOption) => void
@@ -59,7 +60,8 @@ export const Select: React.FunctionComponent<SelectProps> = (props) => {
               })}
               value={selected?.value}
               id={`input-${props.field}`}
-              defaultValue={props.defaultValue}
+              disabled={props.disabled}
+              aria-invalid={hasError(props.field, ctx.error) || undefined}
               onChange={(e) => {
                 // Clear error for this field when user interacts with it
                 if (ctx.clearError && hasError(props.field, ctx.error)) {

@@ -6,6 +6,7 @@ import { classSet } from "@fider/services"
 interface ButtonProps {
   children?: React.ReactNode
   className?: string
+  ariaLabel?: string
   disabled?: boolean
   href?: string
   rel?: "nofollow"
@@ -52,7 +53,17 @@ export const Button: React.FC<ButtonProps> = ({ size = "default", variant = "sec
 
   if (props.href) {
     buttonContent = (
-      <a href={props.href} rel={props.rel} target={props.target} className={className} style={props.style}>
+      <a
+        href={props.href}
+        rel={props.rel}
+        target={props.target}
+        className={className}
+        style={props.style}
+        aria-label={props.ariaLabel}
+        aria-disabled={props.disabled || undefined}
+        tabIndex={props.disabled ? -1 : undefined}
+        onClick={props.disabled ? (event) => event.preventDefault() : undefined}
+      >
         {props.children}
       </a>
     )
@@ -63,28 +74,38 @@ export const Button: React.FC<ButtonProps> = ({ size = "default", variant = "sec
         e.stopPropagation()
       }
 
-      if (clicked) {
+      if (clicked || props.disabled) {
         return
       }
 
       const event = new ButtonClickEvent()
       setClicked(true)
 
-      await onClickProp(event)
-
-      if (!unmountedContainer.current && event.canEnable()) {
-        setClicked(false)
+      try {
+        await onClickProp(event)
+      } finally {
+        if (!unmountedContainer.current && event.canEnable()) {
+          setClicked(false)
+        }
       }
     }
 
     buttonContent = (
-      <button type={type} className={className} onClick={onClick} style={props.style}>
+      <button
+        type={type}
+        className={className}
+        onClick={onClick}
+        style={props.style}
+        disabled={clicked || props.disabled}
+        aria-busy={clicked || undefined}
+        aria-label={props.ariaLabel}
+      >
         {props.children}
       </button>
     )
   } else {
     buttonContent = (
-      <button type={type} className={className} style={props.style}>
+      <button type={type} className={className} style={props.style} disabled={props.disabled} aria-label={props.ariaLabel}>
         {props.children}
       </button>
     )

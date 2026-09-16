@@ -11,7 +11,7 @@ export const UserMenu = () => {
 
   return (
     <div className="c-menu-user">
-      <Dropdown position="left" renderHandle={<Avatar user={fider.session.user} />}>
+      <Dropdown ariaLabel={fider.session.user.name} position="left" renderHandle={<Avatar user={fider.session.user} />}>
         <div className="p-2 text-medium uppercase">{fider.session.user.name}</div>
         <Dropdown.ListItem href="/settings" icon={IconCog}>
           <Trans id="menu.mysettings">My Settings</Trans>

@@ -16,11 +16,11 @@ body {
   overflow-x: hidden;
   min-width: 320px;
 
-  color: var(--colors-gray-800);
-  background-color: var(--colors-gray-100);
+  color: var(--ink-950);
+  background-color: var(--canvas);
   font-size: get("font.size.base");
   font-family: $font-base;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 body.dark-theme {
@@ -74,4 +74,22 @@ h6 {
 
 img {
   height: 100%;
+}
+
+:where(button, a, input, textarea, select, summary) {
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+svg {
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *:not(.Toastify__progress-bar),
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }

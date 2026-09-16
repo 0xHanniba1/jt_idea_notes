@@ -132,10 +132,13 @@ export const copyToClipboard = (text: string): Promise<void> => {
 export const clearUrlHash = (replace?: boolean) => {
   const oldURL = window.location.href
   const newURL = window.location.pathname + window.location.search
-  if (replace) {
-    window.history.replaceState("", document.title, newURL)
+  const state = window.history.state
+  // An open drawer owns one history entry; comment highlights must not add
+  // another detail entry or erase the return-to-list context.
+  if (replace || state?.jtPostOverlay?.kind === "post") {
+    window.history.replaceState(state, document.title, newURL)
   } else {
-    window.history.pushState("", document.title, newURL)
+    window.history.pushState(state, document.title, newURL)
   }
   // Trigger event manually
   const hashChangeEvent = new HashChangeEvent("hashchange", {
@@ -147,7 +150,7 @@ export const clearUrlHash = (replace?: boolean) => {
   })
   if (!window.dispatchEvent(hashChangeEvent)) {
     // Event got cancelled
-    window.history.replaceState("", document.title, oldURL)
+    window.history.replaceState(state, document.title, oldURL)
   }
 }
 

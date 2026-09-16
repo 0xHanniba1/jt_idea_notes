@@ -1,5 +1,6 @@
 @use "~@fider/assets/styles/variables.scss" as *;
 
+@import "variables/jt-tokens";
 @import "reset.scss";
 @import "utility.scss";
 @import "tooltip.scss";

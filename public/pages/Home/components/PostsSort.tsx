@@ -28,7 +28,7 @@ export const PostsSort: React.FC<PostsSortProps> = ({ value = "recent", onChange
         }
       >
         {options.map((o) => (
-          <Dropdown.ListItem key={o.value} onClick={() => onChange(o.value)} icon={o.icon}>
+          <Dropdown.ListItem key={o.value} onClick={() => onChange(o.value)} icon={o.icon} checked={value === o.value}>
             <span className={value === o.value ? "text-semibold" : ""}>{o.label}</span>
           </Dropdown.ListItem>
         ))}

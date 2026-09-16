@@ -28,12 +28,16 @@ import {
   Checkbox,
   ImageUploader,
   Header,
+  Modal,
+  CloseIcon,
 } from "@fider/components"
 import { User, UserRole, Tag } from "@fider/models"
 import { notify, Failure } from "@fider/services"
 import { HStack, VStack } from "@fider/components/layout"
 import IconLightBulb from "@fider/assets/images/heroicons-light-bulb.svg"
 import IconSearch from "@fider/assets/images/heroicons-search.svg"
+import CommentEditor from "@fider/components/common/form/CommentEditor"
+import { TagsSelect } from "@fider/components/common/TagsSelect"
 import { useFider } from "@fider/hooks"
 
 const jonSnow: User = {
@@ -75,6 +79,10 @@ const visibilityPrivate = { label: "Private", value: "private" }
 
 const DesignSystemPage = () => {
   const fider = useFider()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [nestedOpen, setNestedOpen] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([easyTag])
+  const [menuValue, setMenuValue] = useState("recent")
   const [error, setError] = useState<Failure | undefined>(undefined)
 
   const notifyError = async () => {
@@ -115,6 +123,10 @@ const DesignSystemPage = () => {
     <>
       <Header />
       <div id="p-ui-toolkit" className="page container">
+        <PageTitle title="JT UI" subtitle="Shared controls from jt_case_platform. Use the header theme switch to inspect light and dark states." />
+        <p className="text-muted">
+          Keyboard check: Tab, Shift+Tab, Arrow keys, Home, End, Escape. Hover, selected, disabled, loading, error and long-content states are included below.
+        </p>
         <h2 className="text-display2 mb-2">1. Colors</h2>
 
         <div className="color-scale">
@@ -462,7 +474,46 @@ const DesignSystemPage = () => {
           <Dropdown.ListItem>Sign Out</Dropdown.ListItem>
         </Dropdown>
 
-        <h2 className="text-display2 mb-3 mt-6">16. Search</h2>
+        <h2 className="text-display2 mb-3 mt-6">16. Menus and tags</h2>
+        <Dropdown ariaLabel="Sort examples" renderHandle={<span>{menuValue === "recent" ? "Recent" : "Comments"}</span>}>
+          <Dropdown.ListItem checked={menuValue === "recent"} onClick={() => setMenuValue("recent")}>
+            Recent
+          </Dropdown.ListItem>
+          <Dropdown.ListItem checked={menuValue === "comments"} onClick={() => setMenuValue("comments")}>
+            Comments
+          </Dropdown.ListItem>
+          <Dropdown.ListItem disabled>Disabled option</Dropdown.ListItem>
+        </Dropdown>
+        <TagsSelect tags={[easyTag, normalTag, hardTag, linkTag]} selected={selectedTags} selectionChanged={setSelectedTags} canEdit alwaysEditing />
+        <h2 className="text-display2 mb-3 mt-6">17. Editor and dialogs</h2>
+        <CommentEditor
+          field="example-editor"
+          initialValue="A lightweight record with **formatting**, a [link](https://example.com), and an editable description."
+          disabled={false}
+        />
+        <Button onClick={() => setModalOpen(true)}>Open dialog</Button>
+        <Modal.Window isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+          <Modal.Header>JT dialog</Modal.Header>
+          <CloseIcon closeModal={() => setModalOpen(false)} />
+          <Modal.Content>
+            <Input field="dialog-example" label="Example field" placeholder="Type here" />
+            <Dropdown ariaLabel="Dialog actions" renderHandle={<span>Dialog actions</span>}>
+              <Dropdown.ListItem>Example action</Dropdown.ListItem>
+            </Dropdown>
+            <Button onClick={() => setNestedOpen(true)}>Open nested confirmation</Button>
+          </Modal.Content>
+          <Modal.Footer>
+            <Button onClick={() => setModalOpen(false)}>Close</Button>
+          </Modal.Footer>
+        </Modal.Window>
+        <Modal.Window isOpen={nestedOpen} onClose={() => setNestedOpen(false)}>
+          <Modal.Header>Nested confirmation</Modal.Header>
+          <Modal.Content>Escape closes this dialog first; focus returns to its trigger.</Modal.Content>
+          <Modal.Footer>
+            <Button onClick={() => setNestedOpen(false)}>Close confirmation</Button>
+          </Modal.Footer>
+        </Modal.Window>
+        <h2 className="text-display2 mb-3 mt-6">18. Search</h2>
 
         <Input field="search" placeholder="Search..." icon={IconSearch} />
       </div>
