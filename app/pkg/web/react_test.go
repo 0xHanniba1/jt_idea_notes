@@ -57,7 +57,7 @@ func TestReactRenderer_RenderEmptyHomeHTML(t *testing.T) {
 	Expect(html).ContainsSubstring(`<span>New idea</span>`)
 	Expect(html).ContainsSubstring(`What can we do better? This is the place for you to discuss and share ideas.`)
 	Expect(html).ContainsSubstring(`No posts have been created yet.`)
-	Expect(html).ContainsSubstring(`Powered by Fider`)
+	Expect(strings.Contains(html, "Powered by Fider")).IsFalse()
 	Expect(err).IsNil()
 }
 
@@ -124,6 +124,6 @@ func TestReactRenderer_RenderEmptyHomeHTML_Portuguese(t *testing.T) {
 	Expect(html).ContainsSubstring(`What can we do better? This is the place for you to discuss and share ideas.`)
 	Expect(strings.Contains(html, "votar")).IsFalse()
 	Expect(html).ContainsSubstring(`Nenhuma postagem foi criada ainda.`)
-	Expect(html).ContainsSubstring(`Powered by Fider`)
+	Expect(strings.Contains(html, "Powered by Fider")).IsFalse()
 	Expect(err).IsNil()
 }

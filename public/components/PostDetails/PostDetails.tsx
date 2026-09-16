@@ -10,7 +10,7 @@ import IconRSS from "@fider/assets/images/heroicons-rss.svg"
 import IconPencil from "@fider/assets/images/heroicons-pencil-alt.svg"
 import IconChat from "@fider/assets/images/heroicons-chat-alt-2.svg"
 
-import { ResponseDetails, Button, UserName, Moment, Markdown, Input, Form, Icon, Avatar, PoweredByFider, RSSModal, ResponseLozenge } from "@fider/components"
+import { ResponseDetails, Button, UserName, Moment, Markdown, Input, Form, Icon, Avatar, RSSModal, ResponseLozenge } from "@fider/components"
 import { CommentInput } from "@fider/pages/ShowPost/components/CommentInput"
 import { ShowComment } from "@fider/pages/ShowPost/components/ShowComment"
 import CommentEditor from "@fider/components/common/form/CommentEditor"
@@ -653,11 +653,6 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
               ))}
             </VStack>
           )}
-        </div>
-
-        {/* Attribution is shared by standalone and overlay views. */}
-        <div className="p-show-post__powered-by">
-          <PoweredByFider slot="show-post" />
         </div>
       </div>
 

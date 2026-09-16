@@ -14,6 +14,6 @@ Feature: SSR
     And I set the "User-Agent" header to "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
     When I send the request
     Then I should see http status 200
-    And I should see ">Powered by Fider ⚡</a>" on the response body
+    And I should not see ">Powered by Fider ⚡</a>" on the response body
     And I should not see "This website requires JavaScript, please enable and reload the page." on the response body
     And I should not see "/assets/js/vendor" on the response body

@@ -4,7 +4,7 @@ import IconPlusCircle from "@fider/assets/images/heroicons-pluscircle.svg"
 
 import React, { useEffect, useState, useRef } from "react"
 import { Post, Tag, PostStatus } from "@fider/models"
-import { Markdown, Hint, PoweredByFider, Icon, Header, Button } from "@fider/components"
+import { Markdown, Hint, Icon, Header, Button } from "@fider/components"
 import { PostsContainer } from "./components/PostsContainer"
 import { useFider, usePostOverlay } from "@fider/hooks"
 import { HStack } from "@fider/components/layout"
@@ -184,7 +184,6 @@ What can we do better? This is the place for you to discuss and share ideas.`,
         ) : (
           <PostsContainer ref={postsContainerRef} posts={props.posts} tags={props.tags} countPerStatus={props.countPerStatus} onPostClick={handlePostClick} />
         )}
-        <PoweredByFider slot="home-footer" className="p-home__footer" />
       </main>
       {selectedPostId !== null && (
         <PostDetailsOverlay onClose={handleCloseOverlay}>

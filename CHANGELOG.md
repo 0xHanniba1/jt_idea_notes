@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-16 — Remove branding footer
+
+- Remove the Powered by Fider link and version line from Home and record details, including the shared drawer. Remove the unused component, export and footer spacing.
+- Validation: affected ESLint, production SSR/UI builds and Go web tests pass; Chrome checks Home, drawer, standalone detail and narrow layout without the footer or page errors.
+
 ## 2026-09-16 — JT UI and compact idea layout
 
 ### Changed
