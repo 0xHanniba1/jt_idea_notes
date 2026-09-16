@@ -136,66 +136,32 @@ func TestUpdateSettingsHandler_RemoveLogo(t *testing.T) {
 }
 
 func TestUpdatePrivacySettingsHandler(t *testing.T) {
-	RegisterT(t)
-
-	var updateCmd *cmd.UpdateTenantPrivacySettings
-	bus.AddHandler(func(ctx context.Context, c *cmd.UpdateTenantPrivacySettings) error {
-		updateCmd = c
-		return nil
-	})
-
-	server := mock.NewServer()
-	code, _ := server.
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.JonSnow).
-		ExecutePost(
-			handlers.UpdatePrivacySettings(),
-			`{ "isPrivate": true, "isFeedEnabled": false }`,
-		)
-
-	Expect(code).Equals(http.StatusOK)
-	Expect(updateCmd.IsPrivate).IsTrue()
-	Expect(updateCmd.IsFeedEnabled).IsFalse()
-
-	server = mock.NewServer()
-	code, _ = server.
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.JonSnow).
-		ExecutePost(
-			handlers.UpdatePrivacySettings(),
-			`{ "isPrivate": false, "isFeedEnabled": false }`,
-		)
-
-	Expect(code).Equals(http.StatusOK)
-	Expect(updateCmd.IsPrivate).IsFalse()
-	Expect(updateCmd.IsFeedEnabled).IsFalse()
-
-	server = mock.NewServer()
-	code, _ = server.
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.JonSnow).
-		ExecutePost(
-			handlers.UpdatePrivacySettings(),
-			`{ "isPrivate": false, "isFeedEnabled": true }`,
-		)
-
-	Expect(code).Equals(http.StatusOK)
-	Expect(updateCmd.IsPrivate).IsFalse()
-	Expect(updateCmd.IsFeedEnabled).IsTrue()
-
-	server = mock.NewServer()
-	code, _ = server.
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.JonSnow).
-		ExecutePost(
-			handlers.UpdatePrivacySettings(),
-			`{ "isPrivate": true, "isFeedEnabled": true }`,
-		)
-
-	Expect(code).Equals(http.StatusBadRequest)
-	// Should be same as last request
-	Expect(updateCmd.IsPrivate).IsFalse()
-	Expect(updateCmd.IsFeedEnabled).IsTrue()
+	for _, test := range []struct {
+		body   string
+		status int
+		write  bool
+	}{
+		{`{"isPrivate":true,"isFeedEnabled":false}`, http.StatusOK, true},
+		{`{"isPrivate":false,"isFeedEnabled":false}`, http.StatusBadRequest, false},
+		{`{"isPrivate":false,"isFeedEnabled":true}`, http.StatusBadRequest, false},
+		{`{"isPrivate":true,"isFeedEnabled":true}`, http.StatusBadRequest, false},
+	} {
+		t.Run(test.body, func(t *testing.T) {
+			server := mock.NewServer()
+			called := false
+			bus.AddHandler(func(ctx context.Context, c *cmd.UpdateTenantPrivacySettings) error {
+				called = true
+				if !c.IsPrivate {
+					t.Fatal("public access persisted")
+				}
+				return nil
+			})
+			code, _ := server.OnTenant(mock.DemoTenant).AsUser(mock.JonSnow).ExecutePost(handlers.UpdatePrivacySettings(), test.body)
+			if code != test.status || called != test.write {
+				t.Fatalf("got status=%d write=%v", code, called)
+			}
+		})
+	}
 }
 
 func TestManageMembersHandler(t *testing.T) {

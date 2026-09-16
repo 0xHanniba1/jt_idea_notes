@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-16 — Administrator-provisioned password accounts
+
+- Replace email codes, magic links, OAuth, public registration and API-key identities with administrator-provisioned usernames and passwords. Preserve existing user IDs and business history.
+- Add Argon2id credentials, mandatory temporary-password changes, self-service password changes and administrator reset/deactivate/restore controls. Revoke previous sessions on credential or account changes.
+- Require a complete session for business pages, APIs, images and exports; add origin validation, bounded request bodies and login/hash concurrency limits. Keep password hashes out of normal exports and logs.
+- Add hidden-input local initialization/recovery commands, Chinese/English account forms and no-email notification handling.
+- Validate server race tests, 214 frontend tests, builds, lint, real browser workflows, uploaded images, PostgreSQL concurrency and isolated backup/recovery. See [verification](docs/admin-password-login-verification.md) and [operations](docs/admin-password-login-operations.md).
+
 ## 2026-09-16 — Chinese administration settings
 
 - Localize all settings pages, navigation, nested forms and dialogs through the existing catalogs. Administrative pages and APIs now use the site language, including server-rendered titles and validation errors.

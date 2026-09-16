@@ -124,6 +124,7 @@ var tenantScopedTables = []string{
 	"posts",
 	"tags",
 	"email_verifications",
+	"user_credentials",
 	"user_providers",
 	"user_settings",
 	"webhooks",

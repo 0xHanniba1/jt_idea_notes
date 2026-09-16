@@ -6,7 +6,6 @@ import (
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/models/entity"
-	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/getfider/fider/app/pkg/worker"
 )
@@ -21,7 +20,7 @@ func SendDeleteAccountScheduledEmail(owner *entity.User, tenantName string, sche
 			"cancelLink":  linkWithText("Cancel the scheduled deletion", baseURL, "/admin/danger-zone/cancel?k=%s", cancelKey),
 		})
 
-		bus.Publish(c, &cmd.SendMail{
+		publishMail(c, &cmd.SendMail{
 			From:         dto.Recipient{Name: "Fider"},
 			To:           []dto.Recipient{to},
 			TemplateName: "delete_account_requested",

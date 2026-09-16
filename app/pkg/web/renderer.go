@@ -11,8 +11,6 @@ import (
 
 	"github.com/getfider/fider/app/models/dto"
 
-	"github.com/getfider/fider/app/models/query"
-	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/log"
 	"github.com/getfider/fider/app/pkg/tpl"
@@ -188,20 +186,18 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 		private["canonicalURL"] = canonicalURL
 	}
 
-	oauthProviders := &query.ListActiveOAuthProviders{
-		Result: make([]*dto.OAuthProviderOption, 0),
-	}
-	if !ctx.IsAuthenticated() && statusCode >= 200 && statusCode < 500 {
-		err = bus.Dispatch(ctx, oauthProviders)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to get list of providers"))
-		}
-	}
-
 	public["page"] = props.Page
 	public["contextID"] = ctx.ContextID()
 	public["sessionID"] = ctx.SessionID()
-	public["tenant"] = tenant
+	if tenant != nil {
+		presentation := *tenant
+		presentation.IsPrivate = true
+		presentation.IsEmailAuthAllowed = false
+		presentation.IsFeedEnabled = false
+		public["tenant"] = &presentation
+	} else {
+		public["tenant"] = tenant
+	}
 	public["props"] = props.Data
 	public["settings"] = &Map{
 		"mode":                env.Config.HostMode,
@@ -215,7 +211,7 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 		"isBillingEnabled":    env.IsBillingEnabled(),
 		"baseURL":             ctx.BaseURL(),
 		"assetsURL":           AssetsURL(ctx, ""),
-		"oauth":               oauthProviders.Result,
+		"oauth":               []*dto.OAuthProviderOption{},
 		"postWithTags":        env.Config.PostCreationWithTagsEnabled,
 		"allowAllowedSchemes": env.Config.AllowAllowedSchemes,
 	}
@@ -225,6 +221,7 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 		public["user"] = &Map{
 			"id":              u.ID,
 			"name":            u.Name,
+			"username":        u.Username,
 			"email":           u.Email,
 			"role":            u.Role,
 			"status":          u.Status,

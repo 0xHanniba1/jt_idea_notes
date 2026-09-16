@@ -1,0 +1,31 @@
+.c-password-page {
+  max-width: 520px;
+  margin: 48px auto;
+  &__theme {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  &__panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    padding: 28px;
+  }
+  .c-signin-control {
+    padding: 0;
+  }
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+@media (max-width: 600px) {
+  .c-password-page {
+    margin-top: 16px;
+  }
+  .c-password-page__panel {
+    padding: 20px 16px;
+  }
+}

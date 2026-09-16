@@ -14,6 +14,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/errors"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 	webutil "github.com/getfider/fider/app/pkg/web/util"
 	"github.com/getfider/fider/app/tasks"
@@ -22,15 +23,14 @@ import (
 // SignInPage renders the sign in page
 func SignInPage() web.HandlerFunc {
 	return func(c *web.Context) error {
-
-		if c.Tenant().IsPrivate {
-			return c.Page(http.StatusOK, web.Props{
-				Page:  "SignIn/SignIn.page",
-				Title: "Sign in",
-			})
+		c.Response.Header().Set("Cache-Control", "no-store")
+		if c.IsAuthenticated() {
+			return c.Redirect("/")
 		}
-
-		return c.Redirect(c.BaseURL())
+		if c.PasswordClaims() != nil {
+			return c.Redirect("/password/change-required")
+		}
+		return c.Page(http.StatusOK, web.Props{Page: "SignIn/SignIn.page", Title: i18n.T(c, "auth.signin.title")})
 	}
 }
 

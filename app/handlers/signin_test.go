@@ -763,10 +763,10 @@ func TestSignInPageHandler_AuthenticatedUser(t *testing.T) {
 		Execute(handlers.SignInPage())
 
 	Expect(code).Equals(http.StatusTemporaryRedirect)
-	Expect(response.Header().Get("Location")).Equals("http://demo.test.fider.io")
+	Expect(response.Header().Get("Location")).Equals("/")
 }
 
-func TestSignInPageHandler_NonPrivateTenant(t *testing.T) {
+func TestSignInPageHandler_FormerPublicTenantRequiresLogin(t *testing.T) {
 	RegisterT(t)
 
 	server := mock.NewServer()
@@ -775,8 +775,8 @@ func TestSignInPageHandler_NonPrivateTenant(t *testing.T) {
 		WithURL("http://demo.test.fider.io/signin").
 		Execute(handlers.SignInPage())
 
-	Expect(code).Equals(http.StatusTemporaryRedirect)
-	Expect(response.Header().Get("Location")).Equals("http://demo.test.fider.io")
+	Expect(code).Equals(http.StatusOK)
+	Expect(response.Body.String()).ContainsSubstring("SignIn/SignIn.page")
 }
 
 func TestSignInPageHandler_PrivateTenant_UnauthenticatedUser(t *testing.T) {

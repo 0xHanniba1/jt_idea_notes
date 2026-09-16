@@ -13,15 +13,19 @@ func TestUserWithEmail_MarshalJSON(t *testing.T) {
 	RegisterT(t)
 	user := entity.UserWithEmail{
 		User: &entity.User{
-			ID:     1,
-			Name:   "John Doe",
-			Email:  "johndoe@example.com",
-			Role:   1,
-			Status: 1,
+			ID:                  1,
+			Name:                "John Doe",
+			Email:               "johndoe@example.com",
+			Role:                1,
+			Status:              1,
+			Username:            "john.doe",
+			PasswordInitialized: true,
+			MustChangePassword:  true,
+			SecurityStamp:       "must-not-be-serialized",
 		},
 	}
 
-	expectedJSON := `{"id":1,"name":"John Doe","role":"visitor","status":"active","isTrusted":false,"email":"johndoe@example.com"}`
+	expectedJSON := `{"id":1,"name":"John Doe","role":"visitor","status":"active","isTrusted":false,"email":"johndoe@example.com","username":"john.doe","passwordInitialized":true,"mustChangePassword":true}`
 
 	jsonData, err := json.Marshal(user)
 	if err != nil {
@@ -36,11 +40,15 @@ func TestUser_MarshalJSON(t *testing.T) {
 
 	RegisterT(t)
 	user := entity.User{
-		ID:     1,
-		Name:   "John Doe",
-		Email:  "johndoe@example.com",
-		Role:   1,
-		Status: 1,
+		ID:                  1,
+		Name:                "John Doe",
+		Email:               "johndoe@example.com",
+		Role:                1,
+		Status:              1,
+		Username:            "john.doe",
+		PasswordInitialized: true,
+		MustChangePassword:  true,
+		SecurityStamp:       "must-not-be-serialized",
 	}
 
 	expectedJSON := `{"id":1,"name":"John Doe","role":"visitor","status":"active","isTrusted":false}`
@@ -52,4 +60,20 @@ func TestUser_MarshalJSON(t *testing.T) {
 
 	Expect(string(jsonData)).Equals(expectedJSON)
 
+}
+
+func TestPasswordCredential_MarshalJSON(t *testing.T) {
+	credential := entity.PasswordCredential{
+		User:               &entity.User{ID: 1, SecurityStamp: "must-not-be-serialized"},
+		Username:           "john.doe",
+		PasswordHash:       "$argon2id$must-not-be-serialized",
+		MustChangePassword: true,
+	}
+	encoded, err := json.Marshal(credential)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != "{}" {
+		t.Fatal("internal credential JSON exposed authentication state or secrets")
+	}
 }

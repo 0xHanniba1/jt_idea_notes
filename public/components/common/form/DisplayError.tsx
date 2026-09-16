@@ -8,6 +8,7 @@ const arrayToTag = (items: string[]) => {
 }
 
 interface DisplayErrorProps {
+  id?: string
   error?: Failure
   fields?: string[]
 }
@@ -48,7 +49,7 @@ export const DisplayError = (props: DisplayErrorProps) => {
   }
 
   return items.length > 0 ? (
-    <div className="c-form-error" role="alert">
+    <div id={props.id} className="c-form-error" role="alert">
       <ul>{items}</ul>
     </div>
   ) : null

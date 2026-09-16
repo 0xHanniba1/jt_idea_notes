@@ -14,6 +14,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/dbx"
 	"github.com/getfider/fider/app/pkg/errors"
+	"github.com/getfider/fider/app/pkg/passwordauth"
 	"github.com/getfider/fider/app/pkg/rand"
 	"github.com/getfider/fider/app/services/sqlstore/dbEntities"
 	"github.com/lib/pq"
@@ -38,27 +39,33 @@ func countUsers(ctx context.Context, q *query.CountUsers) error {
 }
 
 func blockUser(ctx context.Context, c *cmd.BlockUser) error {
-	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		if _, err := trx.Execute(
-			"UPDATE users SET status = $3, security_stamp = $4 WHERE id = $1 AND tenant_id = $2",
-			c.UserID, tenant.ID, enum.UserBlocked, generateSecurityStamp(),
-		); err != nil {
-			return errors.Wrap(err, "failed to block user")
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, actor *entity.User) error {
+		if actor == nil || actor.ID == c.UserID {
+			return passwordauth.ErrUnauthorized
 		}
-		return nil
+		users, err := lockPasswordUsers(ctx, trx, tenant, actor, c.UserID)
+		if err != nil {
+			return err
+		}
+		if err := checkPasswordActor(actor, users[actor.ID], true); err != nil {
+			return err
+		}
+		target := users[c.UserID]
+		if target == nil || target.Status != enum.UserActive {
+			return passwordauth.ErrInvalidInput
+		}
+		if err := checkLastPasswordAdministrator(trx, tenant, target); err != nil {
+			return err
+		}
+		_, err = trx.ExecuteSensitive("UPDATE users SET status = $3, security_stamp = $4, api_key = NULL, api_key_date = NULL WHERE id = $1 AND tenant_id = $2", c.UserID, tenant.ID, enum.UserBlocked, generateSecurityStamp())
+		return err
 	})
 }
 
+// Restoring a user must atomically install a new temporary password. The legacy
+// command has no password and is deliberately unavailable; use ResetPasswordAccount.
 func unblockUser(ctx context.Context, c *cmd.UnblockUser) error {
-	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		if _, err := trx.Execute(
-			"UPDATE users SET status = $3, security_stamp = $4 WHERE id = $1 AND tenant_id = $2",
-			c.UserID, tenant.ID, enum.UserActive, generateSecurityStamp(),
-		); err != nil {
-			return errors.Wrap(err, "failed to unblock user")
-		}
-		return nil
-	})
+	return passwordauth.ErrInvalidInput
 }
 
 func untrustUser(ctx context.Context, c *cmd.UntrustUser) error {
@@ -75,9 +82,22 @@ func untrustUser(ctx context.Context, c *cmd.UntrustUser) error {
 
 func deleteCurrentUser(ctx context.Context, c *cmd.DeleteCurrentUser) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		if _, err := trx.Execute(
-			"UPDATE users SET role = $3, status = $4, name = '', email = '', api_key = null, api_key_date = null WHERE id = $1 AND tenant_id = $2",
-			user.ID, tenant.ID, enum.RoleVisitor, enum.UserDeleted,
+		if user == nil {
+			return passwordauth.ErrUnauthorized
+		}
+		users, err := lockPasswordUsers(ctx, trx, tenant, user, user.ID)
+		if err != nil {
+			return err
+		}
+		if err := checkPasswordActor(user, users[user.ID], false); err != nil {
+			return err
+		}
+		if err := checkLastPasswordAdministrator(trx, tenant, users[user.ID]); err != nil {
+			return err
+		}
+		if _, err := trx.ExecuteSensitive(
+			"UPDATE users SET role = $3, status = $4, name = '', email = '', api_key = null, api_key_date = null, security_stamp = $5 WHERE id = $1 AND tenant_id = $2",
+			user.ID, tenant.ID, enum.RoleVisitor, enum.UserDeleted, generateSecurityStamp(),
 		); err != nil {
 			return errors.Wrap(err, "failed to delete current user")
 		}
@@ -86,6 +106,7 @@ func deleteCurrentUser(ctx context.Context, c *cmd.DeleteCurrentUser) error {
 			name       string
 			userColumn string
 		}{
+			{"user_credentials", "user_id"},
 			{"user_providers", "user_id"},
 			{"user_settings", "user_id"},
 			{"notifications", "user_id"},
@@ -128,7 +149,7 @@ func getUserByAPIKey(ctx context.Context, q *query.GetUserByAPIKey) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
 		result, err := queryUser(ctx, trx, "api_key = $1 AND tenant_id = $2", q.APIKey, tenant.ID)
 		if err != nil {
-			return errors.Wrap(err, "failed to get user with API Key '%s'", q.APIKey)
+			return errors.Wrap(err, "failed to get user with API Key")
 		}
 		q.Result = result
 		return nil
@@ -172,13 +193,31 @@ func userSubscribedTo(ctx context.Context, q *query.UserSubscribedTo) error {
 }
 
 func changeUserRole(ctx context.Context, c *cmd.ChangeUserRole) error {
-	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		cmd := "UPDATE users SET role = $3, security_stamp = $4 WHERE id = $1 AND tenant_id = $2"
-		_, err := trx.Execute(cmd, c.UserID, tenant.ID, c.Role, generateSecurityStamp())
-		if err != nil {
-			return errors.Wrap(err, "failed to change user's role")
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, actor *entity.User) error {
+		if actor == nil || actor.ID == c.UserID {
+			return passwordauth.ErrUnauthorized
 		}
-		return nil
+		if !validPasswordRole(c.Role) {
+			return passwordauth.ErrInvalidInput
+		}
+		users, err := lockPasswordUsers(ctx, trx, tenant, actor, c.UserID)
+		if err != nil {
+			return err
+		}
+		if err := checkPasswordActor(actor, users[actor.ID], true); err != nil {
+			return err
+		}
+		target := users[c.UserID]
+		if target == nil || target.Status == enum.UserDeleted {
+			return passwordauth.ErrInvalidInput
+		}
+		if c.Role != enum.RoleAdministrator {
+			if err := checkLastPasswordAdministrator(trx, tenant, target); err != nil {
+				return err
+			}
+		}
+		_, err = trx.ExecuteSensitive("UPDATE users SET role = $3, security_stamp = $4, api_key = NULL, api_key_date = NULL WHERE id = $1 AND tenant_id = $2", c.UserID, tenant.ID, c.Role, generateSecurityStamp())
+		return err
 	})
 }
 
@@ -245,7 +284,7 @@ func registerUser(ctx context.Context, c *cmd.RegisterUser) error {
 		c.User.Status = enum.UserActive
 		c.User.Email = strings.ToLower(strings.TrimSpace(c.User.Email))
 		stamp := generateSecurityStamp()
-		if err := trx.Get(&c.User.ID,
+		if err := trx.GetSensitive(&c.User.ID,
 			"INSERT INTO users (name, email, created_at, tenant_id, role, status, avatar_type, avatar_bkey, security_stamp) VALUES ($1, $2, $3, $4, $5, $6, $7, '', $8) RETURNING id",
 			c.User.Name, c.User.Email, now, tenant.ID, c.User.Role, enum.UserActive, enum.AvatarTypeGravatar, stamp); err != nil {
 			return errors.Wrap(err, "failed to register new user")
@@ -379,8 +418,12 @@ func getAllUsersNames(ctx context.Context, q *query.GetAllUsersNames) error {
 
 func queryUser(ctx context.Context, trx *dbx.Trx, filter string, args ...any) (*entity.User, error) {
 	user := dbEntities.User{}
-	sql := fmt.Sprintf("SELECT id, name, email, tenant_id, role, status, avatar_type, avatar_bkey, is_trusted, security_stamp FROM users WHERE status != %d AND ", enum.UserDeleted)
-	err := trx.Get(&user, sql+filter, args...)
+	sql := fmt.Sprintf(`SELECT id, name, email, tenant_id, role, status, avatar_type, avatar_bkey, is_trusted, security_stamp,
+   (SELECT c.username FROM user_credentials c WHERE c.tenant_id = users.tenant_id AND c.user_id = users.id) AS username,
+   EXISTS(SELECT 1 FROM user_credentials c WHERE c.tenant_id = users.tenant_id AND c.user_id = users.id) AS password_initialized,
+   COALESCE((SELECT c.must_change_password FROM user_credentials c WHERE c.tenant_id = users.tenant_id AND c.user_id = users.id), false) AS must_change_password
+   FROM users WHERE status != %d AND `, enum.UserDeleted)
+	err := trx.GetSensitive(&user, sql+filter, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -406,19 +449,20 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 		}
 
 		baseQuery := `
-				SELECT id, name, email, tenant_id, role, status, avatar_type, avatar_bkey, is_trusted, security_stamp
-				FROM users
-				WHERE tenant_id = $1 AND status != $2
+				SELECT u.id, u.name, u.email, u.tenant_id, u.role, u.status, u.avatar_type, u.avatar_bkey, u.is_trusted, u.security_stamp,
+    c.username, c.user_id IS NOT NULL AS password_initialized, COALESCE(c.must_change_password, false) AS must_change_password
+    FROM users u LEFT JOIN user_credentials c ON c.tenant_id = u.tenant_id AND c.user_id = u.id
+    WHERE u.tenant_id = $1 AND u.status != $2
 		`
 		args := []interface{}{tenant.ID, enum.UserDeleted}
 		argIndex := 3
 
 		// Add search filter
 		if q.Query != "" {
-			baseQuery += fmt.Sprintf(" AND (name ILIKE $%d OR email ILIKE $%d)", argIndex, argIndex+1)
+			baseQuery += fmt.Sprintf(" AND (u.name ILIKE $%d OR u.email ILIKE $%d OR c.username ILIKE $%d)", argIndex, argIndex+1, argIndex+2)
 			searchTerm := "%" + q.Query + "%"
-			args = append(args, searchTerm, searchTerm)
-			argIndex += 2
+			args = append(args, searchTerm, searchTerm, searchTerm)
+			argIndex += 3
 		}
 
 		// Add role filter
@@ -436,23 +480,23 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 					roleValues[i] = enum.RoleVisitor
 				}
 			}
-			baseQuery += fmt.Sprintf(" AND role = ANY($%d)", argIndex)
+			baseQuery += fmt.Sprintf(" AND u.role = ANY($%d)", argIndex)
 			args = append(args, pq.Array(roleValues))
 		}
 
-		baseQuery += " ORDER BY role desc, name"
+		baseQuery += " ORDER BY u.role desc, u.name, u.id"
 
 		// First, get the total count for pagination
-		countQuery := `SELECT COUNT(*) FROM users WHERE tenant_id = $1 AND status != $2`
+		countQuery := `SELECT COUNT(*) FROM users u LEFT JOIN user_credentials c ON c.tenant_id = u.tenant_id AND c.user_id = u.id WHERE u.tenant_id = $1 AND u.status != $2`
 		countArgs := []interface{}{tenant.ID, enum.UserDeleted}
 		countArgIndex := 3
 
 		// Add the same filters for counting
 		if q.Query != "" {
-			countQuery += fmt.Sprintf(" AND (name ILIKE $%d OR email ILIKE $%d)", countArgIndex, countArgIndex+1)
+			countQuery += fmt.Sprintf(" AND (u.name ILIKE $%d OR u.email ILIKE $%d OR c.username ILIKE $%d)", countArgIndex, countArgIndex+1, countArgIndex+2)
 			searchTerm := "%" + q.Query + "%"
-			countArgs = append(countArgs, searchTerm, searchTerm)
-			countArgIndex += 2
+			countArgs = append(countArgs, searchTerm, searchTerm, searchTerm)
+			countArgIndex += 3
 		}
 
 		if len(q.Roles) > 0 {
@@ -469,7 +513,7 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 					roleValues[i] = enum.RoleVisitor
 				}
 			}
-			countQuery += fmt.Sprintf(" AND role = ANY($%d)", countArgIndex)
+			countQuery += fmt.Sprintf(" AND u.role = ANY($%d)", countArgIndex)
 			countArgs = append(countArgs, pq.Array(roleValues))
 		}
 
@@ -498,12 +542,17 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 
 func rotateAllUserSecurityStamps(ctx context.Context, c *cmd.RotateAllUserSecurityStamps) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		_, err := trx.Execute(
-			"UPDATE users SET security_stamp = md5(random()::text || id::text) WHERE tenant_id = $1",
-			tenant.ID,
-		)
-		if err != nil {
-			return errors.Wrap(err, "failed to rotate all user security stamps")
+		if err := lockPasswordTenant(trx, tenant); err != nil {
+			return err
+		}
+		var ids []int
+		if err := trx.Select(&ids, "SELECT id FROM users WHERE tenant_id = $1 ORDER BY id FOR UPDATE", tenant.ID); err != nil {
+			return err
+		}
+		for _, id := range ids {
+			if err := rotatePasswordStamp(trx, tenant.ID, id); err != nil {
+				return err
+			}
 		}
 		return nil
 	})

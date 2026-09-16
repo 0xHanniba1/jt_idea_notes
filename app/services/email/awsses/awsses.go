@@ -64,17 +64,14 @@ func sendMail(ctx context.Context, c *cmd.SendMail) {
 		c.From.Address = email.NoReply
 	}
 
-	for _, to := range c.To {
-		if to.Address == "" {
-			return
-		}
+	for _, to := range email.NonEmptyRecipients(c.To) {
 
 		if !email.CanSendTo(to.Address) {
 			log.Warnf(ctx, "Skipping email to '@{Name} <@{Address}>'.", dto.Props{
 				"Name":    to.Name,
 				"Address": to.Address,
 			})
-			return
+			continue
 		}
 
 		log.Debugf(ctx, "Sending email to @{Address} with template @{TemplateName} and params @{Props}.", dto.Props{

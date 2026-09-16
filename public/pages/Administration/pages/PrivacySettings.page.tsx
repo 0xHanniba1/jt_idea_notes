@@ -21,8 +21,8 @@ export default class PrivacySettingsPage extends AdminBasePage<any, PrivacySetti
     super(props)
 
     this.state = {
-      isPrivate: Fider.session.tenant.isPrivate,
-      isFeedEnabled: Fider.session.tenant.isFeedEnabled,
+      isPrivate: true,
+      isFeedEnabled: false,
       isModerationEnabled: Fider.session.tenant.isModerationEnabled,
     }
   }
@@ -43,14 +43,6 @@ export default class PrivacySettingsPage extends AdminBasePage<any, PrivacySetti
     )
   }
 
-  private privacyToggle = async (active: boolean) => {
-    this.updatePrivacySettings(active, this.state.isFeedEnabled)
-  }
-
-  private atomFeedToggle = async (enabled: boolean) => {
-    this.updatePrivacySettings(this.state.isPrivate, enabled)
-  }
-
   private moderationToggle = async (enabled: boolean) => {
     this.updatePrivacySettings(this.state.isPrivate, this.state.isFeedEnabled, enabled)
   }
@@ -58,22 +50,15 @@ export default class PrivacySettingsPage extends AdminBasePage<any, PrivacySetti
   public content() {
     return (
       <Form>
-        <Field label={i18n._({ id: "admin.privacy.private.label", message: "Private site" })}>
-          <Toggle disabled={!Fider.session.user.isAdministrator} active={this.state.isPrivate} onToggle={this.privacyToggle} />
-          <p className="text-muted mt-1">
-            <Trans id="admin.privacy.private.help">
-              A private site prevents unauthenticated users from viewing or interacting with its content. <br /> When enabled, only already registered users,
-              invited users and users from trusted OAuth providers will have access to this site. The feed feature is disabled.
+        <Field label={i18n._({ id: "accounts.internal.title", message: "Internal members only" })}>
+          <p className="text-muted">
+            <Trans id="accounts.internal.help">
+              Only members with administrator-created accounts can access this site after signing in. Public access, self-registration, email sign-in and
+              third-party sign-in are disabled.
             </Trans>
           </p>
-        </Field>
-        <Field label={i18n._({ id: "admin.privacy.feed.label", message: "ATOM feed" })}>
-          <Toggle disabled={!Fider.session.user.isAdministrator || this.state.isPrivate} active={this.state.isFeedEnabled} onToggle={this.atomFeedToggle} />
-          <p className="text-muted mt-1">
-            <Trans id="admin.privacy.feed.help">
-              This feature lets users access this site via a feed reader. <br /> When enabled, posts and comments are available in ATOM format. Feed links and
-              autodiscovery metadata are included on the site.
-            </Trans>
+          <p className="text-muted mt-2">
+            <Trans id="accounts.internal.feeds">Public feeds are disabled to protect internal content.</Trans>
           </p>
         </Field>
         {Fider.session.tenant.isPro && (

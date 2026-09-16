@@ -46,18 +46,6 @@ func routes(r *web.Engine) *web.Engine {
 		assets.Static("/static/assets/*filepath", "static")
 	}
 
-	feed := r.Group()
-	{
-		feed.Use(middlewares.CORS())
-		feed.Use(middlewares.WebSetup())
-		feed.Use(middlewares.Tenant())
-		feed.Use(middlewares.NoIndex())
-		feed.Use(middlewares.ClientCache(5 * time.Minute))
-
-		feed.Get("/feed/global.atom", handlers.GlobalFeed())
-		feed.Get("/feed/posts/:path", handlers.CommentFeed())
-	}
-
 	r.Use(middlewares.Session())
 
 	r.Get("/robots.txt", handlers.RobotsTXT())
@@ -81,53 +69,41 @@ func routes(r *web.Engine) *web.Engine {
 
 	r.Get("/terms", handlers.LegalPage("Terms of Service", "terms.md"))
 
-	r.Post("/_api/tenants", handlers.CreateTenant())
-	r.Get("/_api/tenants/:subdomain/availability", handlers.CheckAvailability())
-	r.Get("/signup", handlers.SignUp())
-	r.Get("/oauth/:provider", handlers.SignInByOAuth())
-	r.Get("/oauth/:provider/callback", handlers.OAuthCallback())
-
 	// Starting from this step, a Tenant is required
 	r.Use(middlewares.RequireTenant())
-
-	r.Get("/sitemap.xml", handlers.Sitemap())
 
 	tenantAssets := r.Group()
 	{
 		tenantAssets.Use(middlewares.ClientCache(5 * 24 * time.Hour))
-		tenantAssets.Get("/static/avatars/letter/:id/:name", handlers.LetterAvatar())
-		tenantAssets.Get("/static/avatars/gravatar/:id/*name", handlers.Gravatar())
 
 		tenantAssets.Use(middlewares.ClientCache(30 * 24 * time.Hour))
-		tenantAssets.Get("/static/favicon/*bkey", handlers.Favicon())
-		tenantAssets.Get("/static/images/*bkey", handlers.ViewUploadedImage())
+		tenantAssets.Get("/static/favicon/*bkey", func(c *web.Context) error {
+			if c.Tenant().LogoBlobKey == "" || c.Param("bkey") != c.Tenant().LogoBlobKey {
+				return c.NotFound()
+			}
+			return handlers.Favicon()(c)
+		})
+		tenantAssets.Get("/static/images/*bkey", func(c *web.Context) error {
+			if c.Tenant().LogoBlobKey != "" && c.Param("bkey") == c.Tenant().LogoBlobKey {
+				return handlers.ViewUploadedImage()(c)
+			}
+			return middlewares.RequirePasswordLogin()(handlers.ViewUploadedImage())(c)
+		})
 		tenantAssets.Get("/static/custom/:md5.css", func(c *web.Context) error {
 			return c.Blob(http.StatusOK, "text/css", []byte(c.Tenant().CustomCSS))
 		})
 	}
 
-	r.Get("/_design", handlers.Page("Design System", "A preview of Fider UI elements", "DesignSystem/DesignSystem.page"))
-	r.Get("/signup/verify", handlers.VerifySignUpKey())
-	r.Post("/_api/signup/resend", handlers.ResendSignUpEmail())
-	r.Get("/signout", handlers.SignOut())
-	r.Get("/oauth/:provider/token", handlers.OAuthToken())
-	r.Get("/oauth/:provider/echo", handlers.OAuthEcho())
-
-	// If tenant is pending, block it from using any other route
-	r.Use(middlewares.BlockPendingTenants())
+	// There is no public installation flow. An operator must initialize an admin.
+	r.Use(middlewares.PasswordReady())
 
 	r.Get("/signin", handlers.SignInPage())
-	r.Get("/signin/complete", handlers.CompleteSignInProfilePage())
-	r.Get("/loginemailsent", handlers.LoginEmailSentPage())
-	r.Get("/not-invited", handlers.NotInvitedPage())
-	r.Get("/access-denied", handlers.AccessDeniedPage())
-	r.Get("/signin/verify", handlers.VerifySignInKey(enum.EmailVerificationKindSignIn))
-	r.Get("/invite/verify", handlers.VerifySignInKey(enum.EmailVerificationKindUserInvitation))
-	r.Post("/_api/signin/complete", handlers.CompleteSignInProfile())
-	r.Post("/_api/signin", handlers.SignInByEmail())
-	r.Post("/_api/signin/newuser", handlers.SignInByEmailWithName())
-	r.Post("/_api/signin/verify", handlers.VerifySignInCode())
-	r.Post("/_api/signin/resend", handlers.ResendSignInCode())
+	r.Post("/_api/auth/password/signin", handlers.PasswordSignIn())
+	r.Post("/_api/auth/signout", handlers.PasswordSignOut())
+	changePassword := r.Group()
+	changePassword.Use(middlewares.RequirePasswordChange())
+	changePassword.Get("/password/change-required", handlers.PasswordChangePage())
+	changePassword.Post("/_api/auth/password/complete", handlers.ChangeAccountPassword(true))
 
 	// Cancel a scheduled site deletion. Authorised by the unguessable key in the emailed link
 	// alone, so it must stay reachable without authentication (it only restores access).
@@ -135,8 +111,14 @@ func routes(r *web.Engine) *web.Engine {
 		r.Get("/admin/danger-zone/cancel", handlers.CancelTenantDeletion())
 	}
 
-	// Block if it's private tenant with unauthenticated user
-	r.Use(middlewares.CheckTenantPrivacy())
+	// Every business route requires a complete password session, independently of old privacy flags.
+	r.Use(middlewares.RequirePasswordLogin())
+	r.Get("/sitemap.xml", handlers.Sitemap())
+	r.Get("/static/avatars/letter/:id/:name", handlers.LetterAvatar())
+	r.Get("/static/avatars/gravatar/:id/*name", handlers.Gravatar())
+	r.Get("/feed/global.atom", handlers.GlobalFeed())
+	r.Get("/feed/posts/:path", handlers.CommentFeed())
+	r.Get("/_design", handlers.Page("Design System", "A preview of Fider UI elements", "DesignSystem/DesignSystem.page"))
 
 	r.Get("/", handlers.Index())
 	r.Get("/roadmap", handlers.RoadmapPage())
@@ -149,13 +131,13 @@ func routes(r *web.Engine) *web.Engine {
 		ui.Use(middlewares.IsAuthenticated())
 
 		ui.Get("/settings", handlers.UserSettings())
+		ui.Post("/_api/auth/password/change", handlers.ChangeAccountPassword(false))
 		ui.Get("/notifications", handlers.Notifications())
 		ui.Get("/notifications/:id", handlers.ReadNotification())
 		ui.Get("/_api/notifications/unread", handlers.GetAllNotifications())
 		ui.Get("/change-email/verify", handlers.VerifyChangeEmailKey())
 
 		ui.Delete("/_api/user", handlers.DeleteUser())
-		ui.Post("/_api/user/regenerate-apikey", handlers.RegenerateAPIKey())
 		ui.Post("/_api/user/settings", handlers.UpdateUserSettings())
 		ui.Post("/_api/user/change-email", handlers.ChangeUserEmail())
 		ui.Post("/_api/notifications/read-all", handlers.ReadAllNotifications())
@@ -167,11 +149,8 @@ func routes(r *web.Engine) *web.Engine {
 		ui.Get("/admin", handlers.GeneralSettingsPage())
 		ui.Get("/admin/advanced", handlers.AdvancedSettingsPage())
 		ui.Get("/admin/privacy", handlers.AdminPage("admin.title.privacy", "Administration/pages/PrivacySettings.page"))
-		ui.Get("/admin/invitations", handlers.AdminPage("admin.title.invitations", "Administration/pages/Invitations.page"))
 		ui.Get("/admin/users", handlers.ManageMembers())
 		ui.Get("/admin/tags", handlers.ManageTags())
-		ui.Get("/admin/authentication", handlers.ManageAuthentication())
-		ui.Get("/_api/admin/oauth/:provider", handlers.GetOAuthConfig())
 
 		// Pro features (available to self-hosters and pro hosted customers)
 		proUi := ui.Group()
@@ -182,6 +161,9 @@ func routes(r *web.Engine) *web.Engine {
 
 		// From this step, only Administrators are allowed
 		ui.Use(middlewares.IsAuthorized(enum.RoleAdministrator))
+		ui.Post("/_api/admin/accounts", handlers.ManagePasswordAccount("create"))
+		ui.Post("/_api/admin/accounts/:id/initialize", handlers.ManagePasswordAccount("initialize"))
+		ui.Post("/_api/admin/accounts/:id/reset-password", handlers.ManagePasswordAccount("reset"))
 
 		// Danger Zone — delete the entire site. Hosted multi-tenant only; owner-only is
 		// enforced inside the handlers.
@@ -206,12 +188,9 @@ func routes(r *web.Engine) *web.Engine {
 		ui.Post("/_api/admin/settings/general", handlers.UpdateSettings())
 		ui.Post("/_api/admin/settings/advanced", handlers.UpdateAdvancedSettings())
 		ui.Post("/_api/admin/settings/privacy", handlers.UpdatePrivacySettings())
-		ui.Post("/_api/admin/settings/emailauth", handlers.UpdateEmailAuthAllowed())
-		ui.Post("/_api/admin/oauth", handlers.SaveOAuthConfig())
-		ui.Post("/_api/admin/oauth/:provider/status", handlers.SetSystemProviderStatus())
 		ui.Post("/_api/admin/roles/:role/users", handlers.ChangeUserRole())
 		ui.Put("/_api/admin/users/:userID/block", handlers.BlockUser())
-		ui.Delete("/_api/admin/users/:userID/block", handlers.UnblockUser())
+		ui.Delete("/_api/admin/users/:userID/block", handlers.ManagePasswordAccount("restore"))
 		ui.Put("/_api/admin/users/:userID/trust", handlers.TrustUser())
 		ui.Delete("/_api/admin/users/:userID/trust", handlers.UntrustUser())
 
@@ -273,8 +252,6 @@ func routes(r *web.Engine) *web.Engine {
 		staffApi.Use(middlewares.IsAuthorized(enum.RoleCollaborator, enum.RoleAdministrator))
 
 		staffApi.Get("/api/v1/users", apiv1.ListUsers())
-		staffApi.Post("/api/v1/invitations/send", apiv1.SendInvites())
-		staffApi.Post("/api/v1/invitations/sample", apiv1.SendSampleInvite())
 
 		staffApi.Use(middlewares.BlockLockedTenants())
 		staffApi.Post("/api/v1/posts/:number/tags/:slug", apiv1.AssignTag())
@@ -288,7 +265,6 @@ func routes(r *web.Engine) *web.Engine {
 		adminApi.Use(middlewares.IsAuthenticated())
 		adminApi.Use(middlewares.IsAuthorized(enum.RoleAdministrator))
 
-		adminApi.Post("/api/v1/users", apiv1.CreateUser())
 		adminApi.Post("/api/v1/tags", apiv1.CreateEditTag())
 		adminApi.Put("/api/v1/tags/:slug", apiv1.CreateEditTag())
 		adminApi.Delete("/api/v1/tags/:slug", apiv1.DeleteTag())

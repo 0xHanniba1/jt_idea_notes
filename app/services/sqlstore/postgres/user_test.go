@@ -16,6 +16,7 @@ import (
 	"github.com/getfider/fider/app"
 	. "github.com/getfider/fider/app/pkg/assert"
 	"github.com/getfider/fider/app/pkg/errors"
+	"github.com/getfider/fider/app/pkg/passwordauth"
 )
 
 func TestUserStorage_GetByID(t *testing.T) {
@@ -261,17 +262,13 @@ func TestUserStorage_UpdateSettings(t *testing.T) {
 func TestUserStorage_ChangeRole(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
-
-	err := bus.Dispatch(demoTenantCtx, &cmd.ChangeUserRole{
-		UserID: jonSnow.ID,
-		Role:   enum.RoleVisitor,
-	})
+	admin := passwordAccountForTest(t, jonSnow, "jon.snow")
+	err := bus.Dispatch(admin, &cmd.ChangeUserRole{UserID: aryaStark.ID, Role: enum.RoleCollaborator})
 	Expect(err).IsNil()
-
-	getUser := &query.GetUserByEmail{Email: "jon.snow@got.com"}
+	getUser := &query.GetUserByEmail{Email: "arya.stark@got.com"}
 	err = bus.Dispatch(demoTenantCtx, getUser)
 	Expect(err).IsNil()
-	Expect(getUser.Result.Role).Equals(enum.RoleVisitor)
+	Expect(getUser.Result.Role).Equals(enum.RoleCollaborator)
 }
 
 func TestUserStorage_ChangeEmail(t *testing.T) {
@@ -370,15 +367,16 @@ func TestUserStorage_Delete(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
 
-	err := bus.Dispatch(jonSnowCtx, &cmd.DeleteCurrentUser{})
+	member := passwordAccountForTest(t, aryaStark, "arya.stark")
+	err := bus.Dispatch(member, &cmd.DeleteCurrentUser{})
 	Expect(err).IsNil()
 
-	getByEmail := &query.GetUserByEmail{Email: "jon.snow@got.com"}
+	getByEmail := &query.GetUserByEmail{Email: "arya.stark@got.com"}
 	err = bus.Dispatch(jonSnowCtx, getByEmail)
 	Expect(errors.Cause(err)).Equals(app.ErrNotFound)
 	Expect(getByEmail.Result).IsNil()
 
-	getByID := &query.GetUserByID{UserID: jonSnow.ID, TenantID: jonSnow.Tenant.ID}
+	getByID := &query.GetUserByID{UserID: aryaStark.ID, TenantID: aryaStark.Tenant.ID}
 	err = bus.Dispatch(jonSnowCtx, getByID)
 	Expect(errors.Cause(err)).Equals(app.ErrNotFound)
 	Expect(getByID.Result).IsNil()
@@ -425,19 +423,13 @@ func TestUserStorage_APIKey(t *testing.T) {
 func TestUserStorage_BlockUser(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
-
-	userID := 1
-	getUser := &query.GetUserByID{UserID: userID, TenantID: demoTenant.ID}
-
-	err := bus.Dispatch(demoTenantCtx, getUser)
-	Expect(err).IsNil()
-	Expect(getUser.Result.Status).Equals(enum.UserActive)
-
-	err = bus.Dispatch(demoTenantCtx, &cmd.BlockUser{UserID: userID}, getUser)
+	admin := passwordAccountForTest(t, jonSnow, "jon.snow")
+	passwordAccountForTest(t, aryaStark, "arya.stark")
+	getUser := &query.GetUserByID{UserID: aryaStark.ID, TenantID: demoTenant.ID}
+	err := bus.Dispatch(admin, &cmd.BlockUser{UserID: aryaStark.ID}, getUser)
 	Expect(err).IsNil()
 	Expect(getUser.Result.Status).Equals(enum.UserBlocked)
-
-	err = bus.Dispatch(demoTenantCtx, &cmd.UnblockUser{UserID: userID}, getUser)
+	err = bus.Dispatch(admin, &cmd.ResetPasswordAccount{UserID: aryaStark.ID, PasswordHash: passwordauth.PlaceholderHash(), Restore: true}, getUser)
 	Expect(err).IsNil()
 	Expect(getUser.Result.Status).Equals(enum.UserActive)
 }

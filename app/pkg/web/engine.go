@@ -47,7 +47,12 @@ type notFoundHandler struct {
 
 func (h *notFoundHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	ctx := NewContext(h.engine, req, res, nil)
-	_ = h.handler(ctx)
+	if rejectInvalidBody(ctx) {
+		return
+	}
+	if err := h.handler(ctx); err != nil && ctx.Response.StatusCode == 0 {
+		_ = ctx.Failure(err)
+	}
 }
 
 // HandlerFunc represents an HTTP handler
@@ -265,7 +270,12 @@ func (e *Engine) handle(middlewares []MiddlewareFunc, handler HandlerFunc) httpr
 			params[p.Key] = p.Value
 		}
 		ctx := NewContext(e, req, res, params)
-		_ = next(ctx)
+		if rejectInvalidBody(ctx) {
+			return
+		}
+		if err := next(ctx); err != nil && ctx.Response.StatusCode == 0 {
+			_ = ctx.Failure(err)
+		}
 	}
 	return h
 }
@@ -344,4 +354,16 @@ func ParseCookie(s string) *http.Cookie {
 		return nil
 	}
 	return (&http.Response{Header: http.Header{"Set-Cookie": {s}}}).Cookies()[0]
+}
+
+func rejectInvalidBody(c *Context) bool {
+	if c.Request.BodyError == nil {
+		return false
+	}
+	status := http.StatusBadRequest
+	if _, ok := c.Request.BodyError.(*http.MaxBytesError); ok {
+		status = http.StatusRequestEntityTooLarge
+	}
+	_ = c.JSON(status, Map{"errors": []Map{{"field": "", "message": "Invalid request body"}}})
+	return true
 }

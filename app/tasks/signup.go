@@ -3,7 +3,6 @@ package tasks
 import (
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/dto"
-	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/getfider/fider/app/pkg/worker"
 )
@@ -22,7 +21,7 @@ func SendSignUpEmail(data SignUpEmailData, baseURL string) worker.Task {
 			"link": link(baseURL, "/signup/verify?k=%s", data.GetVerificationKey()),
 		})
 
-		bus.Publish(c, &cmd.SendMail{
+		publishMail(c, &cmd.SendMail{
 			From:         dto.Recipient{Name: "Fider"},
 			To:           []dto.Recipient{to},
 			TemplateName: "signup_email",

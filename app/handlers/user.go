@@ -16,9 +16,13 @@ func BlockUser() web.HandlerFunc {
 
 		err = bus.Dispatch(c, &cmd.BlockUser{UserID: userID})
 		if err != nil {
-			return c.Failure(err)
+			return passwordStoreFailure(c, err)
 		}
 
+		if err := c.Commit(); err != nil {
+			return c.Failure(err)
+		}
+		auditAccount(c, "block", userID)
 		return c.Ok(web.Map{})
 	}
 }

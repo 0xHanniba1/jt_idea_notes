@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/pkg/env"
 )
 
@@ -42,4 +43,16 @@ func CanSendTo(address string) bool {
 	}
 
 	return true
+}
+
+// NonEmptyRecipients keeps valid delivery targets without letting a missing
+// contact email stop delivery to the remaining members of a batch.
+func NonEmptyRecipients(recipients []dto.Recipient) []dto.Recipient {
+	result := make([]dto.Recipient, 0, len(recipients))
+	for _, recipient := range recipients {
+		if strings.TrimSpace(recipient.Address) != "" {
+			result = append(result, recipient)
+		}
+	}
+	return result
 }

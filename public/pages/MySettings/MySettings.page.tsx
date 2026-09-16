@@ -5,7 +5,7 @@ import { Modal, Form, Button, PageTitle, Input, Select, SelectOption, ImageUploa
 import { UserSettings, UserAvatarType, ImageUpload } from "@fider/models"
 import { Failure, actions, Fider } from "@fider/services"
 import { NotificationSettings } from "./components/NotificationSettings"
-import { APIKeyForm } from "./components/APIKeyForm"
+import { PasswordChangeForm } from "@fider/components/common/PasswordChangeForm"
 import { DangerZone } from "./components/DangerZone"
 import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
@@ -142,6 +142,13 @@ export default class MySettingsPage extends React.Component<MySettingsPageProps,
           <div className="w-max-7xl">
             <Form error={this.state.error}>
               <Input
+                field="username"
+                label={i18n._({ id: "auth.username", message: "Username" })}
+                value={Fider.session.user.username}
+                readOnly
+                autoComplete="username"
+              />
+              <Input
                 label={i18n._({ id: "label.email", message: "Email" })}
                 field="email"
                 value={this.state.changingEmail ? this.state.newEmail : Fider.session.user.email}
@@ -209,14 +216,23 @@ export default class MySettingsPage extends React.Component<MySettingsPageProps,
                 )}
               </Select>
 
-              <NotificationSettings userSettings={this.props.userSettings} settingsChanged={this.setNotificationSettings} />
+              <NotificationSettings
+                userSettings={this.props.userSettings}
+                settingsChanged={this.setNotificationSettings}
+                hasEmail={!!Fider.session.user.email}
+              />
 
               <Button variant="primary" onClick={this.confirm}>
                 <Trans id="action.save">Save</Trans>
               </Button>
             </Form>
 
-            <div className="mt-8">{Fider.session.user.isCollaborator && <APIKeyForm />}</div>
+            <section className="mt-8">
+              <h2 className="text-title mb-3">
+                <Trans id="auth.password.change">Change password</Trans>
+              </h2>
+              <PasswordChangeForm username={Fider.session.user.username} />
+            </section>
             <div className="mt-8">
               <DangerZone />
             </div>

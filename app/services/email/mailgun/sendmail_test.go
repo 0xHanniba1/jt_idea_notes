@@ -319,3 +319,28 @@ func TestGetBaseURL(t *testing.T) {
 	Expect(httpclientmock.RequestsHistory[5].URL.String()).Equals("https://api.mailgun.net/v3/mydomain.com/messages")
 
 }
+
+func TestSend_EmptyRecipientDoesNotChangeValidRecipientTemplate(t *testing.T) {
+	RegisterT(t)
+	reset()
+	email.SetAllowlist("")
+	email.SetBlocklist("")
+	bus.Publish(ctx, &cmd.SendMail{
+		To:           []dto.Recipient{{Address: ""}, {Address: " \t "}, {Name: "Member", Address: "member@local.test", Props: dto.Props{"name": "Member"}}},
+		TemplateName: "echo_test", Props: dto.Props{},
+	})
+	if len(httpclientmock.RequestsHistory) != 1 {
+		t.Fatal("valid recipient was not delivered")
+	}
+	body, err := io.ReadAll(httpclientmock.RequestsHistory[0].Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(values["to"]) != 1 || values.Get("subject") != "Message to: Member" {
+		t.Fatal("empty recipient changed valid delivery")
+	}
+}

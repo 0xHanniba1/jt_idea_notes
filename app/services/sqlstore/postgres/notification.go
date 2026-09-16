@@ -182,10 +182,10 @@ func getActiveSubscribers(ctx context.Context, q *query.GetActiveSubscribers) er
 			err   error
 		)
 
-		// When searching for email subscrivers, skip users with email supressed
+		// Email delivery excludes suppressed and missing addresses; web notifications do not.
 		supressionCondition := ""
 		if q.Channel == enum.NotificationChannelEmail {
-			supressionCondition = "AND u.email_supressed_at IS NULL"
+			supressionCondition = "AND u.email_supressed_at IS NULL AND BTRIM(u.email) <> ''"
 		}
 
 		// If the event doesn't require a subscription, notify everyone

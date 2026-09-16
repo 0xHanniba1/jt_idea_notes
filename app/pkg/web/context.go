@@ -66,13 +66,15 @@ const CookieSignUpAuthName = "__signup_auth"
 // Context shared between http pipeline
 type Context struct {
 	context.Context
-	Response  Response
-	Request   Request
-	id        string
-	sessionID string
-	engine    *Engine
-	params    StringMap
-	tasks     []worker.Task
+	Response   Response
+	Request    Request
+	id         string
+	sessionID  string
+	engine     *Engine
+	params     StringMap
+	tasks      []worker.Task
+	committed  bool
+	rolledBack bool
 }
 
 // NewContext creates a new web Context
@@ -122,6 +124,12 @@ func (c *Context) ContextID() string {
 
 // Commit everything that is pending on current context
 func (c *Context) Commit() error {
+	if c.committed {
+		return nil
+	}
+	if c.rolledBack {
+		return errors.New("request transaction was rolled back")
+	}
 	trx, ok := c.Value(app.TransactionCtxKey).(*dbx.Trx)
 	if ok && trx != nil {
 		if err := trx.Commit(); err != nil {
@@ -129,15 +137,26 @@ func (c *Context) Commit() error {
 		}
 	}
 
-	for _, task := range c.tasks {
+	c.committed = true
+	tasks := c.tasks
+	c.tasks = nil
+	for _, task := range tasks {
 		c.engine.worker.Enqueue(task)
 	}
 
 	return nil
 }
 
+// TransactionFinished reports explicit transaction completion to the outer request middleware.
+func (c *Context) TransactionFinished() bool { return c.committed || c.rolledBack }
+
 // Rollback everything that is pending on current context
 func (c *Context) Rollback() {
+	if c.committed || c.rolledBack {
+		return
+	}
+	c.rolledBack = true
+	c.tasks = nil
 	trx, ok := c.Value(app.TransactionCtxKey).(*dbx.Trx)
 	if ok && trx != nil {
 		trx.MustRollback()
@@ -579,6 +598,11 @@ func TenantBaseURL(ctx context.Context, tenant *entity.Tenant) string {
 func AssetsURL(ctx context.Context, path string, a ...any) string {
 	request := ctx.Value(app.RequestCtxKey).(Request)
 	path = fmt.Sprintf(path, a...)
+	// Protected user uploads and avatars must receive the host-only session
+	// cookie; a public CDN is only appropriate for application assets.
+	if strings.HasPrefix(path, "/static/images/") || strings.HasPrefix(path, "/static/avatars/") {
+		return BaseURL(ctx) + path
+	}
 
 	if env.IsSingleHostMode() {
 		if env.Config.CDN.Host != "" {
