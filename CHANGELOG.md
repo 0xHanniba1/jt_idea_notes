@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-17 — Scope CI to changed files
+
+- Keep lightweight whitespace and repository-link checks for explicitly allowlisted documentation-only PRs and main/stable pushes; skip application tests, database services and Docker/E2E work for those changes.
+- Preserve complete CI for code, runtime content, dependencies, migrations, workflows, mixed changes and uncertain ranges. Require an honest final result for all selected jobs.
+- Align project verification instructions and prepare Changelog updates before the initial push. Local acceptance and cloud deployment authorization remain separate.
+
 ## 2026-09-17 — Deployment artifact retention
 
 - Keep the running cloud version and the two most recent successful previous versions with their linked pre-release backups. Clean expired deployment artifacts only after successful verification; protect live data and unrelated backups.
