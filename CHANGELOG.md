@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-17 — Progress workspace and themed pagination
+
+- Display 金唐 / 需求工作台 in the workspace and switch the sidebar arrow with its expanded state. Compact the notification popover and empty-state typography.
+- Replace progress columns with planned, started and completed tabs, a full-width list, search, totals and server pagination. Preserve detail drawers, permissions, URL state and stale-response protection.
+- Use the existing themed dropdown for page sizes on Home and Progress, including light/dark selection styles, keyboard operation and loading state.
+- Validate 260 frontend tests, related Go handler tests, type checking, lint, builds and isolated browser interactions. No database migration. See [verification](docs/progress-workspace-verification.md) and Issue #16.
+
 ## 2026-09-17 — Idea submission, pagination and personal settings
 
 - Align and simplify the account menu, restrict the settings entry to administrators, and center the notification button.

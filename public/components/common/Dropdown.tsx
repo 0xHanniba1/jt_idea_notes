@@ -58,6 +58,7 @@ const ListItem = (props: DropdownListItemProps) => {
 const Divider = () => <hr className="c-dropdown__divider" role="separator" />
 
 interface DropdownProps {
+  disabled?: boolean
   renderHandle: JSX.Element
   position?: "left" | "right"
   onToggled?: (isOpen: boolean) => void
@@ -124,7 +125,7 @@ export const Dropdown = (props: DropdownProps) => {
   }, [isOpen])
 
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.nativeEvent.isComposing) return
+    if (props.disabled || event.nativeEvent.isComposing) return
     if (event.key === "Tab" && isOpen) {
       // A menu uses roving focus; Tab exits from its trigger's place in the
       // page order. Returning focus before the native Tab step also lets an
@@ -179,6 +180,7 @@ export const Dropdown = (props: DropdownProps) => {
           ref={handle}
           type="button"
           className="c-dropdown__handle"
+          disabled={props.disabled}
           aria-label={ariaLabel}
           aria-haspopup={contentRole}
           aria-expanded={isOpen}

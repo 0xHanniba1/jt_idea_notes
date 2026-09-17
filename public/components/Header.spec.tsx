@@ -76,9 +76,14 @@ test.each(["administrator", "collaborator", "member"])("settings is only in the 
 test("collapse persists across full page visits without remounting or losing content", () => {
   const view = renderShell()
   const draft = screen.getByLabelText("Draft")
+  const collapseButton = screen.getByRole("button", { name: "Collapse navigation" })
+  expect(collapseButton.querySelector("path:last-child")).toHaveAttribute("d", "m16 7-3 5 3 5")
   fireEvent.change(draft, { target: { value: "Unsaved text" } })
-  fireEvent.click(screen.getByRole("button", { name: "Collapse navigation" }))
-  expect(screen.getByRole("button", { name: "Expand navigation" })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(collapseButton)
+  const expandButton = screen.getByRole("button", { name: "Expand navigation" })
+  expect(expandButton).toHaveAttribute("aria-expanded", "false")
+  expect(expandButton.querySelector("path:last-child")).toHaveAttribute("d", "m13 7 3 5-3 5")
+  expect(expandButton.querySelector("path:first-of-type")).toHaveAttribute("d", "M9 3v18")
   expect(screen.getByLabelText("Draft")).toBe(draft)
   expect(draft).toHaveValue("Unsaved text")
   view.unmount()
@@ -86,6 +91,22 @@ test("collapse persists across full page visits without remounting or losing con
   document.body.innerHTML = '<div id="root"></div><div id="root-modal"></div>'
   renderShell()
   expect(screen.getByRole("button", { name: "Expand navigation" })).toHaveAttribute("aria-expanded", "false")
+  fireEvent.click(screen.getByRole("button", { name: "Expand navigation" }))
+  expect(screen.getByRole("button", { name: "Collapse navigation" }).querySelector("path:last-child")).toHaveAttribute("d", "m16 7-3 5 3 5")
+})
+
+test("workspace branding uses the fixed product name while preserving the tenant's custom logo and settings", () => {
+  Fider.session.tenant.name = "Existing tenant title"
+  Fider.session.tenant.logoBlobKey = "custom-logo"
+  renderShell()
+  const brand = screen.getByRole("link", { name: "金唐 · Requirements workspace" })
+  expect(within(brand).getByText("金唐")).toBeInTheDocument()
+  expect(within(brand).getByText("Requirements workspace")).toBeInTheDocument()
+  expect(within(brand).queryByText("Existing tenant title")).not.toBeInTheDocument()
+  expect(brand.querySelector("img")).toHaveAttribute("src", "http://test.localhost/static/images/custom-logo?size=100")
+  expect(Fider.session.tenant.name).toBe("Existing tenant title")
+  fireEvent.click(screen.getByRole("button", { name: "Collapse navigation" }))
+  expect(brand).toHaveAttribute("title", "金唐 · Requirements workspace")
 })
 
 test("opening a roadmap details drawer retains the source section after history changes", () => {
@@ -105,6 +126,7 @@ test("mobile navigation traps focus, restores the trigger on Escape, and does no
   mobile = true
   renderShell()
   const trigger = screen.getByRole("button", { name: "Open navigation" })
+  expect(trigger.querySelector("path:last-child")).toHaveAttribute("d", "m13 7 3 5-3 5")
   trigger.focus()
   fireEvent.click(trigger)
   const dialog = screen.getByRole("dialog", { name: "Main navigation" })

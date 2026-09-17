@@ -15,7 +15,7 @@ import { Trans } from "@lingui/react/macro"
 
 export const NotificationItem = ({ notification }: { notification: Notification }) => {
   return (
-    <a href={`/notifications/${notification.id}`} className="px-3 pr-5 hover py-4 flex flex-x flex--spacing-4 flex-items-center">
+    <a href={`/notifications/${notification.id}`} className="c-notification-item hover">
       <Avatar user={{ name: notification.authorName, avatarURL: notification.avatarURL }} />
       <div>
         <Markdown className="c-notification-indicator-text" text={notification.title} style="full" />
@@ -83,57 +83,59 @@ export const NotificationIndicator = () => {
   }
 
   return (
-    <Dropdown
-      contentRole="dialog"
-      ariaLabel={i18n._({ id: "menu.mynotifications", message: "Notifications" })}
-      wide={true}
-      position="left"
-      fullsceenSm={true}
-      onToggled={(isOpen: boolean) => setShowingNotifications(isOpen)}
-      renderHandle={<NotificationIcon unreadNotifications={unreadNotifications} />}
-    >
-      <div className="c-notifications-container">
-        {showingNotifications && (unread !== undefined || recent !== undefined) && (
-          <>
-            {unread !== undefined && unread?.length > 0 ? (
-              <>
-                <p className="text-subtitle px-4 mt-4 mb-0">
-                  <Trans id="modal.notifications.unread">Unread notifications</Trans>
-                  {unread.length > 1 && (
-                    <a href="#" className="text-link text-xs pl-6" onClick={markAllAsRead}>
-                      <Trans id="action.markallasread">Mark All as Read</Trans>
-                    </a>
-                  )}
-                </p>
-                <VStack spacing={0} className="py-2" divide={false}>
-                  {unread.map((n) => (
-                    <NotificationItem key={n.id} notification={n} />
-                  ))}
-                </VStack>
-              </>
-            ) : (
-              <div className="text-center pb-6">
-                <p className="text-display text-center mt-6 px-4">
-                  <Trans id="modal.notifications.nonew">No new notifications</Trans>
-                </p>
-                {recent?.length === 0 && <Icon sprite={NoDataIllustration} height="120" className="mt-6 mb-2" />}
-              </div>
-            )}
-            {recent !== undefined && recent?.length > 0 && (
-              <>
-                <p className="text-subtitle px-4 mb-0 pt-4 bg-gray-50 border-gray-200 border-t">
-                  <Trans id="modal.notifications.previous">Previous notifications</Trans>
-                </p>
-                <VStack spacing={0} className="py-2 bg-gray-50" divide={false}>
-                  {recent.map((n) => (
-                    <NotificationItem key={n.id} notification={n} />
-                  ))}
-                </VStack>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </Dropdown>
+    <div className="c-notifications-dropdown">
+      <Dropdown
+        contentRole="dialog"
+        ariaLabel={i18n._({ id: "menu.mynotifications", message: "Notifications" })}
+        wide={true}
+        position="left"
+        fullsceenSm={true}
+        onToggled={(isOpen: boolean) => setShowingNotifications(isOpen)}
+        renderHandle={<NotificationIcon unreadNotifications={unreadNotifications} />}
+      >
+        <div className="c-notifications-container">
+          {showingNotifications && (unread !== undefined || recent !== undefined) && (
+            <>
+              {unread !== undefined && unread?.length > 0 ? (
+                <>
+                  <p className="text-subtitle px-4 mt-4 mb-0">
+                    <Trans id="modal.notifications.unread">Unread notifications</Trans>
+                    {unread.length > 1 && (
+                      <a href="#" className="text-link text-xs pl-6" onClick={markAllAsRead}>
+                        <Trans id="action.markallasread">Mark All as Read</Trans>
+                      </a>
+                    )}
+                  </p>
+                  <VStack spacing={0} className="py-2" divide={false}>
+                    {unread.map((n) => (
+                      <NotificationItem key={n.id} notification={n} />
+                    ))}
+                  </VStack>
+                </>
+              ) : (
+                <div className="c-notifications-container__empty">
+                  <p className="c-notifications-container__empty-title">
+                    <Trans id="modal.notifications.nonew">No new notifications</Trans>
+                  </p>
+                  {recent?.length === 0 && <Icon sprite={NoDataIllustration} height="64" className="c-notifications-container__empty-image" />}
+                </div>
+              )}
+              {recent !== undefined && recent?.length > 0 && (
+                <>
+                  <p className="text-subtitle px-4 mb-0 pt-4 bg-gray-50 border-gray-200 border-t">
+                    <Trans id="modal.notifications.previous">Previous notifications</Trans>
+                  </p>
+                  <VStack spacing={0} className="py-2 bg-gray-50" divide={false}>
+                    {recent.map((n) => (
+                      <NotificationItem key={n.id} notification={n} />
+                    ))}
+                  </VStack>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </Dropdown>
+    </div>
   )
 }

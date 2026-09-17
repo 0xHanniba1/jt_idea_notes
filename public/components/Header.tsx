@@ -26,7 +26,7 @@ interface HeaderProps {
   section?: { label: string; href: string }
 }
 
-const NavigationIcon = ({ kind }: { kind: "ideas" | "roadmap" | "settings" | "panel" }) => (
+const NavigationIcon = ({ kind, expand = false }: { kind: "ideas" | "roadmap" | "settings" | "panel"; expand?: boolean }) => (
   <svg
     width="16"
     height="16"
@@ -55,7 +55,8 @@ const NavigationIcon = ({ kind }: { kind: "ideas" | "roadmap" | "settings" | "pa
     {kind === "panel" && (
       <>
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <path d="M9 3v18m7-14-3 5 3 5" />
+        <path d="M9 3v18" />
+        <path d={expand ? "m13 7 3 5-3 5" : "m16 7-3 5 3 5"} />
       </>
     )}
   </svg>
@@ -71,6 +72,9 @@ const Sidebar = ({ compact = false, active, onSignIn }: SidebarProps) => {
   const fider = useFider()
   const feedback = i18n._({ id: "header.nav.feedback", message: "All Feedback" })
   const roadmap = i18n._({ id: "header.nav.roadmap", message: "Roadmap" })
+  const brandTitle = "金唐"
+  const brandSubtitle = i18n._({ id: "workspace.brand.subtitle", message: "Requirements workspace" })
+  const brandLabel = `${brandTitle} · ${brandSubtitle}`
   const link = (href: string, label: string, kind: "ideas" | "roadmap" | "settings") => (
     <a
       href={href}
@@ -85,13 +89,11 @@ const Sidebar = ({ compact = false, active, onSignIn }: SidebarProps) => {
   )
   return (
     <>
-      <a href="/" className="c-workspace__brand" title={compact ? fider.session.tenant.name : undefined} aria-label={fider.session.tenant.name}>
+      <a href="/" className="c-workspace__brand" title={compact ? brandLabel : undefined} aria-label={brandLabel}>
         <span className="c-workspace__brand-mark">{fider.session.tenant.logoBlobKey ? <TenantLogo size={100} /> : <span aria-hidden="true">JT</span>}</span>
         <span className="c-workspace__brand-text">
-          <strong>{fider.session.tenant.name}</strong>
-          <small>
-            <Trans id="workspace.brand.subtitle">Ideas workspace</Trans>
-          </small>
+          <strong>{brandTitle}</strong>
+          <small>{brandSubtitle}</small>
         </span>
       </a>
       <nav className="c-workspace__navigation" aria-label={i18n._({ id: "workspace.navigation", message: "Main navigation" })}>
@@ -204,7 +206,7 @@ export const Header = (props: HeaderProps) => {
                 : i18n._({ id: "workspace.navigation.collapse", message: "Collapse navigation" })
             }
           >
-            <NavigationIcon kind="panel" />
+            <NavigationIcon kind="panel" expand={mobile || collapsed} />
           </button>
           <nav className="c-workspace__breadcrumbs" aria-label={i18n._({ id: "workspace.breadcrumbs", message: "Breadcrumb" })}>
             <a href={props.section?.href || "/"}>{props.section?.label || i18n._({ id: "workspace.label", message: "Workspace" })}</a>

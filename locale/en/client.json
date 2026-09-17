@@ -621,7 +621,7 @@
   "showpost.save.success": "Post updated successfully",
   "validation.custom.maxattachments": "A maximum of {number} attachments are allowed.",
   "validation.custom.maximagesize": "The image size must be smaller than {kilobytes}KB.",
-  "workspace.brand.subtitle": "Ideas workspace",
+  "workspace.brand.subtitle": "Requirements workspace",
   "workspace.breadcrumbs": "Breadcrumb",
   "workspace.label": "Workspace",
   "workspace.moderation.pending": "{count} items awaiting review",
@@ -633,5 +633,7 @@
   "workspace.role.collaborator": "Collaborator",
   "workspace.role.member": "Member",
   "workspace.skip": "Skip to content",
-  "workspace.status": "Page status"
+  "workspace.status": "Page status",
+  "progress.status.label": "Progress status",
+  "progress.empty": "No ideas in this status yet."
 }

@@ -4,7 +4,7 @@ import React from "react"
 import { PostPagination } from "@fider/services/actions/post"
 
 import { Post, Tag, CurrentUser, normalizePostView } from "@fider/models"
-import { Loader, Input, Button } from "@fider/components"
+import { Loader, Input, Button, Dropdown } from "@fider/components"
 import { actions, navigator, querystring } from "@fider/services"
 import IconSearch from "@fider/assets/images/heroicons-search.svg"
 import IconX from "@fider/assets/images/heroicons-x.svg"
@@ -14,6 +14,7 @@ import { i18n } from "@lingui/core"
 import { PostsSort } from "./PostsSort"
 
 interface PostsContainerProps {
+  progressView?: "planned" | "started" | "completed"
   user?: CurrentUser
   pagination?: PostPagination
   posts: Post[]
@@ -46,7 +47,7 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
   constructor(props: PostsContainerProps) {
     super(props)
 
-    const view = normalizePostView(querystring.get("view"))
+    const view = props.progressView || normalizePostView(querystring.get("view"))
 
     this.state = {
       posts: this.props.posts,
@@ -54,13 +55,15 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
       failed: false,
       view,
       query: querystring.get("query"),
-      moderation: querystring.get("moderation"),
-      filterState: {
-        tags: querystring.getArray("tags"),
-        statuses: querystring.getArray("statuses"),
-        myPosts: querystring.get("myposts") === "true",
-        noTags: querystring.get("notags") === "true",
-      },
+      moderation: props.progressView ? "" : querystring.get("moderation"),
+      filterState: props.progressView
+        ? { tags: [], statuses: [], myPosts: false, noTags: false }
+        : {
+            tags: querystring.getArray("tags"),
+            statuses: querystring.getArray("statuses"),
+            myPosts: querystring.get("myposts") === "true",
+            noTags: querystring.get("notags") === "true",
+          },
       limit: props.pagination?.pageSize || 25,
       page: props.pagination?.page || 1,
       total: props.pagination?.total ?? props.posts.length,
@@ -83,7 +86,10 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
   private getNormalizedURL(): URL {
     const url = new URL(navigator.url())
     url.searchParams.delete("myvotes")
-    if (url.searchParams.has("view")) {
+    if (this.props.progressView) {
+      for (const key of ["statuses", "tags", "myposts", "notags", "moderation"]) url.searchParams.delete(key)
+    }
+    if (this.props.progressView || url.searchParams.has("view")) {
       url.searchParams.set("view", this.state.view)
     }
     if (url.searchParams.has("limit")) url.searchParams.set("limit", String(this.state.limit))
@@ -97,17 +103,18 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
       () => {
         const query = this.state.query.trim().toLowerCase()
         navigator.replaceState(
-          querystring.stringify({
-            statuses: this.state.filterState.statuses,
-            tags: this.state.filterState.tags,
-            myposts: this.state.filterState.myPosts ? "true" : undefined,
-            notags: this.state.filterState.noTags ? "true" : undefined,
-            query,
-            view: this.state.view,
-            limit: this.state.limit,
-            page: this.state.page,
-            moderation: this.state.moderation,
-          })
+          (this.props.progressView ? "/roadmap" : "") +
+            querystring.stringify({
+              statuses: this.state.filterState.statuses,
+              tags: this.state.filterState.tags,
+              myposts: this.state.filterState.myPosts ? "true" : undefined,
+              notags: this.state.filterState.noTags ? "true" : undefined,
+              query,
+              view: this.state.view,
+              limit: this.state.limit,
+              page: this.state.page,
+              moderation: this.state.moderation,
+            })
         )
 
         this.searchPosts(
@@ -170,7 +177,7 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
       const data = response.data
       this.setState({ loading: false, failed: false, posts: data.posts, total: data.total, page: data.page, limit: data.pageSize }, () => {
         // Refreshing behind a detail drawer must not rewrite its URL.
-        if (new URL(navigator.url()).pathname === "/") {
+        if (new URL(navigator.url()).pathname === (this.props.progressView ? "/roadmap" : "/")) {
           const url = this.getNormalizedURL()
           navigator.replaceState(`${url.pathname}${url.search}${url.hash}`)
         }
@@ -226,17 +233,38 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     const headerClass = this.state.query ? "c-posts-container__header c-posts-container__header--searching" : "c-posts-container__header"
 
     return (
-      <div className="c-posts-container">
+      <div className={`c-posts-container${this.props.progressView ? " c-posts-container--progress" : ""}`}>
         <div className={headerClass}>
-          <div className="c-posts-container__filter-col">
-            <PostFilter
-              tags={this.props.tags}
-              activeFilter={this.state.filterState}
-              filtersChanged={this.handleFilterChanged}
-              countPerStatus={this.props.countPerStatus}
-            />
-            {!this.state.query && <PostsSort onChange={this.handleSortChanged} value={this.state.view} />}
-          </div>
+          {this.props.progressView ? (
+            <div className="c-posts-container__segments" role="group" aria-label={i18n._({ id: "progress.status.label", message: "Progress status" })}>
+              {[
+                { value: "planned", label: i18n._({ id: "enum.poststatus.planned", message: "Planned" }) },
+                { value: "started", label: i18n._({ id: "enum.poststatus.started", message: "Started" }) },
+                { value: "completed", label: i18n._({ id: "enum.poststatus.completed", message: "Completed" }) },
+              ].map((status) => (
+                <button
+                  type="button"
+                  key={status.value}
+                  aria-pressed={this.state.view === status.value}
+                  onClick={() => {
+                    if (this.state.view !== status.value) this.changeFilterCriteria({ view: status.value }, true)
+                  }}
+                >
+                  {status.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="c-posts-container__filter-col">
+              <PostFilter
+                tags={this.props.tags}
+                activeFilter={this.state.filterState}
+                filtersChanged={this.handleFilterChanged}
+                countPerStatus={this.props.countPerStatus}
+              />
+              {!this.state.query && <PostsSort onChange={this.handleSortChanged} value={this.state.view} />}
+            </div>
+          )}
           <div className="c-posts-container__search-col">
             <Input
               field="query"
@@ -260,7 +288,11 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
           <ListPosts
             posts={this.state.failed && !this.state.posts ? undefined : this.state.posts}
             tags={this.props.tags}
-            emptyText={i18n._({ id: "home.postscontainer.label.noresults", message: "No results matched your search, try something different." })}
+            emptyText={
+              this.props.progressView && !this.state.query.trim()
+                ? i18n._({ id: "progress.empty", message: "No ideas in this status yet." })
+                : i18n._({ id: "home.postscontainer.label.noresults", message: "No results matched your search, try something different." })
+            }
             onPostClick={this.props.onPostClick}
           />
           {this.state.loading && (
@@ -277,19 +309,33 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
                 : i18n._({ id: "home.pagination.range", message: "{total} total · {start}–{end}", values: { total, start, end } })}
             </span>
             <div className="c-posts-container__page-controls">
-              <label htmlFor="posts-page-size">{i18n._({ id: "home.pagination.perpage", message: "Per page" })}</label>
-              <select
-                id="posts-page-size"
-                disabled={loading}
-                value={limit}
-                onChange={(event) => this.changeFilterCriteria({ limit: Number(event.target.value) }, true)}
-              >
-                {[10, 25, 50, 100].map((size) => (
-                  <option value={size} key={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
+              <span>{i18n._({ id: "home.pagination.perpage", message: "Per page" })}</span>
+              <div className="c-posts-container__page-size">
+                <Dropdown
+                  disabled={loading}
+                  ariaLabel={`${i18n._({ id: "home.pagination.perpage", message: "Per page" })}: ${limit}`}
+                  renderHandle={
+                    <>
+                      <span>{limit}</span>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m7 10 5 5 5-5" />
+                      </svg>
+                    </>
+                  }
+                >
+                  {[10, 25, 50, 100].map((size) => (
+                    <Dropdown.ListItem
+                      key={size}
+                      checked={size === limit}
+                      onClick={() => {
+                        if (size !== limit) this.changeFilterCriteria({ limit: size }, true)
+                      }}
+                    >
+                      {size}
+                    </Dropdown.ListItem>
+                  ))}
+                </Dropdown>
+              </div>
               <span>{i18n._({ id: "home.pagination.items", message: "items" })}</span>
               <button
                 type="button"
