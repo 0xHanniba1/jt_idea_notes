@@ -1,13 +1,13 @@
 # 发布流程验证
 
-2026-09-17；Issue #20。
+2026-09-17：用户要求删除 GHCR 自动发布，恢复本地构建并上传镜像的部署方式。
 
-- 发布来源限制为本仓库main push完成的成功build；不接受PR、fork、stable、release。移除上游Docker Hub凭据引用和手动PR发布工作流。
-- build产物标记完整提交和仓库地址，E2E与发布复用同一份amd64镜像。发布不checkout应用源码、不重新构建，不连接云端。
-- GHCR使用任务内GITHUB_TOKEN，最小权限为actions:read、contents:read、packages:write；未创建个人令牌、云端凭据或更改包可见性。
-- `python3 -m unittest discover -s scripts -p 'test_release_plan.py' -v`：7项通过，覆盖有效凭据、PR/fork/分支/失败运行拒绝、提交和digest篡改、main向前推进时固定版本、无凭据拒绝和ZIP路径拒绝。
-- actionlint v1.7.12检查修改后的build/publish工作流通过，`git diff --check`通过。
-- 只读工具真实查询当前main提交94ef5510的GitHub证据，因尚无新格式发布凭据按预期拒绝生成发布计划；未连接服务器、未操作数据库。
-- 独立只读复核未发现阻塞问题。登录、账户及业务代码未变更；相关Python和workflow检查已纳入CI。
+- GitHub `publish` 工作流已手动禁用，状态 `disabled_manually`，立即停止后续自动镜像发布。
+- 删除 `publish.yml`、只服务 GHCR 凭据的发布清单工具及对应测试。
+- 保留应用构建、前后端测试、端到端测试与工作流静态检查；工作流检查不再引用删除的文件。
+- actionlint v1.7.12 与 `git diff --check` 通过；已确认没有排队或运行中的 publish 任务。
+- main、4180 和云端保持独立；云端仍只在用户明确要求发布时更新，先备份并保留云端数据。
+- 2026-09-17 已按本地构建、Workbench 上传方式发布 b67a0d7c：上传包 SHA256 一致，22 张业务表摘要不变，原账号、4 条记录和附件保留；公网页面和原图片附件实际验收通过。
+- 本次仅移除发布自动化与相关说明，不更新运行中的应用，也不删除历史 GHCR 包或发布记录。
 
-当前状态：实现已完成，PR检查、合并及首个GHCR实际推送结果记录在Issue #20。新workflow仅合并到main后生效；配置文件和静态检查不能证明实际镜像已发布。首次GHCR拉取及服务器网络访问需分别验证，本次未修改4180或云端运行状态，云端部署仍需用户独立明确指令。
+原自动发布方案的历史实施与验证见 Issue #20、PR #21；其流程已被本次决定替代。

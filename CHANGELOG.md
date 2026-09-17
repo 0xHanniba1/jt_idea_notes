@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-17 — Remove automatic registry publishing
+
+- Disable and remove GHCR publishing and its release receipt helper. Keep build, tests, E2E and workflow linting.
+- Restore explicit local amd64 image builds, archive upload and backup-before-switch cloud deployments.
+
 ## 2026-09-17 — Separate local acceptance from cloud releases
 
 - Publish only successful main CI images to the project GHCR namespace, reusing the exact amd64 artifact exercised by E2E tests and recording commit and digest receipts. Remove upstream Docker Hub and PR publishing.
