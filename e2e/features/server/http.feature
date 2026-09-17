@@ -12,7 +12,7 @@ Feature: HTTP
 
   Scenario: Internal records redirect anonymous visitors to password sign-in
     Given I send a "GET" request to "/"
-    Then I should see http status 302
+    Then I should see http status 307
     And I should see a "Location" header with value "/signin"
 
   Scenario: Internal post API rejects anonymous access
