@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-17 — Separate local acceptance from cloud releases
+
+- Publish only successful main CI images to the project GHCR namespace, reusing the exact amd64 artifact exercised by E2E tests and recording commit and digest receipts. Remove upstream Docker Hub and PR publishing.
+- Add a read-only release-plan verifier and a manual cloud release runbook. Repeated main/4180 deliveries never authorize a cloud deployment; preserve cloud data and require a backup and migration review.
+
 ## 2026-09-17 — Internal publishing and consistent controls
 
 - Retire member trust, moderation settings, queues and approval APIs. Internal accounts publish directly; migrate pending content without restoring deleted content or changing account access.

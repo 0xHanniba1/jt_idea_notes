@@ -3,80 +3,95 @@ name: publish
 on:
   workflow_run:
     workflows: ["build"]
-    types:
-      - completed
+    branches: [main]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: publish-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
-    # Skip fork PRs: checkout refuses fork code in a trusted workflow_run context (pwn-request
-    # guard), and this job holds Docker Hub secrets. Fork PR images can be published on demand via
-    # publish-pr-multiarch.yml after review.
+    # This privileged workflow never consumes PR/fork artifacts or deploys a server.
     if: >-
-      ${{ github.event.workflow_run.conclusion == 'success' &&
-          (github.event.workflow_run.event != 'pull_request' ||
-           github.event.workflow_run.head_repository.full_name == github.repository) }}
+      ${{ github.repository == '0xHanniba1/jt_idea_notes' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/0xhanniba1/jt_idea_notes
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      BUILD_RUN_ID: ${{ github.event.workflow_run.id }}
+      BUILD_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
     steps:
-      - name: Dump GitHub context
-        run: echo "$GITHUB_CONTEXT"
-        env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-
-      - name: Checkout
-        uses: actions/checkout@v7
+      - name: Download the image tested by the successful main build
+        uses: actions/download-artifact@v8
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          name: fider-image
+          path: out
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+      - name: Verify the tested image and tag the exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          docker load --input out/fider-image.tar
+          test "$(docker image inspect fider-image --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
+          test "$(docker image inspect fider-image --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$SOURCE_SHA"
+          test "$(docker image inspect fider-image --format '{{index .Config.Labels "org.opencontainers.image.source"}}')" = "https://github.com/$GITHUB_REPOSITORY"
+          docker tag fider-image "$IMAGE:sha-$SOURCE_SHA"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to Docker Hub
+      - name: Authenticate to this repository's container registry
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASS }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: build and push docker image (pull_request)
-        if: ${{ github.event.workflow_run.event == 'pull_request' }}
-        uses: docker/build-push-action@v7
-        with:
-          push: true
-          context: .
-          build-args: COMMITHASH=${{ github.event.workflow_run.head_sha }}
-          platforms: linux/amd64
-          tags: getfider/fider:PR_${{ github.event.workflow_run.pull_requests[0].number }}
-          cache-from: type=gha
-          # PR-triggered workflow_run gets a read-only cache token, so cache writes are
-          # denied; ignore-error keeps that from failing the build (reads still work).
-          cache-to: type=gha,mode=max,ignore-error=true
+      - name: Publish image without rebuilding or deploying
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:sha-$SOURCE_SHA"
+          docker image inspect "$IMAGE:sha-$SOURCE_SHA" > image-inspect.json
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          image = os.environ['IMAGE']
+          inspect = json.loads(Path('image-inspect.json').read_text())[0]
+          refs = [ref for ref in inspect['RepoDigests'] if ref.startswith(image + '@sha256:')]
+          if len(refs) != 1 or not re.fullmatch(re.escape(image) + r'@sha256:[0-9a-f]{64}', refs[0]):
+              raise SystemExit('Missing or ambiguous registry digest')
+          receipt = {
+              'schema': 1, 'repository': os.environ['GITHUB_REPOSITORY'],
+              'commit': os.environ['SOURCE_SHA'], 'platform': 'linux/amd64',
+              'tag': image + ':sha-' + os.environ['SOURCE_SHA'], 'image': refs[0],
+              'image_id': inspect['Id'], 'build_run_id': int(os.environ['BUILD_RUN_ID']),
+              'build_run_attempt': int(os.environ['BUILD_RUN_ATTEMPT']),
+              'publish_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'publish_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'cloud_deployed': False,
+          }
+          Path('release.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write('## Image ready; cloud unchanged\n\n```json\n' + json.dumps(receipt, indent=2) + '\n```\n')
+          PY
 
-      - name: build and push docker image (push branch)
-        if: ${{ github.event.workflow_run.event == 'push' }}
-        uses: docker/build-push-action@v7
+      - name: Save release receipt
+        uses: actions/upload-artifact@v7
         with:
-          push: true
-          context: .
-          build-args: COMMITHASH=${{ github.event.workflow_run.head_sha }}
-          platforms: linux/amd64,linux/arm64/v8
-          tags: |
-            getfider/fider:SHA_${{ github.event.workflow_run.head_sha }}
-            getfider/fider:${{ github.event.workflow_run.head_branch == 'main' && 'main' || 'stable' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: build and push docker image (push tag)
-        if: ${{ github.event.workflow_run.event == 'release' }}
-        uses: docker/build-push-action@v7
-        with:
-          push: true
-          context: .
-          build-args: |
-            COMMITHASH=${{ github.event.workflow_run.head_sha }}
-            VERSION=${{ github.event.workflow_run.display_title }}
-          platforms: linux/amd64,linux/arm64/v8
-          tags: getfider/fider:${{ github.event.workflow_run.display_title }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          name: release-sha-${{ github.event.workflow_run.head_sha }}
+          path: release.json
+          retention-days: 90
+          if-no-files-found: error
