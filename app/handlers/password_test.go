@@ -26,8 +26,8 @@ import (
 	"github.com/getfider/fider/app/pkg/web"
 )
 
-const passwordHandlerCurrent = "A test account temporary password!"
-const passwordHandlerNew = "A different new account password!"
+const passwordHandlerCurrent = "TempPass!123"
+const passwordHandlerNew = "NewPass!1234"
 
 var passwordHandlerSequence atomic.Int64
 var passwordHandlerHash struct {

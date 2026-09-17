@@ -25,7 +25,7 @@ func (b *accountTestBackend) preview(opts accountOptions) (*accountTarget, error
 }
 func (b *accountTestBackend) apply(_ accountOptions, hash string) error {
 	b.writes++
-	b.verified = passwordauth.Verify(hash, "temporary password for local test")
+	b.verified = passwordauth.Verify(hash, "CliTest!1234")
 	if b.fail {
 		return errors.New("sensitive storage failure")
 	}
@@ -112,7 +112,7 @@ func TestAccountWriteRequiresTTY(t *testing.T) {
 func TestAccountSuccessFollowsCommitAndNeverPrintsSecrets(t *testing.T) {
 	for _, fail := range []bool{false, true} {
 		var out bytes.Buffer
-		input := &accountTestInput{tty: true, lines: []string{"YES"}, passwords: []string{"temporary password for local test", "temporary password for local test"}}
+		input := &accountTestInput{tty: true, lines: []string{"YES"}, passwords: []string{"CliTest!1234", "CliTest!1234"}}
 		backend := &accountTestBackend{fail: fail}
 		code := runAccount([]string{"reset-password", "--tenant-id", "1", "--user-id", "2"}, input, &out, backend)
 		if backend.writes != 1 || !backend.verified {
@@ -121,7 +121,7 @@ func TestAccountSuccessFollowsCommitAndNeverPrintsSecrets(t *testing.T) {
 		if (code == 0) == fail || strings.Contains(out.String(), "Account update committed.") == fail {
 			t.Fatal("commit outcome not reflected in output")
 		}
-		for _, secret := range []string{"temporary password for local test", "sensitive storage failure", "$argon2id$"} {
+		for _, secret := range []string{"CliTest!1234", "sensitive storage failure", "$argon2id$"} {
 			if strings.Contains(out.String(), secret) {
 				t.Fatal("secret leaked into CLI output")
 			}
@@ -132,7 +132,7 @@ func TestAccountSuccessFollowsCommitAndNeverPrintsSecrets(t *testing.T) {
 func TestAccountMismatchAndCancellationNeverWrite(t *testing.T) {
 	for _, input := range []*accountTestInput{
 		{tty: true, lines: []string{"NO"}},
-		{tty: true, lines: []string{"YES"}, passwords: []string{"temporary password for local test", "different temporary password"}},
+		{tty: true, lines: []string{"YES"}, passwords: []string{"CliTest!1234", "different temporary password"}},
 	} {
 		var out bytes.Buffer
 		backend := &accountTestBackend{}
@@ -202,7 +202,7 @@ func TestAccountOutputFailureStopsBeforeConfirmationOrWrite(t *testing.T) {
 		{name: "dry-run result", args: []string{"reset-password", "--tenant-id", "1", "--user-id", "2", "--dry-run"}, failAt: 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			input := &accountTestInput{tty: true, lines: tc.lines, passwords: []string{"temporary password for local test", "temporary password for local test"}}
+			input := &accountTestInput{tty: true, lines: tc.lines, passwords: []string{"CliTest!1234", "CliTest!1234"}}
 			backend := &accountTestBackend{}
 			code := runAccount(tc.args, input, &accountFailingOutput{failAt: tc.failAt}, backend)
 			if code == 0 || backend.writes != 0 || input.reads != tc.wantReads {
@@ -213,7 +213,7 @@ func TestAccountOutputFailureStopsBeforeConfirmationOrWrite(t *testing.T) {
 }
 
 func TestAccountCommittedOutputFailureReturnsFailureWithoutRetry(t *testing.T) {
-	input := &accountTestInput{tty: true, lines: []string{"YES"}, passwords: []string{"temporary password for local test", "temporary password for local test"}}
+	input := &accountTestInput{tty: true, lines: []string{"YES"}, passwords: []string{"CliTest!1234", "CliTest!1234"}}
 	backend := &accountTestBackend{}
 	code := runAccount([]string{"reset-password", "--tenant-id", "1", "--user-id", "2"}, input, &accountFailingOutput{failAt: 3}, backend)
 	if code == 0 || backend.writes != 1 || !backend.verified {

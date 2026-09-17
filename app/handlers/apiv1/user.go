@@ -15,6 +15,10 @@ import (
 // ListUsers returns paginated registered users
 func ListUsers() web.HandlerFunc {
 	return func(c *web.Context) error {
+		status := c.QueryParam("status")
+		if status != "" && status != "all" && status != "active" && status != "inactive" {
+			return c.BadRequest(web.Map{})
+		}
 		page, _ := c.QueryParamAsInt("page")
 		if page <= 0 {
 			page = 1
@@ -26,10 +30,11 @@ func ListUsers() web.HandlerFunc {
 		}
 
 		searchUsers := &query.SearchUsers{
-			Query: c.QueryParam("query"),
-			Roles: c.QueryParamAsArray("roles"),
-			Page:  page,
-			Limit: limit,
+			Status: status,
+			Query:  c.QueryParam("query"),
+			Roles:  c.QueryParamAsArray("roles"),
+			Page:   page,
+			Limit:  limit,
 		}
 
 		if err := bus.Dispatch(c, searchUsers); err != nil {

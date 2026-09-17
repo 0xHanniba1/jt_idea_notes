@@ -158,7 +158,7 @@ func TestPasswordStorageManagementAndPrivacy(t *testing.T) {
 	if err := bus.Dispatch(admin, &cmd.UnblockUser{UserID: u.ID}); err != passwordauth.ErrInvalidInput {
 		t.Fatal("legacy restore bypass accepted")
 	}
-	replacement, err := passwordauth.Hash("Replacement temporary password value")
+	replacement, err := passwordauth.Hash("ResetPw!1234")
 	if err != nil {
 		t.Fatal(err)
 	}

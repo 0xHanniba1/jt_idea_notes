@@ -2,6 +2,9 @@ package actions
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/models/entity"
@@ -12,6 +15,8 @@ import (
 
 // UpdateUserSettings happens when users updates their settings
 type UpdateUserSettings struct {
+	// Detect attempts to change the login identifier, including null/empty input.
+	Username   json.RawMessage   `json:"username"`
 	Name       string            `json:"name"`
 	AvatarType enum.AvatarType   `json:"avatarType"`
 	Avatar     *dto.ImageUpload  `json:"avatar"`
@@ -32,6 +37,10 @@ func (action *UpdateUserSettings) IsAuthorized(ctx context.Context, user *entity
 // Validate if current model is valid
 func (action *UpdateUserSettings) Validate(ctx context.Context, user *entity.User) *validate.Result {
 	result := validate.Success()
+	if action.Username != nil {
+		result.AddFieldFailure("username", i18n.T(ctx, "auth.username.immutable"))
+	}
+	action.Name = strings.TrimSpace(action.Name)
 
 	if action.Name == "" {
 		result.AddFieldFailure("name", propertyIsRequired(ctx, "name"))
@@ -41,8 +50,8 @@ func (action *UpdateUserSettings) Validate(ctx context.Context, user *entity.Use
 		result.AddFieldFailure("avatarType", propertyIsInvalid(ctx, "avatarType"))
 	}
 
-	if len(action.Name) > 50 {
-		result.AddFieldFailure("name", propertyMaxStringLen(ctx, "name", 50))
+	if utf8.RuneCountInString(action.Name) > 100 || !utf8.ValidString(action.Name) {
+		result.AddFieldFailure("name", propertyMaxStringLen(ctx, "name", 100))
 	}
 
 	action.Avatar.BlobKey = user.AvatarBlobKey

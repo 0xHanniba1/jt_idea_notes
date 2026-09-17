@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-17 — Account management and fixed usernames
+
+- Adapt the CRM account layout with a persistent creation form, account cards, search, role/status filters, and visible role, password and activation controls. Preserve existing roles and permissions.
+- Clearly separate immutable login usernames from editable nicknames; reject username changes and consistently validate nicknames up to 100 Unicode characters.
+- Allow optional temporary passwords, securely generate 12-character values, and show credentials only after a successful commit. Apply the requested 8–12-character rule to new passwords while keeping existing longer passwords valid.
+- Validate Go race/short tests, 225 frontend tests, lint, production builds, real HTTP account flows and desktop/narrow browser checks. See [implementation and verification](docs/account-management-plan.md) and [Issue #9](https://github.com/0xHanniba1/jt_idea_notes/issues/9).
+
 ## 2026-09-16 — Administrator-provisioned password accounts
 
 - Replace email codes, magic links, OAuth, public registration and API-key identities with administrator-provisioned usernames and passwords. Preserve existing user IDs and business history.

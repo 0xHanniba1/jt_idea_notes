@@ -22,17 +22,17 @@ func TestUsernamePolicy(t *testing.T) {
 }
 
 func TestPasswordPolicyUnicodeAndBounds(t *testing.T) {
-	for _, value := range []string{"A sufficiently long passphrase", "中文密码允许空格并且长度足够了", " leading and trailing spaces ", strings.Repeat("ab", 64), strings.Repeat("🔒🔑", 64)} {
+	for _, value := range []string{"Valid!08", "ValidPass!12", "中文密码允许空格", " Space PW ", strings.Repeat("🔒🔑", 4), strings.Repeat("🔒🔑", 6)} {
 		if err := ValidatePassword(value); err != nil {
 			t.Errorf("valid password rejected: %v", err)
 		}
 	}
-	for _, value := range []string{"short", strings.Repeat("ab", 65), strings.Repeat("🔒", 129), "long but invalid utf8\xff"} {
+	for _, value := range []string{"1234567", "ValidPass!123", strings.Repeat("🔒", 7), strings.Repeat("🔒", 13), "invalid\xff"} {
 		if ValidatePassword(value) != ErrInvalidPassword {
 			t.Errorf("expected length/encoding rejection")
 		}
 	}
-	for _, value := range []string{"passwordpassword", "PASSWORD12345678", strings.Repeat("a", 15), strings.Repeat(" ", 15)} {
+	for _, value := range []string{"password", "PASSWORD1234", "12345678", strings.Repeat("a", 8), strings.Repeat(" ", 12)} {
 		if ValidatePassword(value) != ErrWeakPassword {
 			t.Errorf("weak password accepted")
 		}
@@ -40,7 +40,7 @@ func TestPasswordPolicyUnicodeAndBounds(t *testing.T) {
 }
 
 func TestHashVerifyNoPasswordNormalization(t *testing.T) {
-	password := "  中文密码与 空格 Exact  "
+	password := " 中文密 A码 "
 	hash, err := Hash(password)
 	if err != nil {
 		t.Fatal(err)
@@ -94,5 +94,29 @@ func TestInvalidHashRejectedBeforeArgon2(t *testing.T) {
 	}
 	if Verify(good, "this is not the placeholder password") {
 		t.Fatal("unknown account placeholder verified")
+	}
+}
+
+func TestTemporaryPasswordFitsPolicy(t *testing.T) {
+	password, err := GenerateTemporaryPassword()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(password) != 12 || ValidatePassword(password) != nil {
+		t.Fatal("generated password does not meet the 8-12 character policy")
+	}
+}
+
+func TestExistingLongPasswordStillVerifies(t *testing.T) {
+	const password = "Legacy password from old policy"
+	const hash = "$argon2id$v=19$m=19456,t=2,p=1$4KpdxfKRXJ0EoMXDcOx5gw$BakhqK9dxWzdGusnGDZZ/gQnbPgAl5+DUIgnUUkSNCo"
+	if ValidatePassword(password) != ErrInvalidPassword {
+		t.Fatal("new long password was accepted")
+	}
+	if !Verify(hash, password) {
+		t.Fatal("existing password was invalidated by the new creation policy")
+	}
+	if Verify(hash, password+"x") {
+		t.Fatal("wrong legacy password was accepted")
 	}
 }

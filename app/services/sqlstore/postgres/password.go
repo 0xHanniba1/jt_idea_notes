@@ -184,7 +184,7 @@ func createPasswordAccount(ctx context.Context, c *cmd.CreatePasswordAccount) er
 	if err := passwordauth.ValidateHash(c.PasswordHash); err != nil {
 		return err
 	}
-	if strings.TrimSpace(c.Name) == "" || !utf8.ValidString(c.Name) || len(c.Name) > 100 || !validPasswordRole(c.Role) {
+	if strings.TrimSpace(c.Name) == "" || !utf8.ValidString(c.Name) || utf8.RuneCountInString(c.Name) > 100 || !validPasswordRole(c.Role) {
 		return passwordauth.ErrInvalidInput
 	}
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, actor *entity.User) error {

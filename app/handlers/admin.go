@@ -144,6 +144,10 @@ func UpdateEmailAuthAllowed() web.HandlerFunc {
 // ManageMembers is the page used by administrators to change member's role
 func ManageMembers() web.HandlerFunc {
 	return func(c *web.Context) error {
+		status := c.QueryParam("status")
+		if status != "" && status != "all" && status != "active" && status != "inactive" {
+			return c.BadRequest(web.Map{})
+		}
 		// Only load first page for initial page load - subsequent pagination handled by API
 		page, _ := c.QueryParamAsInt("page")
 		if page <= 0 {
@@ -151,10 +155,11 @@ func ManageMembers() web.HandlerFunc {
 		}
 
 		searchUsers := &query.SearchUsers{
-			Query: c.QueryParam("query"),
-			Roles: c.QueryParamAsArray("roles"),
-			Page:  page,
-			Limit: 10,
+			Status: status,
+			Query:  c.QueryParam("query"),
+			Roles:  c.QueryParamAsArray("roles"),
+			Page:   page,
+			Limit:  10,
 		}
 
 		if err := bus.Dispatch(c, searchUsers); err != nil {
@@ -174,6 +179,7 @@ func ManageMembers() web.HandlerFunc {
 			Title: i18n.T(c, "admin.title.users"),
 			Data: web.Map{
 				"users":      allUsersWithEmail,
+				"totalCount": searchUsers.TotalCount,
 				"totalPages": (searchUsers.TotalCount + 10 - 1) / 10,
 			},
 		})
