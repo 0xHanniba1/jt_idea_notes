@@ -91,16 +91,14 @@ func TestSearchPostsPaginationVisibility(t *testing.T) {
 	visitor := *jonSnow
 	visitor.Role = enum.RoleVisitor
 	for _, tc := range []struct {
-		ctx        context.Context
-		moderation string
-		want       int
+		ctx  context.Context
+		want int
 	}{
-		{demoTenantCtx, "", 1}, {withUser(demoTenantCtx, &visitor), "", 2},
-		{withUser(demoTenantCtx, &visitor), "pending", 2}, {jonSnowCtx, "pending", 2},
-		{jonSnowCtx, "approved", 1}, {avengersTenantCtx, "", 1},
+		{demoTenantCtx, 3}, {withUser(demoTenantCtx, &visitor), 3},
+		{jonSnowCtx, 3}, {avengersTenantCtx, 1},
 	} {
 		for _, term := range []string{"", "pagination"} {
-			q := &query.SearchPosts{Paginate: true, Page: "9", Limit: "10", Query: term, ModerationFilter: tc.moderation}
+			q := &query.SearchPosts{Paginate: true, Page: "9", Limit: "10", Query: term}
 			if err := bus.Dispatch(tc.ctx, q); err != nil {
 				t.Fatal(err)
 			}

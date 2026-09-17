@@ -30,7 +30,6 @@ interface PostsContainerState {
   view: string
   filterState: FilterState // Filter state
   query: string // Search query
-  moderation: string
   limit: number
   page: number
   total: number
@@ -55,12 +54,11 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
       failed: false,
       view,
       query: querystring.get("query"),
-      moderation: props.progressView ? "" : querystring.get("moderation"),
       filterState: props.progressView
         ? { tags: [], statuses: [], myPosts: false, noTags: false }
         : {
             tags: querystring.getArray("tags"),
-            statuses: querystring.getArray("statuses"),
+            statuses: querystring.getArray("statuses").filter((status) => status !== "pending"),
             myPosts: querystring.get("myposts") === "true",
             noTags: querystring.get("notags") === "true",
           },
@@ -86,6 +84,7 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
   private getNormalizedURL(): URL {
     const url = new URL(navigator.url())
     url.searchParams.delete("myvotes")
+    url.searchParams.delete("moderation")
     if (this.props.progressView) {
       for (const key of ["statuses", "tags", "myposts", "notags", "moderation"]) url.searchParams.delete(key)
     }
@@ -113,7 +112,6 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
               view: this.state.view,
               limit: this.state.limit,
               page: this.state.page,
-              moderation: this.state.moderation,
             })
         )
 
@@ -163,12 +161,8 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     noTags: boolean,
     page: number
   ) {
-    const moderation = statuses.includes("pending") ? "pending" : this.state.moderation
     try {
-      const response = await actions.searchPostsPage(
-        { query, view, limit, tags, statuses: statuses.filter((s) => s !== "pending"), myPosts, noTags, moderation },
-        page
-      )
+      const response = await actions.searchPostsPage({ query, view, limit, tags, statuses: statuses.filter((s) => s !== "pending"), myPosts, noTags }, page)
       if (version !== this.requestVersion) return
       if (!response.ok || !response.data) {
         this.setState({ loading: false, failed: true })

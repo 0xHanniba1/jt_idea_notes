@@ -87,7 +87,6 @@ func (s Service) Init() {
 	bus.AddHandler(countUsers)
 	bus.AddHandler(blockUser)
 	bus.AddHandler(unblockUser)
-	bus.AddHandler(untrustUser)
 	bus.AddHandler(regenerateAPIKey)
 	bus.AddHandler(userSubscribedTo)
 	bus.AddHandler(changeUserRole)
@@ -147,15 +146,6 @@ func (s Service) Init() {
 	bus.AddHandler(AddMentionNotification)
 	bus.AddHandler(getMentionsNotifications)
 
-	bus.AddHandler(approvePost)
-	bus.AddHandler(declinePost)
-	bus.AddHandler(approveComment)
-	bus.AddHandler(declineComment)
-	bus.AddHandler(bulkApproveItems)
-	bus.AddHandler(bulkDeclineItems)
-	bus.AddHandler(getModerationItems)
-	bus.AddHandler(getModerationCount)
-	bus.AddHandler(trustUser)
 }
 
 type SqlHandler func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error

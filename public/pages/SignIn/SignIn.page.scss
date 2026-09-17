@@ -4,7 +4,7 @@
   &__theme {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
   &__panel {
     background: var(--paper);
@@ -15,10 +15,11 @@
   .c-signin-control {
     padding: 0;
   }
-  &__actions {
+  .c-password-change-form__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
   }
 }
 @media (max-width: 600px) {

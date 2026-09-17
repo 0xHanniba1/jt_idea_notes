@@ -155,20 +155,24 @@ func TestIndexHandler_IgnoresRetiredVoteFilter(t *testing.T) {
 			t.Fatalf("retired myvotes changed active filters: %#v vs %#v", searches[0], search)
 		}
 	}
-	Expect(searches[0].ModerationFilter).Equals("pending")
 }
 
-func TestIndexHandler_PreservesModerationFilter(t *testing.T) {
+func TestIndexHandler_IgnoresRetiredModerationFilter(t *testing.T) {
 	RegisterT(t)
 	bus.AddHandler(func(ctx context.Context, q *query.CountPostPerStatus) error { return nil })
 	bus.AddHandler(func(ctx context.Context, q *query.GetAllTags) error { return nil })
-	var search *query.SearchPosts
-	bus.AddHandler(func(ctx context.Context, q *query.SearchPosts) error { search = q; return nil })
-	code, _ := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.JonSnow).
-		WithURL("/?view=most-wanted&moderation=approved&myvotes=true&statuses=completed").Execute(handlers.Index())
-	Expect(code).Equals(http.StatusOK)
-	Expect(search.View).Equals("recent")
-	Expect(search.ModerationFilter).Equals("approved")
+	searches := []*query.SearchPosts{}
+	bus.AddHandler(func(ctx context.Context, q *query.SearchPosts) error { searches = append(searches, q); return nil })
+	for _, params := range []string{"statuses=completed", "statuses=completed&moderation=approved", "statuses=completed,pending&moderation=pending"} {
+		code, _ := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.JonSnow).
+			WithURL("/?view=recent&" + params).Execute(handlers.Index())
+		Expect(code).Equals(http.StatusOK)
+	}
+	for _, search := range searches[1:] {
+		if !reflect.DeepEqual(searches[0], search) {
+			t.Fatalf("retired moderation parameters changed active filters: %#v", search)
+		}
+	}
 }
 
 func TestIndexHandler_Pagination(t *testing.T) {

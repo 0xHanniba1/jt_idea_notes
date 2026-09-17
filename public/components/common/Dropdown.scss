@@ -36,6 +36,8 @@
     max-width: min(280px, calc(100vw - 24px));
     max-height: min(400px, 60vh);
     overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-500) var(--paper);
     padding: 5px;
     border: 1px solid var(--line);
     border-radius: var(--radius-control);

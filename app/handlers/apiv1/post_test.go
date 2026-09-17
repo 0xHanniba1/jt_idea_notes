@@ -1038,7 +1038,6 @@ func TestSearchPostsHandler_IgnoresRetiredVoteFilter(t *testing.T) {
 			Expect(searches[1].Statuses).Equals([]enum.PostStatus{enum.PostCompleted})
 			Expect(searches[1].MyPostsOnly).IsTrue()
 			Expect(searches[1].NoTagsOnly).IsTrue()
-			Expect(searches[1].ModerationFilter).Equals("pending")
 			Expect(searches[1].Limit).Equals("20")
 		})
 	}

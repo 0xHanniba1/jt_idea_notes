@@ -40,7 +40,7 @@ var (
 													agg_comments AS (
 															SELECT
 																	post_id,
-																	COUNT(CASE WHEN comments.is_approved = true THEN 1 END) as all
+																	COUNT(*) as all
 															FROM comments
 															INNER JOIN posts
 															ON posts.id = comments.post_id
@@ -202,7 +202,7 @@ func countPostPerStatus(ctx context.Context, q *query.CountPostPerStatus) error 
 
 func addNewPost(ctx context.Context, c *cmd.AddNewPost) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		isApproved := !tenant.IsModerationEnabled || !user.RequiresModeration()
+		isApproved := true
 		var id int
 		// Detect language using lingua-go
 		lang := detectPostLanguage(c.Title, c.Description)
@@ -329,7 +329,7 @@ func preprocessSearchQuery(query string) string {
 
 func findSimilarPosts(ctx context.Context, q *query.FindSimilarPosts) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		innerQuery := buildPostQuery(user, "p.tenant_id = $1 AND p.status = ANY($2)", "")
+		innerQuery := buildPostQuery(user, "p.tenant_id = $1 AND p.status = ANY($2)")
 
 		filteredQuery := preprocessSearchQuery(q.Query)
 
@@ -383,7 +383,7 @@ func findSimilarPosts(ctx context.Context, q *query.FindSimilarPosts) error {
 
 func searchPosts(ctx context.Context, q *query.SearchPosts) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		innerQuery := buildPostQuery(user, "p.tenant_id = $1 AND p.status = ANY($2)", q.ModerationFilter)
+		innerQuery := buildPostQuery(user, "p.tenant_id = $1 AND p.status = ANY($2)")
 
 		if q.Tags == nil {
 			q.Tags = []string{}
@@ -414,7 +414,7 @@ func searchPosts(ctx context.Context, q *query.SearchPosts) error {
 		}
 
 		// Reuse exactly the same predicates for the count and page so that tenant,
-		// moderation, search and tag visibility cannot disagree with the total.
+		// search and tag visibility cannot disagree with the total.
 		predicate := "1 = 1"
 		tagsPlaceholder := 3
 		params := []interface{}{tenant.ID}
@@ -506,59 +506,21 @@ func querySinglePost(ctx context.Context, trx *dbx.Trx, query string, args ...an
 	return post.ToModel(ctx), nil
 }
 
-func buildPostQuery(user *entity.User, filter string, moderationFilter string) string {
+func buildPostQuery(user *entity.User, filter string) string {
 	tagCondition := `AND tags.is_public = true`
 	if user != nil && user.IsCollaborator() {
 		tagCondition = ``
 	}
 
-	// Add approval filtering based on moderation filter and user permissions
-	approvalFilter := ""
-
-	// If user is a collaborator and has specified a moderation filter, apply it
-	if user != nil && user.IsCollaborator() && moderationFilter != "" {
-		switch moderationFilter {
-		case "pending":
-			// Show only unapproved posts
-			approvalFilter = " AND p.is_approved = false"
-		case "approved":
-			// Show only approved posts
-			approvalFilter = " AND p.is_approved = true"
-		}
-		// If moderationFilter is neither "pending" nor "approved", show all posts (no filter)
-	} else if user != nil {
-		// Regular authenticated users can see approved posts + their own unapproved posts
-		approvalFilter = fmt.Sprintf(" AND (p.is_approved = true OR p.user_id = %d)", user.ID)
-	} else {
-		// Anonymous users can only see approved posts
-		approvalFilter = " AND p.is_approved = true"
-	}
-
-	combinedFilter := filter + approvalFilter
-	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, combinedFilter)
+	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, filter)
 }
 
 // buildSinglePostQuery is used for fetching individual posts (by ID, slug, or number)
-// Collaborators can view any post for moderation purposes
 func buildSinglePostQuery(user *entity.User, filter string) string {
 	tagCondition := `AND tags.is_public = true`
 	if user != nil && user.IsCollaborator() {
 		tagCondition = ``
 	}
 
-	// Approval filtering for single post views
-	approvalFilter := ""
-	if user != nil && user.IsCollaborator() {
-		// Collaborators can view any post (for moderation purposes)
-		approvalFilter = ""
-	} else if user != nil {
-		// Regular authenticated users can see approved posts + their own unapproved posts
-		approvalFilter = fmt.Sprintf(" AND (p.is_approved = true OR p.user_id = %d)", user.ID)
-	} else {
-		// Anonymous users can only see approved posts
-		approvalFilter = " AND p.is_approved = true"
-	}
-
-	combinedFilter := filter + approvalFilter
-	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, combinedFilter)
+	return fmt.Sprintf(sqlSelectPostsWhere, tagCondition, filter)
 }

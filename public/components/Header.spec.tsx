@@ -7,7 +7,6 @@ import { Header } from "./Header"
 jest.mock("@fider/components", () => ({
   ...jest.requireActual("@fider/components"),
   NotificationIndicator: () => null,
-  ModerationIndicator: () => null,
   SignInModal: () => null,
   RSSModal: () => null,
 }))

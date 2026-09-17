@@ -24,10 +24,10 @@ export default function ChangePasswordRequiredPage() {
   }
   return (
     <div id="p-change-password-required" className="page container c-password-page">
-      <div className="c-password-page__theme">
-        <ThemeSwitcher />
-      </div>
       <section className="c-password-page__panel">
+        <div className="c-password-page__theme">
+          <ThemeSwitcher />
+        </div>
         <div className="text-center mb-4">
           <TenantLogo size={50} />
         </div>
@@ -37,13 +37,17 @@ export default function ChangePasswordRequiredPage() {
         <p className="text-muted mb-4">
           <Trans id="auth.password.required.help">You are using a temporary password. Set your own password before entering the site.</Trans>
         </p>
-        <PasswordChangeForm required disabled={busy} onSubmittingChange={setBusy} />
+        <PasswordChangeForm
+          required
+          disabled={busy}
+          onSubmittingChange={setBusy}
+          secondaryAction={
+            <Button type="button" disabled={busy} onClick={signOut}>
+              <Trans id="menu.signout">Sign out</Trans>
+            </Button>
+          }
+        />
         <DisplayError error={error} />
-        <div className="mt-3">
-          <Button disabled={busy} onClick={signOut}>
-            <Trans id="menu.signout">Sign out</Trans>
-          </Button>
-        </div>
       </section>
     </div>
   )

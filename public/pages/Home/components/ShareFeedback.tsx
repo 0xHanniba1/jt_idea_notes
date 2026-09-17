@@ -129,7 +129,7 @@ const ShareFeedbackForm: React.FC<ShareFeedbackProps> = (props) => {
         clearError()
         clearCache()
         clearAttachments()
-        cache.session.set(result.data.isApproved ? "POST_CREATED_SUCCESS" : "POST_CREATED_MODERATION", "true")
+        cache.session.set("POST_CREATED_SUCCESS", "true")
         location.href = `/posts/${result.data.number}/${result.data.slug}`
       } else if (result.error) setError(result.error)
     } catch {

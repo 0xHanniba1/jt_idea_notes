@@ -59,7 +59,7 @@ test.each(["trending", "most-wanted", "my-votes", "unknown"])("normalizes %s lin
   expect(url.searchParams.get("myposts")).toBe("true")
   expect(url.searchParams.get("notags")).toBe("true")
   expect(url.searchParams.get("query")).toBe("Test")
-  expect(url.searchParams.get("moderation")).toBe("pending")
+  expect(url.searchParams.get("moderation")).toBeNull()
   expect(url.searchParams.get("limit")).toBe("25")
   expect(url.hash).toBe("#top")
   // The normalized SSR results are reused, with no extra request on hydration.
@@ -100,7 +100,7 @@ test("keeps the normalized view and filters when loading the next page", async (
   expect(requestURL.searchParams.get("tags")).toBe("bug")
   expect(requestURL.searchParams.get("statuses")).toBe("started")
   expect(requestURL.searchParams.get("myposts")).toBe("true")
-  expect(requestURL.searchParams.get("moderation")).toBe("pending")
+  expect(requestURL.searchParams.get("moderation")).toBeNull()
   expect(requestURL.searchParams.get("limit")).toBe("25")
   expect(requestURL.searchParams.get("page")).toBe("2")
   expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled()

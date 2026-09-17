@@ -209,7 +209,7 @@
   "admin.privacy.private.help": "私有站点不允许未登录的用户查看内容或参与互动。<0/>启用后，只有已注册用户、受邀用户，以及通过受信任的 OAuth 服务登录的用户才能访问本站点，同时会停用订阅源。",
   "admin.privacy.private.label": "私有站点",
   "admin.privacy.saved": "访问权限设置已保存。",
-  "admin.privacy.subtitle": "管理站点访问权限、订阅源和内容审核",
+  "admin.privacy.subtitle": "管理内部工作台的访问权限",
   "admin.privacy.title": "访问权限",
   "admin.tags.add": "添加标签",
   "admin.tags.arrayrequired": "JSON 内容必须是标签数组。",
@@ -635,5 +635,6 @@
   "workspace.skip": "跳到主要内容",
   "workspace.status": "页面状态",
   "progress.status.label": "进度状态",
-  "progress.empty": "当前状态下暂无记录"
+  "progress.empty": "当前状态下暂无记录",
+  "auth.signin.brand": "金唐需求工作台"
 }

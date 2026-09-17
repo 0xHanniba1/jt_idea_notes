@@ -58,6 +58,10 @@ const ListItem = (props: DropdownListItemProps) => {
 const Divider = () => <hr className="c-dropdown__divider" role="separator" />
 
 interface DropdownProps {
+  triggerId?: string
+  ariaInvalid?: boolean
+  ariaDescribedBy?: string
+  typeAhead?: boolean
   disabled?: boolean
   renderHandle: JSX.Element
   position?: "left" | "right"
@@ -76,6 +80,7 @@ export const Dropdown = (props: DropdownProps) => {
   const handle = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const initialFocus = useRef<"first" | "last" | null>(null)
+  const searchText = useRef({ text: "", time: 0 })
   const id = useId()
   const [isOpen, setIsOpen] = useState(false)
   const [above, setAbove] = useState(false)
@@ -139,10 +144,24 @@ export const Dropdown = (props: DropdownProps) => {
       close(true)
       return
     }
-    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
     // Editable content inside a custom dropdown retains its normal cursor keys.
     const target = event.target as HTMLElement
     if (target.matches("textarea, [contenteditable=true]") || (target.matches("input") && ["Home", "End"].includes(event.key))) return
+    if (props.typeAhead && isOpen && event.key.length === 1 && event.key !== " " && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      const now = Date.now()
+      const text = (now - searchText.current.time < 700 ? searchText.current.text : "") + event.key.toLocaleLowerCase()
+      searchText.current = { text, time: now }
+      const available = items()
+      const current = available.indexOf(document.activeElement as HTMLElement)
+      const repeated = Array.from(text).every((char) => char === text[0])
+      const prefix = repeated ? text[0] : text
+      const ordered = repeated ? [...available.slice(current + 1), ...available.slice(0, current + 1)] : available
+      ordered.find((item) => item.textContent?.trim().toLocaleLowerCase().startsWith(prefix))?.focus()
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
     if (contentRole === "dialog" && isOpen) return
     event.preventDefault()
     event.stopPropagation()
@@ -178,10 +197,13 @@ export const Dropdown = (props: DropdownProps) => {
       <div ref={node} className="c-dropdown" onKeyDown={onKeyDown}>
         <button
           ref={handle}
+          id={props.triggerId}
           type="button"
           className="c-dropdown__handle"
           disabled={props.disabled}
           aria-label={ariaLabel}
+          aria-invalid={props.ariaInvalid || undefined}
+          aria-describedby={props.ariaDescribedBy}
           aria-haspopup={contentRole}
           aria-expanded={isOpen}
           aria-controls={isOpen ? id : undefined}

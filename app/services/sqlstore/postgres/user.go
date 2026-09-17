@@ -69,18 +69,6 @@ func unblockUser(ctx context.Context, c *cmd.UnblockUser) error {
 	return passwordauth.ErrInvalidInput
 }
 
-func untrustUser(ctx context.Context, c *cmd.UntrustUser) error {
-	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		if _, err := trx.Execute(
-			"UPDATE users SET is_trusted = false WHERE id = $1 AND tenant_id = $2",
-			c.UserID, tenant.ID,
-		); err != nil {
-			return errors.Wrap(err, "failed to untrust user")
-		}
-		return nil
-	})
-}
-
 func regenerateAPIKey(ctx context.Context, c *cmd.RegenerateAPIKey) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
 		apiKey := rand.String(64)

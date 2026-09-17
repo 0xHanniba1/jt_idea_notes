@@ -17,9 +17,8 @@ type CreateTenant struct {
 }
 
 type UpdateTenantPrivacySettings struct {
-	IsPrivate           bool
-	IsFeedEnabled       bool
-	IsModerationEnabled bool
+	IsPrivate     bool
+	IsFeedEnabled bool
 }
 
 type UpdateTenantSettings struct {
@@ -41,7 +40,6 @@ type UpdateTenantAdvancedSettings struct {
 type ActivateTenant struct {
 	TenantID int
 }
-
 
 // ScheduleTenantDeletion records the account owner's request to delete the whole site.
 // The tenant stays active during the grace window; a background job performs the hard

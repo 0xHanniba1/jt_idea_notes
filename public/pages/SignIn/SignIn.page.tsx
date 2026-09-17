@@ -2,10 +2,8 @@ import "./SignIn.page.scss"
 import React, { useEffect, useState } from "react"
 import { SignInControl, TenantLogo, LegalNotice, Message, ThemeSwitcher } from "@fider/components"
 import { Trans } from "@lingui/react/macro"
-import { useFider } from "@fider/hooks"
 
 export const SignInPage = () => {
-  const fider = useFider()
   const [redirect, setRedirect] = useState("/")
   const [passwordChanged, setPasswordChanged] = useState(false)
   useEffect(() => {
@@ -15,14 +13,16 @@ export const SignInPage = () => {
   }, [])
   return (
     <div id="p-signin" className="page container c-password-page">
-      <div className="c-password-page__theme">
-        <ThemeSwitcher />
-      </div>
       <section className="c-password-page__panel">
+        <div className="c-password-page__theme">
+          <ThemeSwitcher />
+        </div>
         <div className="text-center mb-4">
           <TenantLogo size={50} />
         </div>
-        <h1 className="text-title text-center">{fider.session.tenant.name}</h1>
+        <h1 className="text-title text-center">
+          <Trans id="auth.signin.brand">Jintang Requirements Workspace</Trans>
+        </h1>
         <p className="text-muted text-center mb-4">
           <Trans id="auth.signin.internal">Sign in with your company account to continue.</Trans>
         </p>
