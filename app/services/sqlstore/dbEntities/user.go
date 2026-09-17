@@ -66,6 +66,9 @@ func (u *User) ToModel(ctx context.Context) *entity.User {
 	}
 
 	avatarType := enum.AvatarType(u.AvatarType.Int64)
+	if avatarType != enum.AvatarTypeCustom {
+		avatarType = enum.AvatarTypeLetter
+	}
 	avatarURL := ""
 	if u.AvatarType.Valid && ctx.Value(app.RequestCtxKey) != nil {
 		avatarURL = buildAvatarURL(ctx, avatarType, int(u.ID.Int64), u.Name.String, u.AvatarBlobKey.String)
@@ -109,5 +112,5 @@ func buildAvatarURL(ctx context.Context, avatarType enum.AvatarType, id int, nam
 	if avatarType == enum.AvatarTypeCustom {
 		return web.AssetsURL(ctx, "/static/images/%s", avatarBlobKey)
 	}
-	return web.AssetsURL(ctx, "/static/avatars/%s/%d/%s", avatarType.String(), id, url.PathEscape(name))
+	return web.AssetsURL(ctx, "/static/avatars/%s/%d/%s", enum.AvatarTypeLetter.String(), id, url.PathEscape(name))
 }

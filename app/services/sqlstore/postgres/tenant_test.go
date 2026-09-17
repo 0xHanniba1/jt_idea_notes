@@ -2,10 +2,8 @@ package postgres_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/getfider/fider/app"
-	"github.com/getfider/fider/app/actions"
 	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
@@ -232,127 +230,6 @@ func TestTenantStorage_AdvancedSettings(t *testing.T) {
 	Expect(err).IsNil()
 	Expect(getByDomain.Result.CustomCSS).Equals(".primary { color: red; }")
 	Expect(getByDomain.Result.AllowedSchemes).Equals("^monero:[48]\n^bitcoin:(1|3|bc1)")
-}
-
-func TestTenantStorage_SaveFindSet_VerificationKey(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	//Save new Key
-	err := bus.Dispatch(demoTenantCtx, &cmd.SaveVerificationKey{
-		Key:      "s3cr3tk3y",
-		Duration: 15 * time.Minute,
-		Request: &actions.CreateTenant{
-			Email: "jon.snow@got.com",
-			Name:  "Jon Snow",
-		},
-	})
-	Expect(err).IsNil()
-
-	//Find and check values
-	getKey := &query.GetVerificationByKey{Kind: enum.EmailVerificationKindSignUp, Key: "s3cr3tk3y"}
-
-	err = bus.Dispatch(demoTenantCtx, getKey)
-	Expect(err).IsNil()
-	Expect(getKey.Result.CreatedAt).TemporarilySimilar(time.Now(), 1*time.Second)
-	Expect(getKey.Result.VerifiedAt).IsNil()
-	Expect(getKey.Result.Email).Equals("jon.snow@got.com")
-	Expect(getKey.Result.Name).Equals("Jon Snow")
-	Expect(getKey.Result.Kind).Equals(enum.EmailVerificationKindSignUp)
-	Expect(getKey.Result.Key).Equals("s3cr3tk3y")
-	Expect(getKey.Result.UserID).Equals(0)
-	Expect(getKey.Result.ExpiresAt).TemporarilySimilar(getKey.Result.CreatedAt.Add(15*time.Minute), 1*time.Second)
-
-	//Set as verified check values
-	err = bus.Dispatch(demoTenantCtx, &cmd.SetKeyAsVerified{Key: "s3cr3tk3y"})
-	Expect(err).IsNil()
-
-	//Find and check that VerifiedAt is now set
-	err = bus.Dispatch(demoTenantCtx, getKey)
-
-	Expect(err).IsNil()
-	Expect(time.Now().After(getKey.Result.CreatedAt)).IsTrue()
-	Expect(getKey.Result.VerifiedAt.After(getKey.Result.CreatedAt)).IsTrue()
-	Expect(getKey.Result.Email).Equals("jon.snow@got.com")
-	Expect(getKey.Result.Name).Equals("Jon Snow")
-	Expect(getKey.Result.Key).Equals("s3cr3tk3y")
-	Expect(getKey.Result.UserID).Equals(0)
-	Expect(getKey.Result.ExpiresAt).TemporarilySimilar(getKey.Result.CreatedAt.Add(15*time.Minute), 1*time.Second)
-
-	//Wrong kind should not find it
-	getKeyWithWrongKind := &query.GetVerificationByKey{Kind: enum.EmailVerificationKindSignIn, Key: "s3cr3tk3y"}
-	err = bus.Dispatch(demoTenantCtx, getKeyWithWrongKind)
-
-	Expect(errors.Cause(err)).Equals(app.ErrNotFound)
-	Expect(getKeyWithWrongKind.Result).IsNil()
-}
-
-func TestTenantStorage_SaveFindSet_ChangeEmailVerificationKey(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	//Save new Key
-	err := bus.Dispatch(demoTenantCtx, &cmd.SaveVerificationKey{
-		Key:      "th3-s3cr3t",
-		Duration: 15 * time.Minute,
-		Request: &actions.ChangeUserEmail{
-			Email:     "jon.stark@got.com",
-			Requestor: jonSnow,
-		},
-	})
-	Expect(err).IsNil()
-
-	//Find and check values
-	getKey := &query.GetVerificationByKey{Kind: enum.EmailVerificationKindChangeEmail, Key: "th3-s3cr3t"}
-	err = bus.Dispatch(demoTenantCtx, getKey)
-	Expect(err).IsNil()
-	Expect(getKey.Result.CreatedAt).TemporarilySimilar(time.Now(), 1*time.Second)
-	Expect(getKey.Result.VerifiedAt).IsNil()
-	Expect(getKey.Result.Email).Equals("jon.stark@got.com")
-	Expect(getKey.Result.Name).Equals("")
-	Expect(getKey.Result.Kind).Equals(enum.EmailVerificationKindChangeEmail)
-	Expect(getKey.Result.Key).Equals("th3-s3cr3t")
-	Expect(getKey.Result.UserID).Equals(jonSnow.ID)
-	Expect(getKey.Result.ExpiresAt).TemporarilySimilar(getKey.Result.CreatedAt.Add(15*time.Minute), 1*time.Second)
-}
-
-func TestTenantStorage_VerificationKey_IsTenantScoped(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	//Save new Key on the demo tenant
-	err := bus.Dispatch(demoTenantCtx, &cmd.SaveVerificationKey{
-		Key:      "s3cr3tk3y",
-		Duration: 15 * time.Minute,
-		Request: &actions.CreateTenant{
-			Email: "jon.snow@got.com",
-			Name:  "Jon Snow",
-		},
-	})
-	Expect(err).IsNil()
-
-	//Same key must NOT be retrievable from a different tenant
-	getKeyFromOtherTenant := &query.GetVerificationByKey{Kind: enum.EmailVerificationKindSignUp, Key: "s3cr3tk3y"}
-	err = bus.Dispatch(avengersTenantCtx, getKeyFromOtherTenant)
-	Expect(errors.Cause(err)).Equals(app.ErrNotFound)
-	Expect(getKeyFromOtherTenant.Result).IsNil()
-
-	//But it is retrievable from the tenant it belongs to
-	getKey := &query.GetVerificationByKey{Kind: enum.EmailVerificationKindSignUp, Key: "s3cr3tk3y"}
-	err = bus.Dispatch(demoTenantCtx, getKey)
-	Expect(err).IsNil()
-	Expect(getKey.Result.Email).Equals("jon.snow@got.com")
-}
-
-func TestTenantStorage_FindUnknownVerificationKey(t *testing.T) {
-	SetupDatabaseTest(t)
-	defer TeardownDatabaseTest()
-
-	//Find and check values
-	getKey := &query.GetVerificationByKey{Kind: enum.EmailVerificationKindSignIn, Key: "blahblahblah"}
-	err := bus.Dispatch(demoTenantCtx, getKey)
-	Expect(errors.Cause(err)).Equals(app.ErrNotFound)
-	Expect(getKey.Result).IsNil()
 }
 
 func TestTenantStorage_Save_Get_ListOAuthConfig(t *testing.T) {

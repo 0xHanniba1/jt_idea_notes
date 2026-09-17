@@ -12,7 +12,7 @@
 ## 前端设计参考
 
 新增或调整前端页面、组件与交互前，先阅读
-[`docs/frontend-design-references.md`](./docs/frontend-design-references.md)。UI 组件外观与交互以 `jt_case_platform` 的实际实现及最新设计规则为基准，页面按已确认的紧凑列表与右侧详情抽屉方案调整。Fider 保留业务逻辑、技术栈及构建方式。具体映射见 [`docs/jt-ui-refresh-plan.md`](./docs/jt-ui-refresh-plan.md)；外部网站仅作补充参考。
+[`docs/frontend-design-references.md`](./docs/frontend-design-references.md)。UI 组件外观与交互以 `jt_case_platform` 的实际实现及最新设计规则为基准，页面采用已确认的左侧全局导航、顶部路径栏与白色工作区，内容保持紧凑列表与右侧详情抽屉。Fider 保留业务逻辑、技术栈及构建方式。外壳方案见 [`docs/jt-workspace-shell-plan.md`](./docs/jt-workspace-shell-plan.md)，控件映射见 [`docs/jt-ui-refresh-plan.md`](./docs/jt-ui-refresh-plan.md)；外部网站仅作补充参考。
 
 ## 代码与验证
 

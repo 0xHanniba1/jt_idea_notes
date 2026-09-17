@@ -180,7 +180,7 @@ func getModerationItems(ctx context.Context, q *query.GetModerationItems) error 
 		}
 
 		for _, post := range posts {
-			userWithEmail := &entity.UserWithEmail{
+			userWithEmail := &entity.UserWithAccount{
 				User: post.User.ToModel(ctx),
 			}
 
@@ -219,7 +219,7 @@ func getModerationItems(ctx context.Context, q *query.GetModerationItems) error 
 		}
 
 		for _, comment := range comments {
-			userWithEmail := &entity.UserWithEmail{
+			userWithEmail := &entity.UserWithAccount{
 				User: comment.User.ToModel(ctx),
 			}
 

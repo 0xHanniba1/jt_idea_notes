@@ -46,7 +46,7 @@ func (action *UpdateUserSettings) Validate(ctx context.Context, user *entity.Use
 		result.AddFieldFailure("name", propertyIsRequired(ctx, "name"))
 	}
 
-	if action.AvatarType < 1 || action.AvatarType > 3 {
+	if action.AvatarType != enum.AvatarTypeLetter && action.AvatarType != enum.AvatarTypeCustom {
 		result.AddFieldFailure("avatarType", propertyIsInvalid(ctx, "avatarType"))
 	}
 

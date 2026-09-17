@@ -5,25 +5,19 @@ import (
 	"fmt"
 	"image/color"
 	"image/png"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/getfider/fider/app/models/cmd"
-	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/models/query"
 
 	"github.com/getfider/fider/app/pkg/bus"
-	"github.com/getfider/fider/app/pkg/crypto"
 	"github.com/getfider/fider/app/pkg/env"
-	"github.com/getfider/fider/app/pkg/log"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/goenning/imagic"
 	"github.com/goenning/letteravatar"
 )
 
-// LetterAvatar returns a letter gravatar picture based on given name
+// LetterAvatar returns a letter avatar picture based on given name
 func LetterAvatar() web.HandlerFunc {
 	return func(c *web.Context) error {
 		id := c.Param("id")
@@ -52,60 +46,6 @@ func LetterAvatar() web.HandlerFunc {
 		}
 
 		return c.Image("image/png", buf.Bytes())
-	}
-}
-
-// Gravatar returns a gravatar picture of fallsback to letter avatar based on name
-func Gravatar() web.HandlerFunc {
-	return func(c *web.Context) error {
-		id, err := c.ParamAsInt("id")
-		if err != nil {
-			return c.NotFound()
-		}
-
-		size, err := c.QueryParamAsInt("size")
-		if err != nil {
-			return c.BadRequest(web.Map{})
-		}
-
-		size = between(size, 50, 200)
-
-		if err == nil && id > 0 {
-			userByID := &query.GetUserByID{UserID: id, TenantID: c.Tenant().ID}
-			err := bus.Dispatch(c, userByID)
-			if err == nil && userByID.Result.Tenant.ID == c.Tenant().ID {
-				if userByID.Result.Email != "" {
-					url := fmt.Sprintf("https://www.gravatar.com/avatar/%s?s=%d&d=404", crypto.MD5(strings.ToLower(userByID.Result.Email)), size)
-					cacheKey := fmt.Sprintf("gravatar:%s", url)
-
-					//If gravatar was found in cache
-					if image, found := c.Engine().Cache().Get(cacheKey); found {
-						log.Debugf(c, "Gravatar found in cache: @{GravatarURL}", dto.Props{
-							"GravatarURL": cacheKey,
-						})
-						imageInBytes := image.([]byte)
-						return c.Image(http.DetectContentType(imageInBytes), imageInBytes)
-					}
-
-					log.Debugf(c, "Requesting gravatar: @{GravatarURL}", dto.Props{
-						"GravatarURL": url,
-					})
-
-					req := &cmd.HTTPRequest{
-						URL:    url,
-						Method: "GET",
-					}
-					err := bus.Dispatch(c, req)
-					if err == nil && req.ResponseStatusCode == http.StatusOK {
-						bytes := req.ResponseBody
-						c.Engine().Cache().Set(cacheKey, bytes, 24*time.Hour)
-						return c.Image(http.DetectContentType(bytes), bytes)
-					}
-				}
-			}
-		}
-
-		return LetterAvatar()(c)
 	}
 }
 

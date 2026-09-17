@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,7 +132,7 @@ func deleteCurrentUser(ctx context.Context, c *cmd.DeleteCurrentUser) error {
 
 func regenerateAPIKey(ctx context.Context, c *cmd.RegenerateAPIKey) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		apiKey := entity.GenerateEmailVerificationKey()
+		apiKey := rand.String(64)
 
 		if _, err := trx.Execute(
 			"UPDATE users SET api_key = $3, api_key_date = $4 WHERE id = $1 AND tenant_id = $2",
@@ -221,17 +222,6 @@ func changeUserRole(ctx context.Context, c *cmd.ChangeUserRole) error {
 	})
 }
 
-func changeUserEmail(ctx context.Context, c *cmd.ChangeUserEmail) error {
-	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		cmd := "UPDATE users SET email = $3, email_supressed_at = NULL WHERE id = $1 AND tenant_id = $2"
-		_, err := trx.Execute(cmd, c.UserID, tenant.ID, strings.ToLower(c.Email))
-		if err != nil {
-			return errors.Wrap(err, "failed to update user's email")
-		}
-		return nil
-	})
-}
-
 func updateCurrentUserSettings(ctx context.Context, c *cmd.UpdateCurrentUserSettings) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
 		if user != nil && c.Settings != nil && len(c.Settings) > 0 {
@@ -272,6 +262,12 @@ func getCurrentUserSettings(ctx context.Context, q *query.GetCurrentUserSettings
 
 		for _, s := range settings {
 			q.Result[s.Key] = s.Value
+			for _, event := range enum.AllNotificationEvents {
+				if event.UserSettingsKeyName == s.Key {
+					value, _ := strconv.Atoi(s.Value)
+					q.Result[s.Key] = strconv.Itoa(value & int(enum.NotificationChannelWeb))
+				}
+			}
 		}
 
 		return nil
@@ -286,7 +282,7 @@ func registerUser(ctx context.Context, c *cmd.RegisterUser) error {
 		stamp := generateSecurityStamp()
 		if err := trx.GetSensitive(&c.User.ID,
 			"INSERT INTO users (name, email, created_at, tenant_id, role, status, avatar_type, avatar_bkey, security_stamp) VALUES ($1, $2, $3, $4, $5, $6, $7, '', $8) RETURNING id",
-			c.User.Name, c.User.Email, now, tenant.ID, c.User.Role, enum.UserActive, enum.AvatarTypeGravatar, stamp); err != nil {
+			c.User.Name, c.User.Email, now, tenant.ID, c.User.Role, enum.UserActive, enum.AvatarTypeLetter, stamp); err != nil {
 			return errors.Wrap(err, "failed to register new user")
 		}
 		c.User.SecurityStamp = stamp
@@ -332,18 +328,6 @@ func getUserByID(ctx context.Context, q *query.GetUserByID) error {
 		u, err := queryUser(ctx, trx, "id = $1 AND tenant_id = $2", q.UserID, q.TenantID)
 		if err != nil {
 			return errors.Wrap(err, "failed to get user with id '%d'", q.UserID)
-		}
-		q.Result = u
-		return nil
-	})
-}
-
-func getUserByEmail(ctx context.Context, q *query.GetUserByEmail) error {
-	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		email := strings.ToLower(q.Email)
-		u, err := queryUser(ctx, trx, "email = $1 AND tenant_id = $2", email, tenant.ID)
-		if err != nil {
-			return errors.Wrap(err, "failed to get user with email '%s'", email)
 		}
 		q.Result = u
 		return nil
@@ -469,10 +453,10 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 
 		// Add search filter
 		if q.Query != "" {
-			baseQuery += fmt.Sprintf(" AND (u.name ILIKE $%d OR u.email ILIKE $%d OR c.username ILIKE $%d)", argIndex, argIndex+1, argIndex+2)
+			baseQuery += fmt.Sprintf(" AND (u.name ILIKE $%d OR c.username ILIKE $%d)", argIndex, argIndex+1)
 			searchTerm := "%" + q.Query + "%"
-			args = append(args, searchTerm, searchTerm, searchTerm)
-			argIndex += 3
+			args = append(args, searchTerm, searchTerm)
+			argIndex += 2
 		}
 
 		// Add role filter
@@ -508,10 +492,10 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 
 		// Add the same filters for counting
 		if q.Query != "" {
-			countQuery += fmt.Sprintf(" AND (u.name ILIKE $%d OR u.email ILIKE $%d OR c.username ILIKE $%d)", countArgIndex, countArgIndex+1, countArgIndex+2)
+			countQuery += fmt.Sprintf(" AND (u.name ILIKE $%d OR c.username ILIKE $%d)", countArgIndex, countArgIndex+1)
 			searchTerm := "%" + q.Query + "%"
-			countArgs = append(countArgs, searchTerm, searchTerm, searchTerm)
-			countArgIndex += 3
+			countArgs = append(countArgs, searchTerm, searchTerm)
+			countArgIndex += 2
 		}
 
 		if len(q.Roles) > 0 {

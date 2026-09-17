@@ -362,13 +362,13 @@ if err := bus.Dispatch(ctx, c); err != nil {
 
 **Port conflicts:**
 
-- Default ports: 3000 (app), 5432 (postgres), 8025 (mailhog)
+- Default ports: 3000 (app), 5432 (postgres)
 - Change in `.env` if needed
 
 ## Development Tips
 
 - Use `make watch` for active development - it handles hot reload for both frontend and backend
-- MailHog captures all emails at http://localhost:8025
+- This fork uses password accounts and in-app notifications; no mail server is required.
 - Frontend changes: Webpack rebuilds automatically
 - Backend changes: Air restarts server automatically
 - All routes are centralized in `app/cmd/routes.go` - start there when tracing request flow

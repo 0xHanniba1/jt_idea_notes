@@ -78,14 +78,6 @@ export const SideMenu = (props: SiteMenuProps) => {
               href="/admin/export"
               isActive={activeItem === "export"}
             />
-            {!fider.isSingleHostMode() && (
-              <SideMenuItem
-                name="danger-zone"
-                title={i18n._({ id: "admin.menu.dangerzone", message: "Danger Zone" })}
-                href="/admin/danger-zone"
-                isActive={activeItem === "danger-zone"}
-              />
-            )}
           </>
         )}
       </VStack>

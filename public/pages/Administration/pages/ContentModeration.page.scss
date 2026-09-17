@@ -1,11 +1,5 @@
 @use "~@fider/assets/styles/variables.scss" as *;
 
-#p-admin-moderation {
-  background-color: var(--colors-gray-100);
-  padding-top: spacing(8);
-  padding-bottom: spacing(12);
-}
-
 .c-moderation-page {
   width: 100%;
 
@@ -85,13 +79,6 @@
     word-break: break-word;
   }
 
-  &__user-email {
-    color: var(--colors-gray-700);
-    font-weight: normal;
-    word-break: break-all;
-    font-size: get("font.size.sm");
-  }
-
   &__body {
     width: 100%;
     min-width: 0;
@@ -146,11 +133,6 @@
 
 // Responsive adjustments
 @media (max-width: 768px) {
-  #p-admin-moderation {
-    padding-left: spacing(4);
-    padding-right: spacing(4);
-  }
-
   .c-moderation-item {
     padding: spacing(4) spacing(4);
 

@@ -1,5 +1,6 @@
 import "./ShowPost.page.scss"
 
+import { i18n } from "@lingui/core"
 import React from "react"
 
 import { Comment, Post, Tag } from "@fider/models"
@@ -16,8 +17,7 @@ interface ShowPostPageProps {
 
 export default function ShowPostPage(props: ShowPostPageProps) {
   return (
-    <>
-      <Header />
+    <Header title={props.post.title} section={{ label: i18n._({ id: "header.nav.feedback", message: "All Feedback" }), href: "/" }}>
       <div id="p-show-post" className="page container">
         <PostDetails
           postNumber={props.post.number}
@@ -28,6 +28,6 @@ export default function ShowPostPage(props: ShowPostPageProps) {
           initialAttachments={props.attachments}
         />
       </div>
-    </>
+    </Header>
   )
 }

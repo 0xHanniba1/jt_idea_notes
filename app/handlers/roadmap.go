@@ -6,6 +6,7 @@ import (
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
+	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
 )
 
@@ -16,7 +17,7 @@ func RoadmapPage() web.HandlerFunc {
 	return func(c *web.Context) error {
 		props := web.Props{
 			Page:  "Roadmap/Roadmap.page",
-			Title: "Roadmap",
+			Title: i18n.T(c, "page.progress.title"),
 		}
 
 		if env.IsSingleHostMode() || c.Tenant().IsPro {

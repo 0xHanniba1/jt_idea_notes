@@ -2,14 +2,11 @@ package actions_test
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 
 	"github.com/getfider/fider/app"
 	"github.com/getfider/fider/app/actions"
-	"github.com/getfider/fider/app/models/query"
-	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/validate"
 )
 
@@ -79,32 +76,4 @@ func TestAdminTenantPrivacyLocalizedValidation(t *testing.T) {
 			assertTenantValidationMessage(t, action.Validate(ctx, nil), "", test.message)
 		})
 	}
-}
-
-func TestAdminTenantEmailAuthLocalizedValidation(t *testing.T) {
-	for _, test := range []struct {
-		locale   string
-		queryErr error
-		field    string
-		message  string
-	}{
-		{"en", nil, "isEmailAuthAllowed", "You cannot disable email authentication without any other provider enabled."},
-		{"zh-CN", nil, "isEmailAuthAllowed", "请先启用其他登录方式，再关闭邮箱登录。"},
-		{"en", errors.New("lookup failed"), "", "Cannot retrieve OAuth providers"},
-		{"zh-CN", errors.New("lookup failed"), "", "无法获取 OAuth 登录服务。"},
-	} {
-		t.Run(test.locale+"/"+test.field, func(t *testing.T) {
-			bus.AddHandler(func(_ context.Context, q *query.ListActiveOAuthProviders) error {
-				q.Result = nil
-				return test.queryErr
-			})
-			ctx := context.WithValue(context.Background(), app.LocaleCtxKey, test.locale)
-			action := actions.UpdateTenantEmailAuthAllowed{IsEmailAuthAllowed: false}
-			assertTenantValidationMessage(t, action.Validate(ctx, nil), test.field, test.message)
-		})
-	}
-	bus.AddHandler(func(_ context.Context, q *query.ListActiveOAuthProviders) error {
-		q.Result = nil
-		return nil
-	})
 }

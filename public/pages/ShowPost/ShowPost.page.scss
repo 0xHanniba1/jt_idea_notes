@@ -1,12 +1,8 @@
 #p-show-post {
-  max-width: 960px;
   min-width: 0;
-  padding-top: 24px;
-  padding-bottom: 40px;
-}
 
-@media (max-width: 600px) {
-  #p-show-post {
-    padding-top: 12px;
+  > .p-show-post {
+    max-width: 960px;
+    margin-inline: auto;
   }
 }

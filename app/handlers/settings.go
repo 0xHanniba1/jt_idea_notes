@@ -2,77 +2,15 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
-	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/pkg/bus"
-	"github.com/getfider/fider/app/pkg/env"
-
-	"github.com/getfider/fider/app/tasks"
 
 	"github.com/getfider/fider/app/actions"
 	"github.com/getfider/fider/app/pkg/web"
 )
-
-// ChangeUserEmail register the intent of changing user email
-func ChangeUserEmail() web.HandlerFunc {
-	return func(c *web.Context) error {
-		action := actions.NewChangeUserEmail()
-		if result := c.BindTo(action); !result.Ok {
-			return c.HandleValidation(result)
-		}
-
-		err := bus.Dispatch(c, &cmd.SaveVerificationKey{
-			Key:      action.VerificationKey,
-			Duration: 24 * time.Hour,
-			Request:  action,
-		})
-		if err != nil {
-			return c.Failure(err)
-		}
-
-		c.Enqueue(tasks.SendChangeEmailConfirmation(action))
-
-		return c.Ok(web.Map{})
-	}
-}
-
-// VerifyChangeEmailKey checks if key is correct and update user's email
-func VerifyChangeEmailKey() web.HandlerFunc {
-	return func(c *web.Context) error {
-		key := c.QueryParam("k")
-		result, err := validateKey(enum.EmailVerificationKindChangeEmail, key, c)
-		if result == nil {
-			return err
-		}
-
-		if result.UserID != c.User().ID {
-			return c.Redirect(c.BaseURL())
-		}
-
-		changeEmail := &cmd.ChangeUserEmail{
-			UserID: result.UserID,
-			Email:  result.Email,
-		}
-		if err = bus.Dispatch(c, changeEmail); err != nil {
-			return c.Failure(err)
-		}
-
-		err = bus.Dispatch(c, &cmd.SetKeyAsVerified{Key: key})
-		if err != nil {
-			return c.Failure(err)
-		}
-
-		if env.Config.UserList.Enabled {
-			c.Enqueue(tasks.UserListUpdateUser(c.User().ID, "", result.Email))
-		}
-
-		return c.Redirect(c.BaseURL() + "/settings")
-	}
-}
 
 // UserSettings is the current user's profile settings page
 func UserSettings() web.HandlerFunc {
@@ -117,10 +55,6 @@ func UpdateUserSettings() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
-		if env.Config.UserList.Enabled {
-			c.Enqueue(tasks.UserListUpdateUser(c.User().ID, action.Name, ""))
-		}
-
 		return c.Ok(web.Map{})
 	}
 }
@@ -142,11 +76,6 @@ func ChangeUserRole() web.HandlerFunc {
 			return passwordStoreFailure(c, err)
 		}
 
-		// Handle userlist
-		if env.Config.UserList.Enabled {
-			c.Enqueue(tasks.UserListAddOrRemoveUser(action.UserID, action.Role))
-		}
-
 		if err := c.Commit(); err != nil {
 			return c.Failure(err)
 		}
@@ -159,11 +88,6 @@ func DeleteUser() web.HandlerFunc {
 	return func(c *web.Context) error {
 		if err := bus.Dispatch(c, &cmd.DeleteCurrentUser{}); err != nil {
 			return passwordStoreFailure(c, err)
-		}
-
-		// Handle userlist (easiest way is to demote them which will remove them from the userlist)
-		if env.Config.UserList.Enabled {
-			c.Enqueue(tasks.UserListAddOrRemoveUser(c.User().ID, enum.RoleVisitor))
 		}
 
 		if err := c.Commit(); err != nil {

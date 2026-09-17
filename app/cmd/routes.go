@@ -105,17 +105,10 @@ func routes(r *web.Engine) *web.Engine {
 	changePassword.Get("/password/change-required", handlers.PasswordChangePage())
 	changePassword.Post("/_api/auth/password/complete", handlers.ChangeAccountPassword(true))
 
-	// Cancel a scheduled site deletion. Authorised by the unguessable key in the emailed link
-	// alone, so it must stay reachable without authentication (it only restores access).
-	if !env.IsSingleHostMode() {
-		r.Get("/admin/danger-zone/cancel", handlers.CancelTenantDeletion())
-	}
-
 	// Every business route requires a complete password session, independently of old privacy flags.
 	r.Use(middlewares.RequirePasswordLogin())
 	r.Get("/sitemap.xml", handlers.Sitemap())
 	r.Get("/static/avatars/letter/:id/:name", handlers.LetterAvatar())
-	r.Get("/static/avatars/gravatar/:id/*name", handlers.Gravatar())
 	r.Get("/feed/global.atom", handlers.GlobalFeed())
 	r.Get("/feed/posts/:path", handlers.CommentFeed())
 	r.Get("/_design", handlers.Page("Design System", "A preview of Fider UI elements", "DesignSystem/DesignSystem.page"))
@@ -135,11 +128,9 @@ func routes(r *web.Engine) *web.Engine {
 		ui.Get("/notifications", handlers.Notifications())
 		ui.Get("/notifications/:id", handlers.ReadNotification())
 		ui.Get("/_api/notifications/unread", handlers.GetAllNotifications())
-		ui.Get("/change-email/verify", handlers.VerifyChangeEmailKey())
 
 		ui.Delete("/_api/user", handlers.DeleteUser())
 		ui.Post("/_api/user/settings", handlers.UpdateUserSettings())
-		ui.Post("/_api/user/change-email", handlers.ChangeUserEmail())
 		ui.Post("/_api/notifications/read-all", handlers.ReadAllNotifications())
 		ui.Get("/_api/notifications/unread/total", handlers.TotalUnreadNotifications())
 
@@ -164,14 +155,6 @@ func routes(r *web.Engine) *web.Engine {
 		ui.Post("/_api/admin/accounts", handlers.ManagePasswordAccount("create"))
 		ui.Post("/_api/admin/accounts/:id/initialize", handlers.ManagePasswordAccount("initialize"))
 		ui.Post("/_api/admin/accounts/:id/reset-password", handlers.ManagePasswordAccount("reset"))
-
-		// Danger Zone — delete the entire site. Hosted multi-tenant only; owner-only is
-		// enforced inside the handlers.
-		if !env.IsSingleHostMode() {
-			ui.Get("/admin/danger-zone", handlers.DangerZonePage())
-			ui.Delete("/_api/admin/tenant", handlers.RequestTenantDeletion())
-			ui.Post("/_api/admin/tenant/cancel-deletion", handlers.CancelTenantDeletionByOwner())
-		}
 
 		ui.Get("/admin/export", handlers.AdminPage("admin.title.export", "Administration/pages/Export.page"))
 		ui.Get("/admin/export/posts.csv", handlers.ExportPostsToCSV())

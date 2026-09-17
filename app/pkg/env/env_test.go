@@ -66,3 +66,15 @@ func TestSubdomain(t *testing.T) {
 	Expect(env.Subdomain("test.fidercdn.com")).Equals("")
 	Expect(env.Subdomain("helloworld.com")).Equals("")
 }
+
+func TestStartupDoesNotRequireMailConfiguration(t *testing.T) {
+	saved := env.Config
+	defer func() { env.Config = saved }()
+	for _, key := range []string{"EMAIL", "EMAIL_NOREPLY", "EMAIL_SMTP_HOST", "EMAIL_SMTP_PORT", "EMAIL_MAILGUN_API", "EMAIL_MAILGUN_DOMAIN", "EMAIL_AWSSES_ACCESS_KEY_ID", "EMAIL_AWSSES_SECRET_ACCESS_KEY", "EMAIL_AWSSES_REGION"} {
+		t.Setenv(key, "")
+	}
+	env.Reload()
+	// Even stale provider configuration must not register or validate mail services.
+	t.Setenv("EMAIL", "smtp")
+	env.Reload()
+}

@@ -22,7 +22,7 @@ func TestInvalidUserNames(t *testing.T) {
 
 		action := actions.NewUpdateUserSettings()
 		action.Name = name
-		action.AvatarType = enum.AvatarTypeGravatar
+		action.AvatarType = enum.AvatarTypeLetter
 		result := action.Validate(context.Background(), &entity.User{})
 		ExpectFailed(result, "name")
 	}
@@ -38,7 +38,7 @@ func TestValidUserNames(t *testing.T) {
 	} {
 		action := actions.NewUpdateUserSettings()
 		action.Name = name
-		action.AvatarType = enum.AvatarTypeGravatar
+		action.AvatarType = enum.AvatarTypeLetter
 		result := action.Validate(context.Background(), &entity.User{})
 		ExpectSuccess(result)
 	}
@@ -49,7 +49,7 @@ func TestInvalidSettings(t *testing.T) {
 
 	for _, settings := range []map[string]string{
 		{
-			"bad_name": "3",
+			"bad_name": "1",
 		},
 		{
 			enum.NotificationEventNewComment.UserSettingsKeyName: "4",
@@ -80,7 +80,7 @@ func TestValidSettings(t *testing.T) {
 		action := actions.NewUpdateUserSettings()
 		action.Name = "John Snow"
 		action.Settings = settings
-		action.AvatarType = enum.AvatarTypeGravatar
+		action.AvatarType = enum.AvatarTypeLetter
 
 		result := action.Validate(context.Background(), &entity.User{
 			AvatarBlobKey: "jon.png",
@@ -89,4 +89,19 @@ func TestValidSettings(t *testing.T) {
 		ExpectSuccess(result)
 		Expect(action.Avatar.BlobKey).Equals("jon.png")
 	}
+}
+
+func TestSettingsRejectRetiredEmailPreferencesAndAvatar(t *testing.T) {
+	RegisterT(t)
+	for _, value := range []string{"2", "3"} {
+		action := actions.NewUpdateUserSettings()
+		action.Name = "Member"
+		action.AvatarType = enum.AvatarTypeLetter
+		action.Settings = map[string]string{enum.NotificationEventNewComment.UserSettingsKeyName: value}
+		ExpectFailed(action.Validate(context.Background(), &entity.User{}), "settings")
+	}
+	action := actions.NewUpdateUserSettings()
+	action.Name = "Member"
+	action.AvatarType = enum.AvatarType(2)
+	ExpectFailed(action.Validate(context.Background(), &entity.User{}), "avatarType")
 }

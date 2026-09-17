@@ -20,16 +20,12 @@ import (
 	_ "github.com/getfider/fider/app/services/blob/fs"
 	_ "github.com/getfider/fider/app/services/blob/s3"
 	_ "github.com/getfider/fider/app/services/blob/sql"
-	_ "github.com/getfider/fider/app/services/email/awsses"
-	_ "github.com/getfider/fider/app/services/email/mailgun"
-	_ "github.com/getfider/fider/app/services/email/smtp"
 	_ "github.com/getfider/fider/app/services/httpclient"
 	_ "github.com/getfider/fider/app/services/log/console"
 	_ "github.com/getfider/fider/app/services/log/file"
 	_ "github.com/getfider/fider/app/services/log/sql"
 	_ "github.com/getfider/fider/app/services/oauth"
 	_ "github.com/getfider/fider/app/services/sqlstore/postgres"
-	_ "github.com/getfider/fider/app/services/userlist"
 	_ "github.com/getfider/fider/app/services/webhook"
 )
 
@@ -57,8 +53,6 @@ func RunServer() int {
 func startJobs(ctx context.Context) {
 	c := cron.New()
 	_ = c.AddJob(jobs.NewJob(ctx, "PurgeExpiredNotificationsJob", jobs.PurgeExpiredNotificationsJobHandler{}))
-	_ = c.AddJob(jobs.NewJob(ctx, "EmailSupressionJob", jobs.EmailSupressionJobHandler{}))
-	_ = c.AddJob(jobs.NewJob(ctx, "DeleteScheduledTenantsJob", jobs.DeleteScheduledTenantsJobHandler{}))
 
 	c.Start()
 }

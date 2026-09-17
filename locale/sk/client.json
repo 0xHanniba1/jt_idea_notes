@@ -750,5 +750,18 @@
   "signin.message.socialbutton.intro": "Prihlásiť sa pomocou",
   "signin.name.placeholder": "Vaše meno",
   "validation.custom.maxattachments": "Maximálny počet príloh je {number}.",
-  "validation.custom.maximagesize": "Veľkosť obrázka musí byť menšia ako {kilobytes}KB."
+  "validation.custom.maximagesize": "Veľkosť obrázka musí byť menšia ako {kilobytes}KB.",
+  "workspace.brand.subtitle": "",
+  "workspace.breadcrumbs": "",
+  "workspace.label": "",
+  "workspace.moderation.pending": "",
+  "workspace.navigation": "",
+  "workspace.navigation.collapse": "",
+  "workspace.navigation.expand": "",
+  "workspace.navigation.open": "",
+  "workspace.role.administrator": "",
+  "workspace.role.collaborator": "",
+  "workspace.role.member": "",
+  "workspace.skip": "",
+  "workspace.status": ""
 }

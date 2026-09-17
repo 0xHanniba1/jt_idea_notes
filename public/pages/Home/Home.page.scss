@@ -1,20 +1,17 @@
 #p-home {
-  padding-top: 24px;
-  padding-bottom: 24px;
-
   .p-home__heading {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 16px;
   }
   .p-home__welcome {
     min-width: 0;
     max-width: 760px;
   }
   .p-home__welcome-title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
     line-height: 1.4;
     margin: 0 0 6px;
@@ -54,7 +51,6 @@
     margin-top: 2px;
   }
   @media (max-width: 600px) {
-    padding-top: 16px;
     .p-home__heading {
       gap: 12px;
     }

@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/getfider/fider/app"
 
-	"github.com/getfider/fider/app/models/entity"
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 
@@ -71,7 +69,7 @@ func TestUpdateUserSettingsHandler_ValidName(t *testing.T) {
 	code, _ := server.
 		OnTenant(mock.DemoTenant).
 		AsUser(mock.JonSnow).
-		ExecutePost(handlers.UpdateUserSettings(), `{ "name": "Jon Stark", "avatarType": "gravatar" }`)
+		ExecutePost(handlers.UpdateUserSettings(), `{ "name": "Jon Stark", "avatarType": "letter" }`)
 
 	Expect(code).Equals(http.StatusOK)
 	Expect(newName).Equals("Jon Stark")
@@ -104,21 +102,21 @@ func TestUpdateUserSettingsHandler_NewSettings(t *testing.T) {
 		AsUser(mock.JonSnow).
 		ExecutePost(handlers.UpdateUserSettings(), `{
 			"name": "Jon Stark",
-			"avatarType": "gravatar",
+			"avatarType": "letter",
 			"settings": {
 				"event_notification_new_post": "1",
-				"event_notification_new_comment": "2",
-				"event_notification_change_status": "3"
+				"event_notification_new_comment": "0",
+				"event_notification_change_status": "1"
 			}
 		}`)
 
 	Expect(code).Equals(http.StatusOK)
 	Expect(updateCmd.Name).Equals("Jon Stark")
-	Expect(updateCmd.AvatarType).Equals(enum.AvatarTypeGravatar)
+	Expect(updateCmd.AvatarType).Equals(enum.AvatarTypeLetter)
 
 	Expect(updateSettingsCmd.Settings[enum.NotificationEventNewPost.UserSettingsKeyName]).Equals("1")
-	Expect(updateSettingsCmd.Settings[enum.NotificationEventNewComment.UserSettingsKeyName]).Equals("2")
-	Expect(updateSettingsCmd.Settings[enum.NotificationEventChangeStatus.UserSettingsKeyName]).Equals("3")
+	Expect(updateSettingsCmd.Settings[enum.NotificationEventNewComment.UserSettingsKeyName]).Equals("0")
+	Expect(updateSettingsCmd.Settings[enum.NotificationEventChangeStatus.UserSettingsKeyName]).Equals("1")
 }
 
 func TestChangeRoleHandler_Valid(t *testing.T) {
@@ -148,139 +146,6 @@ func TestChangeRoleHandler_Valid(t *testing.T) {
 	Expect(code).Equals(http.StatusOK)
 	Expect(changeRole.UserID).Equals(mock.AryaStark.ID)
 	Expect(changeRole.Role).Equals(enum.RoleAdministrator)
-}
-
-func TestChangeUserEmailHandler_Valid(t *testing.T) {
-	RegisterT(t)
-
-	bus.AddHandler(func(ctx context.Context, q *query.GetUserByEmail) error {
-		return app.ErrNotFound
-	})
-
-	var saveKeyCmd *cmd.SaveVerificationKey
-	bus.AddHandler(func(ctx context.Context, c *cmd.SaveVerificationKey) error {
-		saveKeyCmd = c
-		return nil
-	})
-
-	for _, email := range []string{
-		"jon.another@got.com",
-		"another.snow@got.com",
-	} {
-		server := mock.NewServer()
-		code, _ := server.
-			OnTenant(mock.DemoTenant).
-			AsUser(mock.JonSnow).
-			ExecutePost(handlers.ChangeUserEmail(), fmt.Sprintf(`{ "email": "%s" }`, email))
-
-		Expect(code).Equals(http.StatusOK)
-		Expect(saveKeyCmd.Key).HasLen(64)
-		Expect(saveKeyCmd.Request.GetKind()).Equals(enum.EmailVerificationKindChangeEmail)
-		Expect(saveKeyCmd.Request.GetEmail()).Equals(email)
-	}
-}
-
-func TestChangeUserEmailHandler_Invalid(t *testing.T) {
-	RegisterT(t)
-
-	bus.AddHandler(func(ctx context.Context, q *query.GetUserByEmail) error {
-		if q.Email == mock.JonSnow.Email {
-			q.Result = mock.JonSnow
-			return nil
-		}
-
-		if q.Email == mock.AryaStark.Email {
-			q.Result = mock.AryaStark
-			return nil
-		}
-
-		return app.ErrNotFound
-	})
-
-	for _, email := range []string{
-		"",
-		"jon.snow@got.com",
-		"jon.snow",
-		"arya.stark@got.com",
-	} {
-		server := mock.NewServer()
-		code, _ := server.
-			OnTenant(mock.DemoTenant).
-			AsUser(mock.JonSnow).
-			ExecutePost(handlers.ChangeUserEmail(), fmt.Sprintf(`{ "email": "%s" }`, email))
-
-		Expect(code).Equals(http.StatusBadRequest)
-	}
-}
-
-func TestVerifyChangeEmailKeyHandler_Success(t *testing.T) {
-	RegisterT(t)
-
-	server := mock.NewServer()
-	key := "th3-s3cr3t"
-
-	bus.AddHandler(func(ctx context.Context, q *query.GetVerificationByKey) error {
-		Expect(q.Key).Equals(key)
-		Expect(q.Kind).Equals(enum.EmailVerificationKindChangeEmail)
-		q.Result = &entity.EmailVerification{
-			UserID:    mock.JonSnow.ID,
-			Key:       q.Key,
-			Kind:      q.Kind,
-			ExpiresAt: time.Now().Add(10 * time.Minute),
-			Email:     "jon.stark@got.com",
-		}
-		return nil
-	})
-
-	bus.AddHandler(func(ctx context.Context, c *cmd.ChangeUserEmail) error {
-		Expect(c.UserID).Equals(mock.JonSnow.ID)
-		Expect(c.Email).Equals("jon.stark@got.com")
-		return nil
-	})
-
-	bus.AddHandler(func(ctx context.Context, c *cmd.SetKeyAsVerified) error {
-		Expect(c.Key).Equals(key)
-		return nil
-	})
-
-	code, _ := server.
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.JonSnow).
-		WithURL("/change-email/verify?k=" + key).
-		Execute(handlers.VerifyChangeEmailKey())
-
-	Expect(code).Equals(http.StatusTemporaryRedirect)
-	ExpectHandler(&query.GetVerificationByKey{}).CalledOnce()
-	ExpectHandler(&cmd.ChangeUserEmail{}).CalledOnce()
-	ExpectHandler(&cmd.SetKeyAsVerified{}).CalledOnce()
-}
-
-func TestVerifyChangeEmailKeyHandler_DifferentUser(t *testing.T) {
-	RegisterT(t)
-
-	key := "th3-s3cr3t"
-	bus.AddHandler(func(ctx context.Context, q *query.GetVerificationByKey) error {
-		if q.Key == key && q.Kind == enum.EmailVerificationKindChangeEmail {
-			q.Result = &entity.EmailVerification{
-				Key:       q.Key,
-				Kind:      q.Kind,
-				ExpiresAt: time.Now().Add(10 * time.Minute),
-				Email:     "jon.stark@got.com",
-			}
-			return nil
-		}
-		return app.ErrNotFound
-	})
-
-	server := mock.NewServer()
-
-	code, _ := server.
-		OnTenant(mock.DemoTenant).
-		AsUser(mock.AryaStark).
-		WithURL("/change-email/verify?k=" + key).
-		Execute(handlers.VerifyChangeEmailKey())
-
-	Expect(code).Equals(http.StatusTemporaryRedirect)
 }
 
 func TestDeleteUserHandler(t *testing.T) {

@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-
 import { UserSettings } from "@fider/models"
 import { Toggle, Field } from "@fider/components"
 import { HStack, VStack } from "@fider/components/layout"
@@ -7,107 +6,50 @@ import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
 
 interface NotificationSettingsProps {
-  hasEmail: boolean
   userSettings: UserSettings
   settingsChanged: (settings: UserSettings) => void
 }
 
-type Channel = number
-const WebChannel: Channel = 1
-const EmailChannel: Channel = 2
+const notificationKeys = ["event_notification_new_post", "event_notification_new_comment", "event_notification_mention", "event_notification_change_status"]
+
+// Keep the historical in-app preference while dropping all retired channel bits.
+export const normalizeNotificationSettings = (settings: UserSettings): UserSettings => {
+  const normalized = { ...settings }
+  notificationKeys.forEach((key) => {
+    if (key in normalized) normalized[key] = (parseInt(normalized[key], 10) & 1).toString()
+  })
+  return normalized
+}
 
 export const NotificationSettings = (props: NotificationSettingsProps) => {
-  const [userSettings, setUserSettings] = useState(props.userSettings)
-
-  const isEnabled = (settingsKey: string, channel: Channel): boolean => {
-    if (settingsKey in userSettings) {
-      return (parseInt(userSettings[settingsKey], 10) & channel) > 0
-    }
-    return false
-  }
-
-  const toggle = async (settingsKey: string, channel: Channel) => {
-    if (channel === EmailChannel && !props.hasEmail) return
-    const nextSettings = {
-      ...userSettings,
-      [settingsKey]: (parseInt(userSettings[settingsKey], 10) ^ channel).toString(),
-    }
+  const [userSettings, setUserSettings] = useState(() => normalizeNotificationSettings(props.userSettings))
+  const toggle = (key: string, active: boolean) => {
+    const nextSettings = { ...userSettings, [key]: active ? "1" : "0" }
     setUserSettings(nextSettings)
     props.settingsChanged(nextSettings)
   }
-
-  const labelWeb = i18n._({ id: "mysettings.notification.channelweb", message: "Web" })
-  const labelEmail = i18n._({ id: "mysettings.notification.channelemail", message: "Email" })
-
-  const icon = (settingsKey: string, channel: Channel) => {
-    const unavailable = channel === EmailChannel && !props.hasEmail
-    const active = !unavailable && isEnabled(settingsKey, channel)
-    const label = channel === WebChannel ? labelWeb : labelEmail
-    const onToggle = () => toggle(settingsKey, channel)
-    return <Toggle key={`${settingsKey}_${channel}`} disabled={unavailable} active={active} label={label} onToggle={onToggle} />
-  }
+  const events = [
+    { key: notificationKeys[0], label: i18n._({ id: "mysettings.notification.event.newpost", message: "New Post" }) },
+    { key: notificationKeys[1], label: i18n._({ id: "mysettings.notification.event.discussion", message: "New Comments" }) },
+    { key: notificationKeys[2], label: i18n._({ id: "mysettings.notification.event.mention", message: "Mentions" }) },
+    { key: notificationKeys[3], label: i18n._({ id: "mysettings.notification.event.statuschanged", message: "Status Changed" }) },
+  ]
 
   return (
-    <>
-      <Field label={i18n._({ id: "label.notifications", message: "Notifications" })}>
-        <p className="text-muted mb-6">
-          <Trans id="mysettings.notification.title">Choose the events to receive a notification for.</Trans>
-        </p>
-
-        {!props.hasEmail && (
-          <p className="text-muted">
-            <Trans id="auth.notifications.noemail">No contact email is set. You will only receive in-app notifications.</Trans>
-          </p>
-        )}
-        <div className="notifications-settings mt-4">
-          <VStack spacing={4} divide={true} className="rounded">
-            <div>
-              <HStack spacing={6} justify="between">
-                <span>
-                  <Trans id="mysettings.notification.event.newpost">New Post</Trans>
-                </span>
-                <HStack spacing={6}>
-                  {icon("event_notification_new_post", WebChannel)}
-                  {icon("event_notification_new_post", EmailChannel)}
-                </HStack>
-              </HStack>
-            </div>
-            <div>
-              <HStack spacing={6} justify="between">
-                <span className="mb-1">
-                  <Trans id="mysettings.notification.event.discussion">New Comments</Trans>
-                </span>
-                <HStack spacing={6}>
-                  {icon("event_notification_new_comment", WebChannel)}
-                  {icon("event_notification_new_comment", EmailChannel)}
-                </HStack>
-              </HStack>
-            </div>
-            <div>
-              <HStack spacing={6} justify="between">
-                <div className="mb-1">
-                  <Trans id="mysettings.notification.event.mention">Mentions</Trans>
-                </div>
-                <HStack spacing={6}>
-                  {icon("event_notification_mention", WebChannel)}
-                  {icon("event_notification_mention", EmailChannel)}
-                </HStack>
-              </HStack>
-            </div>
-            <div>
-              <HStack spacing={6} justify="between">
-                <span className="mb-1">
-                  <Trans id="mysettings.notification.event.statuschanged">Status Changed</Trans>
-                </span>
-                <HStack spacing={6}>
-                  {icon("event_notification_change_status", WebChannel)}
-                  {icon("event_notification_change_status", EmailChannel)}
-                </HStack>
-              </HStack>
-            </div>
-          </VStack>
-        </div>
-      </Field>
-    </>
+    <Field label={i18n._({ id: "label.notifications", message: "Notifications" })}>
+      <p className="text-muted mb-6">
+        <Trans id="mysettings.notification.title">Choose the events to receive an in-app notification for.</Trans>
+      </p>
+      <div className="notifications-settings mt-4">
+        <VStack spacing={4} divide={true} className="rounded">
+          {events.map(({ key, label }) => (
+            <HStack key={key} spacing={6} justify="between">
+              <span>{label}</span>
+              <Toggle active={userSettings[key] === "1"} ariaLabel={label} onToggle={(active) => toggle(key, active)} />
+            </HStack>
+          ))}
+        </VStack>
+      </div>
+    </Field>
   )
 }

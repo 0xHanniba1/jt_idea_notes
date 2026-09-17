@@ -3,13 +3,11 @@ import { FiderWorld } from "../world"
 import { expect } from "@playwright/test"
 
 Then("I should be on the show post page", async function (this: FiderWorld) {
-  const container = await this.page.$$(".p-show-post")
-  expect(container).toBeDefined()
+  await expect(this.page.locator(".p-show-post")).toBeVisible()
 })
 
 Then("I should see {string} as the post title", async function (this: FiderWorld, title: string) {
-  const postTitle = await this.page.innerText(".p-show-post__title")
-  expect(postTitle).toBe(title)
+  await expect(this.page.locator(".p-show-post__title")).toHaveText(title)
 })
 
 Then("the post should have no voting controls or voter list", async function (this: FiderWorld) {

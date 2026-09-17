@@ -2,7 +2,6 @@ package query
 
 import (
 	"github.com/getfider/fider/app/models/entity"
-	"github.com/getfider/fider/app/models/enum"
 )
 
 type IsCNAMEAvailable struct {
@@ -19,31 +18,6 @@ type IsSubdomainAvailable struct {
 	Result bool
 }
 
-type GetVerificationByKey struct {
-	Kind enum.EmailVerificationKind
-	Key  string
-
-	// Output
-	Result *entity.EmailVerification
-}
-
-type GetVerificationByEmailAndCode struct {
-	Email string
-	Code  string
-	Kind  enum.EmailVerificationKind
-
-	// Output
-	Result *entity.EmailVerification
-}
-
-type GetActiveVerificationByEmail struct {
-	Email string
-	Kind  enum.EmailVerificationKind
-
-	// Output
-	Result *entity.EmailVerification
-}
-
 type GetFirstTenant struct {
 
 	// Output
@@ -55,11 +29,6 @@ type GetTenantByDomain struct {
 
 	// Output
 	Result *entity.Tenant
-}
-
-type GetPendingSignUpVerification struct {
-	// Output
-	Result *entity.EmailVerification
 }
 
 // GetTenantsPendingDeletion returns tenants whose scheduled_deletion_at has passed,

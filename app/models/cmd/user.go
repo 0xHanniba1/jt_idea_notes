@@ -30,11 +30,6 @@ type ChangeUserRole struct {
 	Role   enum.Role
 }
 
-type ChangeUserEmail struct {
-	UserID int
-	Email  string
-}
-
 type UpdateCurrentUserSettings struct {
 	Settings map[string]string
 }
@@ -55,4 +50,4 @@ type UpdateCurrentUser struct {
 	Avatar     *dto.ImageUpload
 }
 
-type RotateAllUserSecurityStamps struct {}
+type RotateAllUserSecurityStamps struct{}

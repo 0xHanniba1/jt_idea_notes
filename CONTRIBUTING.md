@@ -43,15 +43,10 @@ If you know these technologies or would like to learn them, lucky you! This is t
 4. run `go install github.com/joho/godotenv/cmd/godotenv` to install godotenv, a cli tool to load environment variables from a `.env` so that you don't have to change your machine environment variables.
 5. run `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1` to install golangci-lint, a linter for Go apps.
 6. run `npm install` to install client side packages.
-7. run `docker compose up -d` to start a local PostgreSQL database and Local SMTP (with [MailHog](https://github.com/mailhog/MailHog)) on Docker.
+7. run `docker compose up -d` to start a local PostgreSQL database on Docker.
 8. run `cp .example.env .env` to create a local environment configuration file.
 
-- **Important:** Fider has a strong dependency on an email delivery service. For easier local development, the docker-compose file already provides
-  a fake SMTP server running at port **1025** and a UI (to check sent emails) at http://localhost:8025. The `.example.env` is already
-  configured to use it. If you want to, you can edit `.env` file and configure the `EMAIL_*` environment variables with your own SMTP server
-  details. If you don't have an SMTP server, you can either sign up for a [Mailgun account](https://www.mailgun.com/) (it's Free) or sign
-  up for a [Mailtrap account](https://mailtrap.io), which is a free SMTP mocking server. If you prefer not to setup an email service, keep
-  an eye on the server logs. Sometimes it's necessary to navigate to some URLs that are only sent by email, but are also written to the logs.
+- This fork uses administrator-created username/password accounts. No SMTP or email service is needed. See `docs/admin-password-login-operations.md` for account setup.
 
 #### 3. To start the application
 

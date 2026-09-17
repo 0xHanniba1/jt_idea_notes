@@ -91,20 +91,6 @@ func RequireTenant() web.MiddlewareFunc {
 }
 
 // BlockPendingTenants blocks requests for pending tenants
-func BlockPendingTenants() web.MiddlewareFunc {
-	return func(next web.HandlerFunc) web.HandlerFunc {
-		return func(c *web.Context) error {
-			if c.Tenant().Status == enum.TenantPending {
-				return c.Page(http.StatusOK, web.Props{
-					Page:        "SignUp/PendingActivation.page",
-					Title:       "Pending Activation",
-					Description: "We sent you a confirmation email with a link to activate your site. Please check your inbox to activate it.",
-				})
-			}
-			return next(c)
-		}
-	}
-}
 
 // CheckTenantPrivacy blocks requests of unauthenticated users for private tenants
 func CheckTenantPrivacy() web.MiddlewareFunc {
