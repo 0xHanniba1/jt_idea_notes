@@ -99,7 +99,7 @@
   "admin.title.moderation": "Moderation · Site Settings",
   "admin.title.privacy": "Privacy · Site Settings",
   "admin.title.tags": "Manage Tags · Site Settings",
-  "admin.title.users": "Manage Members · Site Settings",
+  "admin.title.users": "Account management · Site settings",
   "admin.title.webhooks": "Manage Webhooks · Site Settings",
   "admin.webhooks.failure.content.parse": "Could not parse webhook content template",
   "admin.webhooks.failure.request.failed": "Could not execute webhook HTTP request",
@@ -177,7 +177,7 @@
   "auth.username.taken": "This login name is already in use.",
   "auth.invalidinput": "Check the information you entered and try again.",
   "auth.account.notfound": "Account not found.",
-  "auth.password.policy": "Use 15–128 characters, up to 512 UTF-8 bytes. Spaces and Chinese characters are allowed.",
+  "auth.password.policy": "Use 8–12 characters. Spaces and Chinese characters are allowed.",
   "auth.password.weak": "This password is too common. Choose a different password.",
   "auth.toomany": "Too many attempts. Please try again later.",
   "auth.invalidlogin": "Incorrect login name or password.",
@@ -185,9 +185,10 @@
   "auth.password.current": "The current password is incorrect.",
   "auth.password.different": "The new password must be different from the current password.",
   "auth.username.policy": "Use 3–32 letters, digits, dots, underscores or hyphens; start with a letter or digit.",
-  "auth.name.policy": "Enter a name of no more than 100 UTF-8 bytes.",
+  "auth.name.policy": "Enter a nickname using no more than 100 characters.",
   "auth.role.invalid": "Choose a valid account role.",
   "auth.account.self": "Use personal settings to change your own password. Contact another administrator for account recovery.",
   "auth.internalonly": "This site is for internal members and requires password sign-in.",
-  "auth.transport.required": "Password sign-in requires HTTPS. Configure the site URL and trusted reverse proxy before enabling access."
+  "auth.transport.required": "Password sign-in requires HTTPS. Configure the site URL and trusted reverse proxy before enabling access.",
+  "auth.username.immutable": "Your username is used to sign in and cannot be changed."
 }

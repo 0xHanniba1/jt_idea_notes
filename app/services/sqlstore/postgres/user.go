@@ -438,6 +438,16 @@ func queryUser(ctx context.Context, trx *dbx.Trx, filter string, args ...any) (*
 
 func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		var status enum.UserStatus
+		switch q.Status {
+		case "", "all":
+		case "active":
+			status = enum.UserActive
+		case "inactive":
+			status = enum.UserBlocked
+		default:
+			return passwordauth.ErrInvalidInput
+		}
 		if q.Roles == nil {
 			q.Roles = []string{}
 		}
@@ -482,6 +492,11 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 			}
 			baseQuery += fmt.Sprintf(" AND u.role = ANY($%d)", argIndex)
 			args = append(args, pq.Array(roleValues))
+			argIndex++
+		}
+		if status != 0 {
+			baseQuery += fmt.Sprintf(" AND u.status = $%d", argIndex)
+			args = append(args, status)
 		}
 
 		baseQuery += " ORDER BY u.role desc, u.name, u.id"
@@ -515,6 +530,11 @@ func searchUsers(ctx context.Context, q *query.SearchUsers) error {
 			}
 			countQuery += fmt.Sprintf(" AND u.role = ANY($%d)", countArgIndex)
 			countArgs = append(countArgs, pq.Array(roleValues))
+			countArgIndex++
+		}
+		if status != 0 {
+			countQuery += fmt.Sprintf(" AND u.status = $%d", countArgIndex)
+			countArgs = append(countArgs, status)
 		}
 
 		err := trx.Get(&q.TotalCount, countQuery, countArgs...)

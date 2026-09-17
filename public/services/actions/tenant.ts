@@ -74,7 +74,7 @@ export const blockUser = async (userID: number): Promise<Result> => {
   return await http.put(`/_api/admin/users/${userID}/block`)
 }
 
-export const unblockUser = async (userID: number, password: string): Promise<Result> => {
+export const unblockUser = async (userID: number, password: string): Promise<Result<{ id: number; temporaryPassword?: string }>> => {
   return await http.delete(`/_api/admin/users/${userID}/block`, { password })
 }
 

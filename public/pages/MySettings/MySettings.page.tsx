@@ -147,7 +147,11 @@ export default class MySettingsPage extends React.Component<MySettingsPageProps,
                 value={Fider.session.user.username}
                 readOnly
                 autoComplete="username"
-              />
+              >
+                <p className="text-muted mt-1">
+                  <Trans id="accounts.username.readonly">Your username is used to sign in and cannot be changed.</Trans>
+                </p>
+              </Input>
               <Input
                 label={i18n._({ id: "label.email", message: "Email" })}
                 field="email"
@@ -176,7 +180,17 @@ export default class MySettingsPage extends React.Component<MySettingsPageProps,
                 )}
               </Input>
 
-              <Input label={i18n._({ id: "label.name", message: "Name" })} field="name" value={this.state.name} maxLength={100} onChange={this.setName} />
+              <Input
+                label={i18n._({ id: "accounts.nickname", message: "Nickname" })}
+                field="name"
+                value={this.state.name}
+                maxLength={100}
+                onChange={this.setName}
+              >
+                <p className="text-muted mt-1">
+                  <Trans id="accounts.nickname.help">Shown on your records and comments. Changing it does not change your username.</Trans>
+                </p>
+              </Input>
 
               <Select
                 label={i18n._({ id: "label.avatar", message: "Avatar" })}

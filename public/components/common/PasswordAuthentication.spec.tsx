@@ -19,7 +19,8 @@ jest.mock("@lingui/react", () => ({
 
 const originalLocation = window.location
 const go = jest.fn()
-const password = " A long test password with spaces "
+const password = " 密码🔑Ab1 "
+const legacyPassword = " A long test password with spaces "
 const member: ManagedUser = {
   id: 42,
   name: "Existing member",
@@ -53,7 +54,7 @@ const submit = (label: string) => {
   fireEvent.submit(form)
 }
 
-test("password login normalizes only the username, prevents duplicate submits and uses the required-password destination", async () => {
+test("password login accepts existing long passwords, normalizes only the username, and prevents duplicate submits", async () => {
   let complete!: (value: any) => void
   const post = jest.spyOn(http, "post").mockImplementation(
     () =>
@@ -64,11 +65,11 @@ test("password login normalizes only the username, prevents duplicate submits an
   const onSignedIn = jest.fn()
   render(<SignInControl onSignedIn={onSignedIn} />)
   fill("Username", "  Employee.ONE  ")
-  fill("Password", password)
+  fill("Password", legacyPassword)
   submit("Password")
   submit("Password")
   expect(post).toHaveBeenCalledTimes(1)
-  expect(post).toHaveBeenCalledWith("/_api/auth/password/signin", { username: "employee.one", password })
+  expect(post).toHaveBeenCalledWith("/_api/auth/password/signin", { username: "employee.one", password: legacyPassword })
   expect(screen.getByLabelText("Password")).toBeDisabled()
   await act(async () => {
     complete({ ok: true, data: { next: "password_change_required" } })
@@ -101,10 +102,10 @@ test("a normal login safely rejects an external redirect", async () => {
   await waitFor(() => expect(go).toHaveBeenCalledWith("/"))
 })
 
-test("required password change checks confirmation locally and accepts 15 Unicode code points without trimming", async () => {
+test("required password change checks confirmation locally and accepts 8 Unicode code points without trimming", async () => {
   const post = jest.spyOn(http, "post").mockResolvedValue({ ok: true, data: undefined })
   render(<PasswordChangeForm required />)
-  const unicode = " " + "🔑".repeat(13) + " "
+  const unicode = " 密码🔑Ab1 "
   fill("New password", unicode)
   fill("Confirm new password", "different")
   submit("New password")
@@ -115,6 +116,20 @@ test("required password change checks confirmation locally and accepts 15 Unicod
   await waitFor(() => expect(go).toHaveBeenCalledWith("/signin?passwordChanged=1"))
   expect(post).toHaveBeenCalledWith("/_api/auth/password/complete", { newPassword: unicode, confirmPassword: unicode })
   expect(screen.getByLabelText("New password")).toHaveValue("")
+})
+
+test.each([true, false])("password changes reject fewer than 8 or more than 12 Unicode characters (required=%s)", async (required) => {
+  const post = jest.spyOn(http, "post").mockResolvedValue({ ok: true, data: undefined })
+  render(<PasswordChangeForm required={required} />)
+  if (!required) fill("Current password", legacyPassword)
+  for (const invalidPassword of ["Ab1!密码🔑", "Ab1!密码🔑abcdef"]) {
+    fill("New password", invalidPassword)
+    fill("Confirm new password", invalidPassword)
+    submit("New password")
+    expect(await screen.findByRole("alert")).toHaveTextContent("Use 8–12 characters.")
+    expect(post).not.toHaveBeenCalled()
+    expect(screen.getByLabelText("New password")).toHaveValue(invalidPassword)
+  }
 })
 
 test("personal password change sends the current password and retains the form on a server rejection", async () => {
@@ -141,25 +156,23 @@ test("initializing an old member targets the original ID, never creates a duplic
   const saved = jest.fn()
   const view = render(<AccountModal operation="initialize" user={member} onClose={jest.fn()} onSaved={saved} />)
   fill("Username", "  Old.Member ")
-  fill("Temporary password", password)
-  submit("Temporary password")
+  fill("Temporary password (optional)", password)
+  submit("Temporary password (optional)")
   await waitFor(() => expect(saved).toHaveBeenCalled())
   expect(post).toHaveBeenCalledWith("/_api/admin/accounts/42/initialize", { username: "old.member", password })
   expect(post).toHaveBeenCalledTimes(1)
-  expect(screen.getByLabelText("Temporary password")).toHaveValue("")
+  expect(screen.getByLabelText("Temporary password (optional)")).toHaveValue("")
   view.unmount()
   render(<AccountModal operation="initialize" user={member} onClose={jest.fn()} onSaved={saved} />)
-  expect(screen.getByLabelText("Temporary password")).toHaveValue("")
+  expect(screen.getByLabelText("Temporary password (optional)")).toHaveValue("")
 })
 
-test("restoring a member requires a new temporary password and sends it in the DELETE body", async () => {
+test("restoring a member accepts a supplied temporary password and sends it in the DELETE body", async () => {
   const restore = jest.spyOn(http, "delete").mockResolvedValue({ ok: true, data: undefined })
   const saved = jest.fn()
   render(<AccountModal operation="restore" user={{ ...member, status: UserStatus.Blocked, passwordInitialized: true }} onClose={jest.fn()} onSaved={saved} />)
-  submit("Temporary password")
-  expect(restore).not.toHaveBeenCalled()
-  fill("Temporary password", password)
-  submit("Temporary password")
+  fill("Temporary password (optional)", password)
+  submit("Temporary password (optional)")
   await waitFor(() => expect(saved).toHaveBeenCalled())
   expect(restore).toHaveBeenCalledWith("/_api/admin/users/42/block", { password })
 })
@@ -183,8 +196,8 @@ test("administrators cannot manage their own credentials and collaborators canno
     tenant: { allowedSchemes: "", name: "Test" },
     user: { id: 42, name: "Current admin", role: UserRole.Administrator, isAdministrator: true, isCollaborator: true },
   })
-  const view = render(<ManageMembersPage users={[member, { ...member, id: 43, name: "Other member" }]} totalPages={1} />)
-  expect(screen.getAllByRole("button", { name: "Account actions" })).toHaveLength(1)
+  const view = render(<ManageMembersPage users={[member, { ...member, id: 43, name: "Other member" }]} totalPages={1} totalCount={2} />)
+  expect(screen.getAllByRole("button", { name: "Change role" })).toHaveLength(1)
   expect(screen.getByRole("button", { name: "Create account" })).toBeInTheDocument()
   view.unmount()
   Fider.initialize({
@@ -192,7 +205,7 @@ test("administrators cannot manage their own credentials and collaborators canno
     tenant: { allowedSchemes: "", name: "Test" },
     user: { id: 10, name: "Collaborator", role: UserRole.Collaborator, isAdministrator: false, isCollaborator: true },
   })
-  render(<ManageMembersPage users={[member]} totalPages={1} />)
-  expect(screen.queryByRole("button", { name: "Account actions" })).not.toBeInTheDocument()
+  render(<ManageMembersPage users={[member]} totalPages={1} totalCount={1} />)
+  expect(screen.queryByRole("button", { name: "Change role" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Create account" })).not.toBeInTheDocument()
 })

@@ -20,16 +20,12 @@ export const validateUsername = (value: string): ErrorItem[] =>
 
 export const validatePassword = (password: string, field = "password"): ErrorItem[] => {
   const characters = Array.from(password)
-  const bytes = characters.reduce((count, character) => {
-    const point = character.codePointAt(0) || 0
-    return count + (point <= 0x7f ? 1 : point <= 0x7ff ? 2 : point <= 0xffff ? 3 : 4)
-  }, 0)
-  return characters.length >= 15 && characters.length <= 128 && bytes <= 512
+  return characters.length >= 8 && characters.length <= 12
     ? []
     : [
         {
           field,
-          message: i18n._({ id: "auth.password.policy", message: "Use 15–128 characters, up to 512 UTF-8 bytes. Spaces and Chinese characters are allowed." }),
+          message: i18n._({ id: "auth.password.policy", message: "Use 8–12 characters. Spaces and Chinese characters are allowed." }),
         },
       ]
 }

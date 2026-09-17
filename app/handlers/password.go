@@ -269,6 +269,15 @@ func ManagePasswordAccount(operation string) web.HandlerFunc {
 		if !bindPassword(c, &input) {
 			return passwordError(c, 400, "", "auth.invalidinput")
 		}
+		generatedPassword := ""
+		if input.Password == "" {
+			var err error
+			generatedPassword, err = passwordauth.GenerateTemporaryPassword()
+			if err != nil {
+				return c.Failure(err)
+			}
+			input.Password = generatedPassword
+		}
 		if err := passwordauth.ValidatePassword(input.Password); err != nil {
 			return passwordPolicyError(c, "password", input.Password)
 		}
@@ -277,7 +286,7 @@ func ManagePasswordAccount(operation string) web.HandlerFunc {
 			return passwordError(c, 400, "username", "auth.username.policy")
 		}
 		input.Name = strings.TrimSpace(input.Name)
-		if operation == "create" && (input.Name == "" || len(input.Name) > 100 || !utf8.ValidString(input.Name)) {
+		if operation == "create" && (input.Name == "" || utf8.RuneCountInString(input.Name) > 100 || !utf8.ValidString(input.Name)) {
 			return passwordError(c, 400, "name", "auth.name.policy")
 		}
 		if operation == "create" && (input.Role < enum.RoleVisitor || input.Role > enum.RoleAdministrator) {
@@ -332,7 +341,11 @@ func ManagePasswordAccount(operation string) web.HandlerFunc {
 			return c.Failure(err)
 		}
 		auditAccount(c, operation, userID)
-		return c.Ok(web.Map{"id": userID})
+		response := web.Map{"id": userID}
+		if generatedPassword != "" {
+			response["temporaryPassword"] = generatedPassword
+		}
+		return c.Ok(response)
 	}
 }
 

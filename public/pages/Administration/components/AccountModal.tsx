@@ -6,13 +6,13 @@ import { actions, Failure } from "@fider/services"
 import { authenticationFailure, validatePassword, validateUsername } from "@fider/services/password-auth"
 import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
+import { AccountSecret } from "./AccountCredentials"
+import { accountRoleOptions, TemporaryPasswordHelp } from "./AccountCreateForm"
 
-export type AccountOperation = "create" | "initialize" | "reset" | "restore" | "deactivate"
+export type AccountOperation = "initialize" | "reset" | "restore" | "deactivate" | "role"
 
 export const accountOperationLabel = (operation: AccountOperation): string => {
   switch (operation) {
-    case "create":
-      return i18n._({ id: "accounts.create", message: "Create account" })
     case "initialize":
       return i18n._({ id: "accounts.initialize", message: "Enable password sign-in" })
     case "reset":
@@ -21,35 +21,35 @@ export const accountOperationLabel = (operation: AccountOperation): string => {
       return i18n._({ id: "accounts.restore", message: "Restore account" })
     case "deactivate":
       return i18n._({ id: "accounts.deactivate", message: "Deactivate account" })
+    case "role":
+      return i18n._({ id: "accounts.changerole", message: "Change role" })
   }
 }
 
 interface AccountModalProps {
   operation: AccountOperation
-  user?: ManagedUser
+  user: ManagedUser
   onClose: () => void
-  onSaved: () => void
+  onSaved: (secret?: AccountSecret) => void
 }
 
 // Mounted only while open: closing/success unmounts all temporary credentials.
 export const AccountModal = (props: AccountModalProps) => {
   const [username, setUsername] = useState("")
-  const [name, setName] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState(UserRole.Visitor)
+  const [role, setRole] = useState(props.user.role)
   const [error, setError] = useState<Failure>()
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
   const { operation, user } = props
-  const needsUsername = operation === "create" || operation === "initialize"
+  const needsUsername = operation === "initialize"
+  const needsPassword = operation !== "deactivate" && operation !== "role"
   const title = accountOperationLabel(operation)
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (pending.current) return
-    const errors = [...(needsUsername ? validateUsername(username) : []), ...(operation !== "deactivate" ? validatePassword(password) : [])]
-    if (operation === "create" && !name.trim())
-      errors.push({ field: "name", message: i18n._({ id: "accounts.name.required", message: "Enter the member's name." }) })
+    const errors = [...(needsUsername ? validateUsername(username) : []), ...(needsPassword && password ? validatePassword(password) : [])]
     if (errors.length) {
       setError({ errors })
       return
@@ -59,21 +59,32 @@ export const AccountModal = (props: AccountModalProps) => {
     setError(undefined)
     try {
       const result =
-        operation === "create"
-          ? await actions.createAccount(username, name, password, role)
-          : !user
-          ? undefined
-          : operation === "initialize"
+        operation === "initialize"
           ? await actions.initializeAccount(user.id, username, password)
           : operation === "reset"
           ? await actions.resetAccountPassword(user.id, password)
           : operation === "restore"
           ? await actions.unblockUser(user.id, password)
+          : operation === "role"
+          ? await actions.changeUserRole(user.id, role)
           : await actions.blockUser(user.id)
-      if (result?.ok) {
+      if (result.ok) {
+        const temporaryPassword = needsPassword ? result.data?.temporaryPassword || password : undefined
         setPassword("")
-        props.onSaved()
-      } else setError(result?.error || authenticationFailure())
+        props.onSaved(temporaryPassword ? { username: needsUsername ? username.trim().toLowerCase() : user.username, password: temporaryPassword } : undefined)
+      } else {
+        // Role/status failures have no corresponding field in these dialogs.
+        setError(
+          needsPassword
+            ? {
+                errors: (result.error || authenticationFailure()).errors?.map((item) => ({
+                  ...item,
+                  field: item.field === "password" || (needsUsername && item.field === "username") ? item.field : undefined,
+                })),
+              }
+            : { errors: result.error?.errors?.map(({ message }) => ({ message })) || authenticationFailure().errors }
+        )
+      }
     } catch {
       setError(authenticationFailure())
     } finally {
@@ -91,27 +102,26 @@ export const AccountModal = (props: AccountModalProps) => {
         </div>
       </Modal.Header>
       <Modal.Content>
-        {user && (
-          <p className="mb-3">
-            {user.name}
-            {user.username ? ` · ${user.username}` : ""}
-          </p>
-        )}
+        <p className="mb-3">
+          <strong>{user.name}</strong>
+          {user.username ? ` · @${user.username}` : ""}
+        </p>
         {operation === "initialize" && (
           <p className="text-muted mb-3">
             <Trans id="accounts.initialize.help">Enable sign-in for this existing member. Their records, comments and permissions are preserved.</Trans>
           </p>
         )}
-        {operation === "initialize" && user?.status === UserStatus.Blocked && (
+        {operation === "initialize" && user.status === UserStatus.Blocked && (
           <p className="text-muted mb-3">
             <Trans id="accounts.initialize.inactive">This account will remain inactive after setup. Restore it separately to allow sign-in.</Trans>
           </p>
         )}
-        {operation === "deactivate" ? (
+        {operation === "deactivate" && (
           <p className="text-muted mb-3">
             <Trans id="accounts.deactivate.help">This member will be signed out and unable to sign in. Their records and comments are preserved.</Trans>
           </p>
-        ) : (
+        )}
+        {needsPassword && (
           <p className="text-muted mb-3">
             <Trans id="accounts.temporary.help">
               Share this temporary password with the member securely. They must choose a new password at their next sign-in.
@@ -128,6 +138,11 @@ export const AccountModal = (props: AccountModalProps) => {
             <Trans id="accounts.reset.help">Resetting the password signs this member out on all devices.</Trans>
           </p>
         )}
+        {operation === "role" && (
+          <p className="text-muted mb-3">
+            <Trans id="accounts.role.help">Changing the role updates permissions for this member and signs them out on all devices.</Trans>
+          </p>
+        )}
         <Form error={error} onSubmit={submit} autoComplete="off">
           {needsUsername && (
             <Input
@@ -137,6 +152,7 @@ export const AccountModal = (props: AccountModalProps) => {
               onChange={setUsername}
               disabled={busy}
               autoComplete="off"
+              maxLength={32}
             >
               <p className="text-muted mt-1">
                 <Trans id="auth.username.help">
@@ -145,39 +161,30 @@ export const AccountModal = (props: AccountModalProps) => {
               </p>
             </Input>
           )}
-          {operation === "create" && (
-            <>
-              <Input field="name" label={i18n._({ id: "label.name", message: "Name" })} value={name} onChange={setName} disabled={busy} maxLength={100} />
-              <Select
-                field="role"
-                label={i18n._({ id: "admin.members.role", message: "Role" })}
-                defaultValue={UserRole.Visitor}
-                disabled={busy}
-                onChange={(option) => option && setRole(option.value as UserRole)}
-                options={[
-                  { value: UserRole.Visitor, label: i18n._({ id: "admin.members.member", message: "member" }) },
-                  { value: UserRole.Collaborator, label: i18n._({ id: "admin.members.collaborator", message: "collaborator" }) },
-                  { value: UserRole.Administrator, label: i18n._({ id: "admin.members.administrator", message: "administrator" }) },
-                ]}
-              />
-            </>
+          {operation === "role" && (
+            <Select
+              field="role"
+              label={i18n._({ id: "admin.members.role", message: "Role" })}
+              defaultValue={user.role}
+              disabled={busy}
+              onChange={(option) => option && setRole(option.value as UserRole)}
+              options={accountRoleOptions()}
+            />
           )}
-          {operation !== "deactivate" && (
+          {needsPassword && (
             <PasswordInput
               field="password"
-              label={i18n._({ id: "accounts.temporary", message: "Temporary password" })}
+              label={i18n._({ id: "accounts.temporary.optional", message: "Temporary password (optional)" })}
               value={password}
               onChange={setPassword}
               autoComplete="new-password"
               disabled={busy}
             >
-              <p className="text-muted mt-1">
-                <Trans id="auth.password.policy">Use 15–128 characters, up to 512 UTF-8 bytes. Spaces and Chinese characters are allowed.</Trans>
-              </p>
+              <TemporaryPasswordHelp />
             </PasswordInput>
           )}
           <div className="flex gap-2 mt-4">
-            <Button type="submit" variant={operation === "deactivate" ? "danger" : "primary"} disabled={busy}>
+            <Button type="submit" variant={operation === "deactivate" ? "danger" : "primary"} disabled={busy || (operation === "role" && role === user.role)}>
               {title}
             </Button>
             <Button onClick={props.onClose} disabled={busy}>

@@ -2,6 +2,7 @@ package actions_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/getfider/fider/app/actions"
@@ -15,7 +16,8 @@ func TestInvalidUserNames(t *testing.T) {
 
 	for _, name := range []string{
 		"",
-		"123456789012345678901234567890123456789012345678901", // 51 chars
+		"   ",
+		strings.Repeat("字", 101),
 	} {
 
 		action := actions.NewUpdateUserSettings()
@@ -32,6 +34,7 @@ func TestValidUserNames(t *testing.T) {
 	for _, name := range []string{
 		"Jon Snow",
 		"Arya",
+		strings.Repeat("字", 100),
 	} {
 		action := actions.NewUpdateUserSettings()
 		action.Name = name

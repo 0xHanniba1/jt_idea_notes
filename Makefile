@@ -80,7 +80,7 @@ test-server: build-server build-ssr ## Run all server tests (set SHORT=false for
 	godotenv -f .test.env go test $(GO_PACKAGES) -p 1 -race $(if $(filter false,$(SHORT)),,-short)
 
 test-ui: ## Run all UI tests
-	TZ=GMT npx jest ./public
+	TZ=GMT npx jest --roots ./public
 
 coverage-server: build-server build-ssr ## Run all server tests (with code coverage, set SHORT=false for full tests)
 	godotenv -f .test.env ./fider migrate

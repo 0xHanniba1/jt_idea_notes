@@ -71,7 +71,7 @@ export const PasswordChangeForm = (props: { required?: boolean; disabled?: boole
         disabled={busy || props.disabled}
       >
         <p className="text-muted mt-1">
-          <Trans id="auth.password.policy">Use 15–128 characters, up to 512 UTF-8 bytes. Spaces and Chinese characters are allowed.</Trans>
+          <Trans id="auth.password.policy">Use 8–12 characters. Spaces and Chinese characters are allowed.</Trans>
         </p>
       </PasswordInput>
       <PasswordInput

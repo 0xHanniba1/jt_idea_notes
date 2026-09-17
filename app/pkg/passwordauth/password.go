@@ -31,14 +31,16 @@ var (
 )
 
 const (
-	MinPasswordRunes        = 15
-	MaxPasswordRunes        = 128
-	MaxPasswordBytes        = 512
-	memoryKiB        uint32 = 19456
-	iterations       uint32 = 2
-	parallelism      uint8  = 1
-	saltBytes               = 16
-	hashBytes               = 32
+	MinPasswordRunes = 8
+	MaxPasswordRunes = 12
+	MaxPasswordBytes = 512
+	// Existing credentials remain valid after changing the creation policy.
+	maxVerificationRunes        = 128
+	memoryKiB            uint32 = 19456
+	iterations           uint32 = 2
+	parallelism          uint8  = 1
+	saltBytes                   = 16
+	hashBytes                   = 32
 )
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{2,31}$`)
@@ -52,9 +54,12 @@ func ValidateUsername(s string) error {
 	return nil
 }
 
-// These local examples cover common long passwords that pass the length rule.
+// These local examples cover common passwords that pass the length rule.
 // Values are used only for comparison; a password is never sent to a service.
 var commonPasswords = map[string]struct{}{
+	"12345678": {}, "123456789": {}, "1234567890": {}, "12345678901": {}, "123456789012": {},
+	"password": {}, "password1": {}, "password12": {}, "password123": {}, "password1234": {},
+	"qwerty123": {}, "qwertyuiop": {}, "admin123": {}, "admin1234": {}, "admin123456": {},
 	"123456789012345": {}, "1234567890123456": {}, "12345678901234567890": {},
 	"passwordpassword": {}, "password1234567": {}, "password12345678": {}, "password123456789": {},
 	"passwordpasswordpassword": {}, "qwertyuiopasdfgh": {}, "qwertyuiopasdfghjkl": {},
@@ -86,6 +91,22 @@ func ValidatePassword(s string) error {
 		return ErrWeakPassword
 	}
 	return nil
+}
+
+// GenerateTemporaryPassword returns a random password for one-time handoff.
+// Only its hash is persisted; plaintext must never be logged or cached.
+func GenerateTemporaryPassword() (string, error) {
+	// Nine random bytes encode to exactly twelve URL-safe characters.
+	value := make([]byte, 9)
+	for {
+		if _, err := rand.Read(value); err != nil {
+			return "", errors.New("temporary password generation failed")
+		}
+		password := base64.RawURLEncoding.EncodeToString(value)
+		if ValidatePassword(password) == nil {
+			return password, nil
+		}
+	}
 }
 
 func Hash(s string) (string, error) {
@@ -159,7 +180,7 @@ func Verify(encoded, password string) bool {
 }
 
 func VerifyWithError(encoded, password string) (bool, error) {
-	if len(password) > MaxPasswordBytes || !utf8.ValidString(password) || utf8.RuneCountInString(password) > MaxPasswordRunes {
+	if len(password) > MaxPasswordBytes || !utf8.ValidString(password) || utf8.RuneCountInString(password) > maxVerificationRunes {
 		return false, ErrInvalidPassword
 	}
 	p, err := parse(encoded)
@@ -179,7 +200,7 @@ var placeholder struct {
 // Unknown accounts must verify against this value before returning failure.
 func PlaceholderHash() string {
 	placeholder.Do(func() {
-		value, err := Hash("Unavailable account placeholder value")
+		value, err := Hash("UnknownUser!")
 		if err != nil {
 			panic("cannot initialize password placeholder")
 		}
