@@ -144,14 +144,11 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 	}
 
 	tenant := ctx.Tenant()
-	tenantName := "Fider"
-	if tenant != nil {
-		tenantName = tenant.Name
-	}
+	const workspaceName = "金唐需求工作台"
 
-	title := tenantName
+	title := workspaceName
 	if props.Title != "" {
-		title = fmt.Sprintf("%s · %s", props.Title, tenantName)
+		title = fmt.Sprintf("%s · %s", props.Title, workspaceName)
 	}
 
 	public["title"] = title
@@ -175,11 +172,7 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 		r.chunkedAssets[pageChunkName],
 	}
 
-	if tenant == nil || tenant.LogoBlobKey == "" {
-		private["favicon"] = AssetsURL(ctx, "/static/favicon")
-	} else {
-		private["favicon"] = AssetsURL(ctx, "/static/favicon/%s", tenant.LogoBlobKey)
-	}
+	private["favicon"] = AssetsURL(ctx, "/static/favicon")
 
 	private["currentURL"] = ctx.Request.URL.String()
 	if canonicalURL := ctx.Value("Canonical-URL"); canonicalURL != nil {

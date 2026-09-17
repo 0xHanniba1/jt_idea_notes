@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-17 — JT browser branding
+
+- Use 金唐需求工作台 as the browser title, keeping the current page name as a prefix on subpages.
+- Replace the default favicon with a blue JT mark and version its URL to refresh browser caches; keep sidebar branding and tenant data unchanged.
+- Verify renderer tests, server lint/build, and actual homepage/subpage titles and favicon delivery in the 4184 development preview.
+
 ## 2026-09-17 — Remove release workflow documentation and CI routing
 
 - Remove the release runbook and its verification document, along with deployment procedure and retention rules in project guidance.
