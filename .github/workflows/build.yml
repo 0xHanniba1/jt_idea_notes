@@ -15,8 +15,27 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      scope: ${{ steps.changes.outputs.scope }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Verify CI classification and result handling
+        run: python3 -B -m unittest discover -s scripts -p 'test_ci_checks.py'
+      - name: Check changes, whitespace and documentation links
+        id: changes
+        run: python3 -B scripts/ci_checks.py changes
+
   lint-workflows:
+    needs: [changes]
+    if: needs.changes.outputs.scope == 'full'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,6 +49,8 @@ jobs:
 
   test-ui:
     name: test-ui
+    needs: [changes]
+    if: needs.changes.outputs.scope == 'full'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -44,6 +65,8 @@ jobs:
 
   test-server:
     name: test-server
+    needs: [changes]
+    if: needs.changes.outputs.scope == 'full'
     runs-on: ubuntu-latest
     services:
       minio:
@@ -92,6 +115,8 @@ jobs:
   # The build job uses the Dockerfile to build an image which is then used by e2e tests
   build:
     name: build
+    needs: [changes]
+    if: needs.changes.outputs.scope == 'full'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -220,3 +245,15 @@ jobs:
       - run: make test-e2e-server
         env:
           BROWSER: chromium
+
+  ci:
+    name: CI result
+    if: always()
+    needs: [changes, lint-workflows, test-ui, test-server, build, test-e2e-ui, test-e2e-server]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Require the checks selected for this change
+        run: python3 -B scripts/ci_checks.py summary
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
