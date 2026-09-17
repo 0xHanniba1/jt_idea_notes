@@ -2,10 +2,10 @@ import "./ManageMembers.page.scss"
 import { t } from "@lingui/core/macro"
 import { Trans } from "@lingui/react/macro"
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { Input, Avatar, Pagination, Button, DisplayError } from "@fider/components"
+import { Input, Avatar, Pagination, Button, DisplayError, Select } from "@fider/components"
 import { ManagedUser, UserRole, UserStatus } from "@fider/models"
 import IconSearch from "@fider/assets/images/heroicons-search.svg"
-import { actions, Fider, Failure, http, notify } from "@fider/services"
+import { Fider, Failure, http, notify } from "@fider/services"
 import { authenticationFailure } from "@fider/services/password-auth"
 import { AdminPageContainer } from "../components/AdminBasePage"
 import { AccountModal, AccountOperation, accountOperationLabel } from "../components/AccountModal"
@@ -34,12 +34,10 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
   const [totalCount, setTotalCount] = useState(props.totalCount)
   const [error, setError] = useState<Failure>()
   const [loading, setLoading] = useState(false)
-  const [pendingUser, setPendingUser] = useState<number>()
   const [accountAction, setAccountAction] = useState<MemberAction>()
   const [secret, setSecret] = useState<AccountSecret>()
   const requestID = useRef(0)
   const isAdministrator = Fider.session.user.isAdministrator
-  const mutationPending = useRef(false)
 
   const reloadUsers = useCallback(async (searchQuery: string, role: UserRole | "all", status: StatusFilter, page = 1) => {
     const request = ++requestID.current
@@ -100,22 +98,6 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
   const changeRoleFilter = (role: UserRole | "all") => {
     setRoleFilter(role)
     reloadUsers(appliedQuery, role, statusFilter)
-  }
-  const changeTrust = async (user: ManagedUser) => {
-    if (mutationPending.current) return
-    mutationPending.current = true
-    setPendingUser(user.id)
-    setError(undefined)
-    try {
-      const result = user.isTrusted ? await actions.untrustUser(user.id) : await actions.trustUser(user.id)
-      if (result.ok) await refresh()
-      else setError({ errors: result.error?.errors?.map(({ message }) => ({ message })) || authenticationFailure().errors })
-    } catch {
-      setError(authenticationFailure())
-    } finally {
-      mutationPending.current = false
-      setPendingUser(undefined)
-    }
   }
   const onAccountSaved = (credentials?: AccountSecret) => {
     setAccountAction(undefined)
@@ -179,29 +161,24 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
                 <Trans id="action.search">Search</Trans>
               </Button>
             </div>
-            <select
-              className="c-select"
-              aria-label={t({ id: "accounts.statusfilter", message: "Filter by account status" })}
+            <Select
+              field="member-status"
+              ariaLabel={t({ id: "accounts.statusfilter", message: "Filter by account status" })}
               value={statusFilter}
-              onChange={(event) => changeStatus(event.target.value as StatusFilter)}
-            >
-              <option value="all">{t({ id: "accounts.allstatuses", message: "All statuses" })}</option>
-              <option value="active">{t({ id: "accounts.active", message: "Active" })}</option>
-              <option value="inactive">{t({ id: "accounts.inactive", message: "Inactive" })}</option>
-            </select>
-            <select
-              className="c-select"
-              aria-label={t({ id: "admin.members.role", message: "Role" })}
+              onChange={(option) => option && changeStatus(option.value as StatusFilter)}
+              options={[
+                { value: "all", label: t({ id: "accounts.allstatuses", message: "All statuses" }) },
+                { value: "active", label: t({ id: "accounts.active", message: "Active" }) },
+                { value: "inactive", label: t({ id: "accounts.inactive", message: "Inactive" }) },
+              ]}
+            />
+            <Select
+              field="member-role"
+              ariaLabel={t({ id: "admin.members.role", message: "Role" })}
               value={roleFilter}
-              onChange={(event) => changeRoleFilter(event.target.value as UserRole | "all")}
-            >
-              <option value="all">{t({ id: "admin.members.allroles", message: "All Roles" })}</option>
-              {accountRoleOptions().map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(option) => option && changeRoleFilter(option.value as UserRole | "all")}
+              options={[{ value: "all", label: t({ id: "admin.members.allroles", message: "All Roles" }) }, ...accountRoleOptions()]}
+            />
           </form>
           <DisplayError error={error} />
           {error && (
@@ -256,43 +233,28 @@ export default function ManageMembersPage(props: ManageMembersPageProps) {
                     {canManage && (
                       <div className="c-members-actions">
                         {active && (
-                          <Button size="small" disabled={pendingUser !== undefined} onClick={() => setAccountAction({ operation: "role", user })}>
+                          <Button size="small" onClick={() => setAccountAction({ operation: "role", user })}>
                             {accountOperationLabel("role")}
                           </Button>
                         )}
                         {!user.passwordInitialized && (
-                          <Button size="small" disabled={pendingUser !== undefined} onClick={() => setAccountAction({ operation: "initialize", user })}>
+                          <Button size="small" onClick={() => setAccountAction({ operation: "initialize", user })}>
                             {accountOperationLabel("initialize")}
                           </Button>
                         )}
                         {active && user.passwordInitialized && (
-                          <Button
-                            className="c-members-action-warning"
-                            size="small"
-                            disabled={pendingUser !== undefined}
-                            onClick={() => setAccountAction({ operation: "reset", user })}
-                          >
+                          <Button className="c-members-action-warning" size="small" onClick={() => setAccountAction({ operation: "reset", user })}>
                             {accountOperationLabel("reset")}
                           </Button>
                         )}
                         {active && (
-                          <Button
-                            className="c-members-action-danger"
-                            size="small"
-                            disabled={pendingUser !== undefined}
-                            onClick={() => setAccountAction({ operation: "deactivate", user })}
-                          >
+                          <Button className="c-members-action-danger" size="small" onClick={() => setAccountAction({ operation: "deactivate", user })}>
                             {accountOperationLabel("deactivate")}
                           </Button>
                         )}
                         {user.status === UserStatus.Blocked && user.passwordInitialized && (
-                          <Button size="small" disabled={pendingUser !== undefined} onClick={() => setAccountAction({ operation: "restore", user })}>
+                          <Button size="small" onClick={() => setAccountAction({ operation: "restore", user })}>
                             {accountOperationLabel("restore")}
-                          </Button>
-                        )}
-                        {active && user.role === UserRole.Visitor && (
-                          <Button size="small" disabled={pendingUser !== undefined} onClick={() => changeTrust(user)}>
-                            {user.isTrusted ? <Trans id="admin.members.untrust">Untrust User</Trans> : <Trans id="admin.members.trust">Trust User</Trans>}
                           </Button>
                         )}
                       </div>

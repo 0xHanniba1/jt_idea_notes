@@ -294,22 +294,10 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
 
   useEffect(() => {
     const showSuccess = cache.session.get("POST_CREATED_SUCCESS")
-    const showModeration = cache.session.get("POST_CREATED_MODERATION")
-    const showCommentModeration = cache.session.get("COMMENT_CREATED_MODERATION")
 
     if (showSuccess) {
       cache.session.remove("POST_CREATED_SUCCESS")
       notify.success(t({ id: "mysettings.notification.event.newpostcreated", message: "Your idea has been added 👍" }))
-    }
-
-    if (showModeration) {
-      cache.session.remove("POST_CREATED_MODERATION")
-      notify.success(t({ id: "showpost.moderation.postsuccess", message: "Your idea is awaiting moderation 📝" }))
-    }
-
-    if (showCommentModeration) {
-      cache.session.remove("COMMENT_CREATED_MODERATION")
-      notify.success(t({ id: "showpost.moderation.commentsuccess", message: "Your comment is awaiting moderation 📝" }))
     }
   }, [])
 
@@ -389,38 +377,6 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
     setNewDescription(value)
   }
 
-  const moderatePost = async (approve: boolean) => {
-    if (!post || saving || Fider.isReadOnly || !isValidPostTitle(newTitle)) return
-    setSaving(true)
-    try {
-      const result = await (approve ? actions.approvePost(post.id) : actions.declinePost(post.id))
-      if (!mounted.current || securityExit.current) return
-      if (result.ok) {
-        if (approve) {
-          notify.success(<Trans id="showpost.moderation.approved">Post approved successfully</Trans>)
-          await handleDataChanged()
-        } else {
-          notify.success(<Trans id="showpost.moderation.declined">Post declined successfully</Trans>)
-          await handleDeleted()
-        }
-      } else {
-        notify.error(
-          approve ? (
-            <Trans id="showpost.moderation.approveerror">Failed to approve post</Trans>
-          ) : (
-            <Trans id="showpost.moderation.declineerror">Failed to decline post</Trans>
-          )
-        )
-      }
-    } catch {
-      notify.error(t({ id: "showpost.action.failed", message: "Unable to save. Please check your connection and try again." }))
-    } finally {
-      if (mounted.current) setSaving(false)
-    }
-  }
-  const handleApprovePost = () => moderatePost(true)
-  const handleDeclinePost = () => moderatePost(false)
-
   const onActionSelected = (action: "copy" | "delete" | "status" | "feed" | "edit") => () => {
     if (action === "copy") {
       copyToClipboard(window.location.href).then(
@@ -496,37 +452,6 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
               </div>
             )}
           </VStack>
-
-          {/* Moderation status banner for unapproved posts */}
-          {!editMode && !post.isApproved && (
-            <div>
-              {fider.session.isAuthenticated && (
-                <div className="text-muted text-sm p-3 bg-yellow-50 rounded-md mt-2 border-yellow-500">
-                  <Trans id="showpost.moderation.awaiting">Awaiting moderation.</Trans>
-                </div>
-              )}
-
-              {/* Admin moderation buttons */}
-              {fider.session.isAuthenticated && fider.session.showModerationControls && fider.session.user.isCollaborator && (
-                <div className="p-3 bg-blue-50 rounded border-l-4 border-blue-500 mt-4">
-                  <div className="mb-2 text-sm font-medium text-blue-800">
-                    <Trans id="showpost.moderation.admin.title">Moderation</Trans>
-                  </div>
-                  <div className="text-sm text-blue-700 mb-3">
-                    <Trans id="showpost.moderation.admin.description">This idea needs your approval before being published</Trans>
-                  </div>
-                  <HStack spacing={2}>
-                    <Button variant="primary" size="small" onClick={handleApprovePost} disabled={saving}>
-                      <Trans id="action.publish">Publish</Trans>
-                    </Button>
-                    <Button variant="danger" size="small" onClick={handleDeclinePost} disabled={saving}>
-                      <Trans id="action.delete">Delete</Trans>
-                    </Button>
-                  </HStack>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Description - Full width */}
           {!editMode ? (

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-17 — Internal publishing and consistent controls
+
+- Retire member trust, moderation settings, queues and approval APIs. Internal accounts publish directly; migrate pending content without restoring deleted content or changing account access.
+- Replace all native business selects with themed menus, preserving labels, validation, controlled filters, disabled states and keyboard interaction.
+- Brand the sign-in card as 金唐需求工作台, move theme controls inside authentication cards, and align sign-out beside the required password-save action.
+- Validate 269 frontend tests, related Go and isolated PostgreSQL tests, types, lint, builds and real desktop/mobile light/dark interactions. See [verification](docs/internal-controls-verification.md) and Issue #18.
+
 ## 2026-09-17 — Progress workspace and themed pagination
 
 - Display 金唐 / 需求工作台 in the workspace and switch the sidebar arrow with its expanded state. Compact the notification popover and empty-state typography.

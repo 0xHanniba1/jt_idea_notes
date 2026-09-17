@@ -4,7 +4,7 @@ import { Post } from "@fider/models"
 import { Avatar, Button, Form } from "@fider/components"
 import { SignInModal } from "@fider/components"
 
-import { cache, actions, Failure, Fider, notify } from "@fider/services"
+import { cache, actions, Failure, Fider } from "@fider/services"
 import { HStack } from "@fider/components/layout"
 import { i18n } from "@lingui/core"
 import { t } from "@lingui/core/macro"
@@ -64,9 +64,6 @@ export const CommentInput = (props: CommentInputProps) => {
         cache.session.remove(getCacheKey(CACHE_TITLE_KEY))
         setContentLength(0)
         setEditorVersion((version) => version + 1)
-        if (fider.session.isModerationRequiredForNewPost) {
-          notify.success(<Trans id="showpost.moderation.commentsuccess">Your comment is awaiting moderation 📝</Trans>)
-        }
         if (props.onSubmitted) await props.onSubmitted()
         else location.reload()
       } else {

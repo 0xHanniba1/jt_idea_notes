@@ -1,17 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
-import {
-  SignInModal,
-  RSSModal,
-  TenantLogo,
-  NotificationIndicator,
-  UserMenu,
-  ThemeSwitcher,
-  Icon,
-  Button,
-  ModerationIndicator,
-  Modal,
-  CloseIcon,
-} from "@fider/components"
+import { SignInModal, RSSModal, TenantLogo, NotificationIndicator, UserMenu, ThemeSwitcher, Icon, Button, Modal, CloseIcon } from "@fider/components"
 import { useFider } from "@fider/hooks"
 import { Trans } from "@lingui/react/macro"
 import { i18n } from "@lingui/core"
@@ -218,7 +206,6 @@ export const Header = (props: HeaderProps) => {
             </span>
           </nav>
           <div className="c-workspace__actions">
-            {fider.session.isAuthenticated && <ModerationIndicator />}
             {fider.session.tenant.isFeedEnabled && (
               <button
                 type="button"

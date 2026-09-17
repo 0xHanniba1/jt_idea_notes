@@ -209,7 +209,7 @@
   "admin.privacy.private.help": "A private site prevents unauthenticated users from viewing or interacting with its content. <0/> When enabled, only already registered users, invited users and users from trusted OAuth providers will have access to this site. The feed feature is disabled.",
   "admin.privacy.private.label": "Private site",
   "admin.privacy.saved": "Your access settings have been saved.",
-  "admin.privacy.subtitle": "Manage site access, feeds and content moderation",
+  "admin.privacy.subtitle": "Manage access to the internal workspace",
   "admin.privacy.title": "Access permissions",
   "admin.tags.add": "Add new tag",
   "admin.tags.arrayrequired": "JSON must be an array of tags.",
@@ -635,5 +635,6 @@
   "workspace.skip": "Skip to content",
   "workspace.status": "Page status",
   "progress.status.label": "Progress status",
-  "progress.empty": "No ideas in this status yet."
+  "progress.empty": "No ideas in this status yet.",
+  "auth.signin.brand": "Jintang Requirements Workspace"
 }

@@ -29,7 +29,7 @@ func TestRoadmapPage_StatusPagination(t *testing.T) {
 				if q.View != tc.expected || q.Query != "progress" || q.Page != "2" || q.Limit != "10" || !q.Paginate {
 					t.Fatalf("unexpected progress query: %+v", q)
 				}
-				if len(q.Statuses) != 0 || q.ModerationFilter != "" || q.MyPostsOnly {
+				if len(q.Statuses) != 0 || q.MyPostsOnly {
 					t.Fatalf("unrelated URL filters changed progress visibility: %+v", q)
 				}
 				q.Result = []*entity.Post{{ID: 17, Title: "Progress result"}}

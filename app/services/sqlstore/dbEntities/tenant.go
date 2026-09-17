@@ -8,24 +8,24 @@ import (
 )
 
 type Tenant struct {
-	ID                    int    `db:"id"`
-	Name                  string `db:"name"`
-	Subdomain             string `db:"subdomain"`
-	CNAME                 string `db:"cname"`
-	Invitation            string `db:"invitation"`
-	WelcomeMessage        string `db:"welcome_message"`
-	WelcomeHeader         string `db:"welcome_header"`
-	DescriptionTemplate   string `db:"description_template"`
-	Status                int    `db:"status"`
-	Locale                string `db:"locale"`
-	IsPrivate             bool   `db:"is_private"`
-	LogoBlobKey           string `db:"logo_bkey"`
-	CustomCSS             string `db:"custom_css"`
-	AllowedSchemes        string `db:"allowed_schemes"`
-	IsEmailAuthAllowed    bool   `db:"is_email_auth_allowed"`
-	IsFeedEnabled         bool   `db:"is_feed_enabled"`
-	PreventIndexing       bool   `db:"prevent_indexing"`
-	IsModerationEnabled   bool   `db:"is_moderation_enabled"`
+	ID                    int          `db:"id"`
+	Name                  string       `db:"name"`
+	Subdomain             string       `db:"subdomain"`
+	CNAME                 string       `db:"cname"`
+	Invitation            string       `db:"invitation"`
+	WelcomeMessage        string       `db:"welcome_message"`
+	WelcomeHeader         string       `db:"welcome_header"`
+	DescriptionTemplate   string       `db:"description_template"`
+	Status                int          `db:"status"`
+	Locale                string       `db:"locale"`
+	IsPrivate             bool         `db:"is_private"`
+	LogoBlobKey           string       `db:"logo_bkey"`
+	CustomCSS             string       `db:"custom_css"`
+	AllowedSchemes        string       `db:"allowed_schemes"`
+	IsEmailAuthAllowed    bool         `db:"is_email_auth_allowed"`
+	IsFeedEnabled         bool         `db:"is_feed_enabled"`
+	PreventIndexing       bool         `db:"prevent_indexing"`
+	IsModerationEnabled   bool         `db:"is_moderation_enabled"`
 	IsPro                 bool         `db:"is_pro"`
 	HasPaddleSubscription bool         `db:"has_paddle_subscription"`
 	ScheduledDeletionAt   dbx.NullTime `db:"scheduled_deletion_at"`
@@ -61,7 +61,7 @@ func (t *Tenant) ToModel() *entity.Tenant {
 		IsEmailAuthAllowed:  t.IsEmailAuthAllowed,
 		IsFeedEnabled:       t.IsFeedEnabled,
 		PreventIndexing:     t.PreventIndexing,
-		IsModerationEnabled: isPro && t.IsModerationEnabled,
+		IsModerationEnabled: false,
 		IsPro:               isPro,
 	}
 

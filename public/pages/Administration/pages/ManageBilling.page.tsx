@@ -179,7 +179,6 @@ const ManageBillingPage = (props: ManageBillingPageProps) => {
   const proFeatures: (string | PlanFeature)[] = [
     i18n._({ id: "admin.billing.feature.allfree", message: "Everything in Free" }),
     i18n._({ id: "admin.billing.feature.unlimitedrecords", message: "Unlimited records" }),
-    i18n._({ id: "admin.billing.feature.moderation", message: "Content moderation" }),
     i18n._({ id: "admin.billing.feature.indexing", message: "Search engine indexing" }),
     {
       text: i18n._({ id: "admin.billing.feature.annual", message: "Option to pay annually" }),

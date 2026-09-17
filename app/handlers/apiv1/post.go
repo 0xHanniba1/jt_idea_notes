@@ -54,13 +54,12 @@ func SearchPosts() web.HandlerFunc {
 			viewQueryParams = "all" // Set default value to "all" if not provided
 		}
 		searchPosts := &query.SearchPosts{
-			Query:            c.QueryParam("query"),
-			View:             query.NormalizePostView(viewQueryParams),
-			Limit:            c.QueryParam("limit"),
-			Page:             c.QueryParam("page"),
-			Paginate:         c.Request.URL.Query().Has("page"),
-			Tags:             c.QueryParamAsArray("tags"),
-			ModerationFilter: c.QueryParam("moderation"),
+			Query:    c.QueryParam("query"),
+			View:     query.NormalizePostView(viewQueryParams),
+			Limit:    c.QueryParam("limit"),
+			Page:     c.QueryParam("page"),
+			Paginate: c.Request.URL.Query().Has("page"),
+			Tags:     c.QueryParamAsArray("tags"),
 		}
 		if noTagsOnly, err := c.QueryParamAsBool("notags"); err == nil {
 			searchPosts.NoTagsOnly = noTagsOnly

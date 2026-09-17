@@ -132,7 +132,8 @@ test("search and status filters query the server, reset pagination, and do not a
   fill("Search by username or name", "nickname")
   fireEvent.click(screen.getByRole("button", { name: "Search" }))
   expect(get).toHaveBeenLastCalledWith("/api/v1/users?page=1&limit=10&status=all&query=nickname")
-  fireEvent.change(screen.getByLabelText("Filter by account status"), { target: { value: "inactive" } })
+  fireEvent.click(screen.getByLabelText("Filter by account status"))
+  fireEvent.click(screen.getByRole("menuitemradio", { name: "Inactive" }))
   expect(get).toHaveBeenLastCalledWith("/api/v1/users?page=1&limit=10&status=inactive&query=nickname")
   await screen.findByText("@fixed.username")
   await act(async () => {
@@ -187,8 +188,15 @@ test("role changes preserve identity and display server-side last-administrator 
     .mockResolvedValue({ ok: false, data: undefined, error: { errors: [{ field: "userID", message: "Keep at least one administrator." }] } })
   render(<AccountModal operation="role" user={{ ...member, role: UserRole.Administrator }} onClose={jest.fn()} onSaved={jest.fn()} />)
   expect(screen.queryByLabelText("Username")).not.toBeInTheDocument()
-  fireEvent.change(screen.getByLabelText("Role"), { target: { value: UserRole.Visitor } })
+  fireEvent.click(screen.getByLabelText("Role"))
+  fireEvent.click(screen.getByRole("menuitemradio", { name: "member" }))
   submitForm("Role")
   expect(await screen.findByRole("alert")).toHaveTextContent("Keep at least one administrator.")
   expect(post).toHaveBeenCalledWith("/_api/admin/roles/visitor/users", { userID: 42 })
+})
+
+test("internal members have account controls without trust or moderation actions", () => {
+  page()
+  expect(screen.queryByRole("button", { name: /trust/i })).not.toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Reset password" })).toBeInTheDocument()
 })

@@ -67,14 +67,24 @@
   gap: 8px;
   flex-wrap: wrap;
   margin: 24px 0;
-  > .c-select {
-    width: auto;
+  > .c-form-field {
+    margin: 0;
     max-width: 100%;
-    font-size: 12px;
-    height: 36px;
-    min-height: 36px;
-    border-radius: var(--radius-pill);
-    padding-block: 0;
+    .c-select {
+      border-radius: var(--radius-pill);
+    }
+    .c-dropdown {
+      font-size: 12px;
+    }
+    .c-dropdown__handle {
+      min-height: 36px;
+      padding-block: 0;
+    }
+    .c-dropdown__list {
+      width: max-content;
+      min-width: 100%;
+      max-width: min(240px, calc(100vw - 24px));
+    }
   }
 }
 .c-members-search {

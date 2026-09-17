@@ -34,19 +34,18 @@ type GetPostByNumber struct {
 }
 
 type SearchPosts struct {
-	Query            string
-	View             string
-	Limit            string
-	Page             string
-	Paginate         bool
-	TotalCount       int
-	PageNumber       int
-	PageSize         int
-	Statuses         []enum.PostStatus
-	Tags             []string
-	NoTagsOnly       bool
-	MyPostsOnly      bool
-	ModerationFilter string // "pending", "approved", or empty (all)
+	Query       string
+	View        string
+	Limit       string
+	Page        string
+	Paginate    bool
+	TotalCount  int
+	PageNumber  int
+	PageSize    int
+	Statuses    []enum.PostStatus
+	Tags        []string
+	NoTagsOnly  bool
+	MyPostsOnly bool
 
 	Result []*entity.Post
 }
@@ -63,6 +62,9 @@ type GetAllPosts struct {
 
 func (q *SearchPosts) SetStatusesFromStrings(statuses []string) {
 	for _, v := range statuses {
+		if v == "pending" {
+			continue // Ignore legacy moderation links without mapping them to open.
+		}
 		var postStatus enum.PostStatus
 		if err := postStatus.UnmarshalText([]byte(v)); err == nil {
 			q.Statuses = append(q.Statuses, postStatus)

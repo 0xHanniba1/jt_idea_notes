@@ -116,31 +116,6 @@ export const ShowComment = (props: ShowCommentProps) => {
     }
   }
 
-  const moderate = async (approve: boolean) => {
-    if (submitting) return
-    setSubmitting(true)
-    clearError()
-    try {
-      const result = await (approve ? actions.approveComment(props.comment.id) : actions.declineComment(props.comment.id))
-      if (result.ok) {
-        notify.success(
-          approve ? (
-            <Trans id="showpost.moderation.comment.approved">Comment approved successfully</Trans>
-          ) : (
-            <Trans id="showpost.moderation.comment.declined">Comment declined successfully</Trans>
-          )
-        )
-        await changed()
-      } else setError(result.error)
-    } catch {
-      mutationFailed()
-    } finally {
-      setSubmitting(false)
-    }
-  }
-  const handleApproveComment = () => moderate(true)
-  const handleDeclineComment = () => moderate(false)
-
   const toggleReaction = async (emoji: string) => {
     if (submitting) return
     setSubmitting(true)
@@ -291,37 +266,6 @@ export const ShowComment = (props: ShowCommentProps) => {
               <>
                 {error && !isDeleteConfirmationModalOpen && <Form error={error} />}
                 <Markdown text={comment.content} style="full" />
-
-                {/* Moderation status banner for unapproved comments */}
-                {fider.session.tenant.isModerationEnabled && !comment.isApproved && (
-                  <div className="mt-3">
-                    {fider.session.isAuthenticated && fider.session.user.id === comment.user.id && (
-                      <div className="text-muted text-xs p-2 bg-yellow-50 rounded-md border-yellow-500">
-                        <Trans id="showpost.moderation.comment.awaiting">Awaiting moderation.</Trans>
-                      </div>
-                    )}
-
-                    {/* Admin moderation buttons */}
-                    {fider.session.isAuthenticated && fider.session.user.isCollaborator && (
-                      <div className="p-2 bg-blue-50 rounded border-l-4 border-blue-500">
-                        <div className="mb-1 text-xs font-medium text-blue-800">
-                          <Trans id="home.postfilter.label.moderation">Moderation</Trans>
-                        </div>
-                        <div className="text-xs text-blue-700 mb-2">
-                          <Trans id="showpost.moderation.comment.admin.description">This comment needs your approval before being published</Trans>
-                        </div>
-                        <HStack spacing={1}>
-                          <Button variant="primary" size="small" onClick={handleApproveComment} disabled={submitting}>
-                            <Trans id="action.publish">Publish</Trans>
-                          </Button>
-                          <Button variant="danger" size="small" onClick={handleDeclineComment} disabled={submitting}>
-                            <Trans id="action.delete">Delete</Trans>
-                          </Button>
-                        </HStack>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <Reactions reactions={localReactionCounts} emojiSelectorRef={emojiSelectorRef} toggleReaction={toggleReaction} />
               </>

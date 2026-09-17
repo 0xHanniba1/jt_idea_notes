@@ -18,13 +18,12 @@ func Index() web.HandlerFunc {
 		c.SetCanonicalURL("")
 
 		searchPosts := &query.SearchPosts{
-			Query:            c.QueryParam("query"),
-			View:             query.NormalizePostView(c.QueryParam("view")),
-			Limit:            c.QueryParam("limit"),
-			Page:             c.QueryParam("page"),
-			Paginate:         true,
-			Tags:             c.QueryParamAsArray("tags"),
-			ModerationFilter: c.QueryParam("moderation"),
+			Query:    c.QueryParam("query"),
+			View:     query.NormalizePostView(c.QueryParam("view")),
+			Limit:    c.QueryParam("limit"),
+			Page:     c.QueryParam("page"),
+			Paginate: true,
+			Tags:     c.QueryParamAsArray("tags"),
 		}
 
 		if noTagsOnly, err := c.QueryParamAsBool("notags"); err == nil {
@@ -35,24 +34,7 @@ func Index() web.HandlerFunc {
 			searchPosts.MyPostsOnly = myPostsOnly
 		}
 
-		// Handle "pending" pseudo-status for moderation filtering
-		statusesParam := c.QueryParamAsArray("statuses")
-		hasPending := false
-		actualStatuses := []string{}
-		for _, status := range statusesParam {
-			if status == "pending" {
-				hasPending = true
-			} else {
-				actualStatuses = append(actualStatuses, status)
-			}
-		}
-
-		// Set moderation filter based on pending status
-		if hasPending {
-			searchPosts.ModerationFilter = "pending"
-		}
-
-		searchPosts.SetStatusesFromStrings(actualStatuses)
+		searchPosts.SetStatusesFromStrings(c.QueryParamAsArray("statuses"))
 		getAllTags := &query.GetAllTags{}
 		countPerStatus := &query.CountPostPerStatus{}
 

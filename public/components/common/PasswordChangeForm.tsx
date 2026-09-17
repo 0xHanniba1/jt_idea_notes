@@ -11,6 +11,7 @@ export const PasswordChangeForm = (props: {
   disabled?: boolean
   username?: string
   hideUsername?: boolean
+  secondaryAction?: React.ReactNode
   onSubmittingChange?: (busy: boolean) => void
 }) => {
   const [currentPassword, setCurrentPassword] = useState("")
@@ -53,6 +54,12 @@ export const PasswordChangeForm = (props: {
     }
   }
 
+  const saveButton = (
+    <Button type="submit" variant="primary" disabled={busy || props.disabled}>
+      <Trans id="auth.password.save">Save new password</Trans>
+    </Button>
+  )
+
   return (
     <Form error={error} autoComplete="on" onSubmit={submit}>
       {props.username && props.hideUsername && <input type="hidden" name="username" autoComplete="username" value={props.username} readOnly />}
@@ -92,9 +99,14 @@ export const PasswordChangeForm = (props: {
       <p className="text-muted mb-3">
         <Trans id="auth.password.relogin">Changing your password signs you out on all devices. Sign in again with your new password.</Trans>
       </p>
-      <Button type="submit" variant="primary" disabled={busy || props.disabled}>
-        <Trans id="auth.password.save">Save new password</Trans>
-      </Button>
+      {props.secondaryAction ? (
+        <div className="c-password-change-form__actions">
+          {saveButton}
+          {props.secondaryAction}
+        </div>
+      ) : (
+        saveButton
+      )}
     </Form>
   )
 }
