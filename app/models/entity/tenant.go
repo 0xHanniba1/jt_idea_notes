@@ -22,7 +22,7 @@ type Tenant struct {
 	LogoBlobKey         string            `json:"logoBlobKey"`
 	CustomCSS           string            `json:"-"`
 	AllowedSchemes      string            `json:"allowedSchemes"`
-	IsEmailAuthAllowed  bool              `json:"isEmailAuthAllowed"`
+	IsEmailAuthAllowed  bool              `json:"-"`
 	IsFeedEnabled       bool              `json:"isFeedEnabled"`
 	PreventIndexing     bool              `json:"preventIndexing"`
 	IsModerationEnabled bool              `json:"isModerationEnabled"`

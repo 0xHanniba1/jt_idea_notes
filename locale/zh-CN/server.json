@@ -190,5 +190,6 @@
   "auth.account.self": "修改自己的密码请前往个人设置；账号恢复请联系其他管理员。",
   "auth.internalonly": "本站仅供内部成员使用，必须通过账号密码登录。",
   "auth.transport.required": "账号密码登录需要 HTTPS。请先配置站点地址和可信反向代理。",
-  "auth.username.immutable": "用户名用于登录，创建后不能修改。"
+  "auth.username.immutable": "用户名用于登录，创建后不能修改。",
+  "page.progress.title": "进度"
 }

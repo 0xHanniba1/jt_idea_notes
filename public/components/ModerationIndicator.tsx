@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react"
 import { Icon } from "@fider/components"
 import { useFider } from "@fider/hooks"
-import ThumbsUp from "@fider/assets/images/heroicons-thumbsup.svg"
-import ThumbsDown from "@fider/assets/images/heroicons-thumbsdown.svg"
-import { HStack } from "@fider/components/layout"
+import CheckCircle from "@fider/assets/images/heroicons-check-circle.svg"
+import { i18n } from "@lingui/core"
 
 export const ModerationIndicator = () => {
   const fider = useFider()
@@ -47,13 +46,11 @@ export const ModerationIndicator = () => {
   }
 
   if (count > 0) {
+    const label = i18n._({ id: "workspace.moderation.pending", message: "{count} items awaiting review", values: { count } })
     return (
-      <a href="/admin/moderation">
-        <HStack className="bg-green-200 rounded-full px-4">
-          <Icon width="18" height="18" sprite={ThumbsUp} />
-          <Icon width="18" height="18" sprite={ThumbsDown} />
-          <span className="py-2">New ideas and comments waiting</span>
-        </HStack>
+      <a href="/admin/moderation" className="c-workspace__moderation" title={label} aria-label={label}>
+        <Icon width="16" height="16" sprite={CheckCircle} />
+        <span aria-hidden="true">{count > 99 ? "99+" : count}</span>
       </a>
     )
   } else {

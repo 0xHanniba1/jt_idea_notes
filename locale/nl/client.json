@@ -750,5 +750,18 @@
   "signin.message.socialbutton.intro": "Inloggen met",
   "signin.name.placeholder": "Jouw naam",
   "validation.custom.maxattachments": "Er zijn maximaal {number} bijlagen toegestaan.",
-  "validation.custom.maximagesize": "De afbeeldingsgrootte moet kleiner zijn dan {kilobytes}KB."
+  "validation.custom.maximagesize": "De afbeeldingsgrootte moet kleiner zijn dan {kilobytes}KB.",
+  "workspace.brand.subtitle": "",
+  "workspace.breadcrumbs": "",
+  "workspace.label": "",
+  "workspace.moderation.pending": "",
+  "workspace.navigation": "",
+  "workspace.navigation.collapse": "",
+  "workspace.navigation.expand": "",
+  "workspace.navigation.open": "",
+  "workspace.role.administrator": "",
+  "workspace.role.collaborator": "",
+  "workspace.role.member": "",
+  "workspace.skip": "",
+  "workspace.status": ""
 }

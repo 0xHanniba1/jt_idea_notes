@@ -12,7 +12,6 @@ export interface Tenant {
   isPrivate: boolean
   logoBlobKey: string
   allowedSchemes: string
-  isEmailAuthAllowed: boolean
   isFeedEnabled: boolean
   isModerationEnabled: boolean
   isPro: boolean
@@ -28,7 +27,6 @@ export enum TenantStatus {
 export interface User {
   id: number
   name: string
-  email?: string
   role: UserRole
   status: UserStatus
   isTrusted: boolean
@@ -42,7 +40,6 @@ export interface UserNames {
 
 export enum UserAvatarType {
   Letter = "letter",
-  Gravatar = "gravatar",
   Custom = "custom",
 }
 
@@ -70,7 +67,6 @@ export interface CurrentUser {
   id: number
   name: string
   username: string
-  email: string
   avatarType: UserAvatarType
   avatarBlobKey: string
   avatarURL: string

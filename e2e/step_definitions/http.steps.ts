@@ -1,5 +1,5 @@
 import { Given, Then, When } from "@cucumber/cucumber"
-import { FiderWorld } from "e2e/world"
+import { FiderWorld } from "../world"
 import expect from "expect"
 
 let requestUrl: string
@@ -10,7 +10,7 @@ let response: Response
 let responseBody: string
 
 const getFullUrl = (world: FiderWorld, url: string): string => {
-  return url.startsWith("/") ? `https://${world.tenantName}.dev.fider.io:3000${url}` : url
+  return url.startsWith("/") ? `${world.baseURL}${url}` : url
 }
 
 Given("I prepare a {string} request to {string}", async function (this: FiderWorld, method: string, url: string) {
@@ -18,6 +18,7 @@ Given("I prepare a {string} request to {string}", async function (this: FiderWor
   requestHeaders = new Headers()
   requestOpts = {
     method,
+    redirect: "manual",
     headers: {},
   }
 })
@@ -27,7 +28,7 @@ Given("I set the {string} header to {string}", async function (headerName: strin
 })
 
 Given("I send a {string} request to {string}", async function (this: FiderWorld, method: string, url: string) {
-  response = await fetch(getFullUrl(this, url), { method })
+  response = await fetch(getFullUrl(this, url), { method, redirect: "manual" })
   responseBody = await response.text()
 })
 

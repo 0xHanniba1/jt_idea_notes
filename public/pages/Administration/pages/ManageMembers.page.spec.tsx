@@ -17,7 +17,6 @@ const member: ManagedUser = {
   username: "fixed.username",
   passwordInitialized: true,
   mustChangePassword: false,
-  email: "",
   role: UserRole.Visitor,
   status: UserStatus.Active,
   isTrusted: false,

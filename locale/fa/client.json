@@ -750,5 +750,18 @@
   "signin.message.socialbutton.intro": "ورود با",
   "signin.name.placeholder": "نام شما",
   "validation.custom.maxattachments": "حداکثر تعداد {number} پیوست مجاز است.",
-  "validation.custom.maximagesize": "حجم تصویر باید کمتر از {kilobytes}KB باشد."
+  "validation.custom.maximagesize": "حجم تصویر باید کمتر از {kilobytes}KB باشد.",
+  "workspace.brand.subtitle": "",
+  "workspace.breadcrumbs": "",
+  "workspace.label": "",
+  "workspace.moderation.pending": "",
+  "workspace.navigation": "",
+  "workspace.navigation.collapse": "",
+  "workspace.navigation.expand": "",
+  "workspace.navigation.open": "",
+  "workspace.role.administrator": "",
+  "workspace.role.collaborator": "",
+  "workspace.role.member": "",
+  "workspace.skip": "",
+  "workspace.status": ""
 }

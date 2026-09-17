@@ -32,10 +32,3 @@ type RemoveSubscriber struct {
 	Post *entity.Post
 	User *entity.User
 }
-
-type SupressEmail struct {
-	EmailAddresses []string
-
-	//Output
-	NumOfSupressedEmailAddresses int
-}

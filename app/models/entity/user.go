@@ -56,22 +56,20 @@ type UserProvider struct {
 	UID  string
 }
 
-// UserWithEmail is a wrapper around User that includes the email field when marshaling to JSON
-type UserWithEmail struct {
+// UserWithAccount is a wrapper around User that includes account fields when marshaling to JSON
+type UserWithAccount struct {
 	*User
 }
 
-func (umc UserWithEmail) MarshalJSON() ([]byte, error) {
+func (umc UserWithAccount) MarshalJSON() ([]byte, error) {
 	type Alias User // Prevent recursion
 	return json.Marshal(&struct {
 		*Alias
-		Email               string `json:"email"`
 		Username            string `json:"username"`
 		PasswordInitialized bool   `json:"passwordInitialized"`
 		MustChangePassword  bool   `json:"mustChangePassword"`
 	}{
 		Alias:               (*Alias)(umc.User),
-		Email:               umc.Email,
 		Username:            umc.Username,
 		PasswordInitialized: umc.PasswordInitialized,
 		MustChangePassword:  umc.MustChangePassword,

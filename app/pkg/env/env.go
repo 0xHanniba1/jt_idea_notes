@@ -78,10 +78,6 @@ type config struct {
 	CDN struct {
 		Host string `env:"CDN_HOST"`
 	}
-	UserList struct {
-		Enabled bool   `env:"USER_LIST_ENABLED,default=false"`
-		ApiKey  string `env:"USER_LIST_APIKEY"`
-	}
 	Log struct {
 		Level      string `env:"LOG_LEVEL,default=INFO"`
 		Structured bool   `env:"LOG_STRUCTURED,default=false"`
@@ -102,30 +98,6 @@ type config struct {
 		GitHub struct {
 			ClientID string `env:"OAUTH_GITHUB_CLIENTID"`
 			Secret   string `env:"OAUTH_GITHUB_SECRET"`
-		}
-	}
-	Email struct {
-		Type      string `env:"EMAIL"` // possible values: smtp, mailgun, awsses
-		NoReply   string `env:"EMAIL_NOREPLY,required"`
-		Allowlist string `env:"EMAIL_ALLOWLIST"`
-		Blocklist string `env:"EMAIL_BLOCKLIST"`
-		AWSSES    struct {
-			Region          string `env:"EMAIL_AWSSES_REGION"`
-			AccessKeyID     string `env:"EMAIL_AWSSES_ACCESS_KEY_ID"`
-			SecretAccessKey string `env:"EMAIL_AWSSES_SECRET_ACCESS_KEY"`
-		}
-		Mailgun struct {
-			APIKey string `env:"EMAIL_MAILGUN_API"`
-			Domain string `env:"EMAIL_MAILGUN_DOMAIN"`
-			Region string `env:"EMAIL_MAILGUN_REGION,default=US"` // possible values: US or EU
-		}
-		SMTP struct {
-			Host              string `env:"EMAIL_SMTP_HOST"`
-			Port              string `env:"EMAIL_SMTP_PORT"`
-			Username          string `env:"EMAIL_SMTP_USERNAME"`
-			Password          string `env:"EMAIL_SMTP_PASSWORD"`
-			EnableStartTLS    bool   `env:"EMAIL_SMTP_ENABLE_STARTTLS,default=true"`
-			EnableImplicitTLS bool   `env:"EMAIL_SMTP_ENABLE_IMPLICIT_TLS,default=false"`
 		}
 	}
 	BlobStorage struct {
@@ -179,30 +151,6 @@ func Reload() {
 		if err != nil {
 			panic(errors.Wrap(err, "'%s' is not a valid URL", Config.BaseURL))
 		}
-	}
-
-	// Email Type can be inferred if absense
-	if Config.Email.Type == "" {
-		if Config.Email.Mailgun.APIKey != "" {
-			Config.Email.Type = "mailgun"
-		} else if Config.Email.AWSSES.AccessKeyID != "" {
-			Config.Email.Type = "awsses"
-		} else {
-			Config.Email.Type = "smtp"
-		}
-	}
-
-	switch Config.Email.Type {
-	case "mailgun":
-		mustBeSet("EMAIL_MAILGUN_API")
-		mustBeSet("EMAIL_MAILGUN_DOMAIN")
-	case "awsses":
-		mustBeSet("EMAIL_AWSSES_REGION")
-		mustBeSet("EMAIL_AWSSES_ACCESS_KEY_ID")
-		mustBeSet("EMAIL_AWSSES_SECRET_ACCESS_KEY")
-	case "smtp":
-		mustBeSet("EMAIL_SMTP_HOST")
-		mustBeSet("EMAIL_SMTP_PORT")
 	}
 
 	switch Config.BlobStorage.Type {

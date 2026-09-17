@@ -129,7 +129,7 @@ func TestPasswordStorageManagementAndPrivacy(t *testing.T) {
 			}
 		}
 	}
-	encoded, err := json.Marshal(entity.UserWithEmail{User: search.Result[0]})
+	encoded, err := json.Marshal(entity.UserWithAccount{User: search.Result[0]})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,42 +239,52 @@ func TestPasswordStorageOfflineAndBlockedInitialization(t *testing.T) {
 	}
 }
 
-func TestPasswordStorageNoEmailKeepsWebNotifications(t *testing.T) {
+func TestPasswordStorageLocalAccountsKeepWebNotificationsUntilBlocked(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
 	admin := passwordAccountForTest(t, jonSnow, "jon.snow")
-	create := &cmd.CreatePasswordAccount{Username: "no.email", Name: "无邮箱成员", PasswordHash: passwordauth.PlaceholderHash(), Role: enum.RoleVisitor}
+	create := &cmd.CreatePasswordAccount{Username: "local.member", Name: "本地成员", PasswordHash: passwordauth.PlaceholderHash(), Role: enum.RoleVisitor}
 	if err := bus.Dispatch(admin, create); err != nil {
 		t.Fatal(err)
 	}
+	if create.Result.Email != "" {
+		t.Fatal("local account unexpectedly requires an email address")
+	}
 	member := withUser(demoTenantCtx, create.Result)
-	if err := bus.Dispatch(member, &cmd.UpdateCurrentUserSettings{Settings: map[string]string{
-		enum.NotificationEventNewPost.UserSettingsKeyName:    "3",
-		enum.NotificationEventNewComment.UserSettingsKeyName: "3",
-	}}); err != nil {
+	settings := make(map[string]string)
+	for _, event := range enum.AllNotificationEvents {
+		settings[event.UserSettingsKeyName] = "1"
+	}
+	if err := bus.Dispatch(member, &cmd.UpdateCurrentUserSettings{Settings: settings}); err != nil {
 		t.Fatal(err)
 	}
-	post := &cmd.AddNewPost{Title: "Notification regression", Description: "No email address"}
+	post := &cmd.AddNewPost{Title: "Notification regression", Description: "Local account notifications"}
 	if err := bus.Dispatch(member, post); err != nil {
 		t.Fatal(err)
 	}
-	for _, event := range []enum.NotificationEvent{enum.NotificationEventNewPost, enum.NotificationEventNewComment} {
-		for _, channel := range []enum.NotificationChannel{enum.NotificationChannelWeb, enum.NotificationChannelEmail} {
-			q := &query.GetActiveSubscribers{Number: post.Result.Number, Event: event, Channel: channel}
-			if err := bus.Dispatch(member, q); err != nil {
+	assertRecipient := func(expected bool) {
+		t.Helper()
+		for _, event := range enum.AllNotificationEvents {
+			q := &query.GetActiveSubscribers{Number: post.Result.Number, Event: event, Channel: enum.NotificationChannelWeb}
+			if err := bus.Dispatch(admin, q); err != nil {
 				t.Fatal(err)
 			}
 			found := false
-			for _, u := range q.Result {
-				if u.ID == create.Result.ID {
+			for _, user := range q.Result {
+				if user.ID == create.Result.ID {
 					found = true
 				}
 			}
-			if found != (channel == enum.NotificationChannelWeb) {
-				t.Fatal("missing email changed web delivery or remained in email recipients")
+			if found != expected {
+				t.Fatalf("unexpected local account web delivery for %s: got %v, want %v", event.UserSettingsKeyName, found, expected)
 			}
 		}
 	}
+	assertRecipient(true)
+	if err := bus.Dispatch(admin, &cmd.BlockUser{UserID: create.Result.ID}); err != nil {
+		t.Fatal(err)
+	}
+	assertRecipient(false)
 }
 
 func TestPasswordStorageDatabaseConstraints(t *testing.T) {

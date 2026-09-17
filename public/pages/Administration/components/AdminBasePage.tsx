@@ -1,6 +1,7 @@
 import "./AdminBasePage.scss"
 
 import React from "react"
+import { i18n } from "@lingui/core"
 import { Header, PageTitle } from "@fider/components"
 import { SideMenu, SideMenuToggler } from "./SideMenu"
 import { HStack } from "@fider/components/layout"
@@ -15,8 +16,7 @@ interface AdminPageContainerProps {
 
 export const AdminPageContainer = (props: AdminPageContainerProps) => {
   return (
-    <>
-      <Header />
+    <Header title={props.title} section={{ label: i18n._({ id: "menu.sitesettings", message: "Site Settings" }), href: "/admin" }}>
       <div id={props.id} className="page container">
         <HStack justify="between">
           <PageTitle title={props.title} subtitle={props.subtitle} />
@@ -28,7 +28,7 @@ export const AdminPageContainer = (props: AdminPageContainerProps) => {
           <div>{props.children}</div>
         </div>
       </div>
-    </>
+    </Header>
   )
 }
 

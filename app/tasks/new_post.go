@@ -10,15 +10,13 @@ import (
 	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
-	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/log"
-	"github.com/getfider/fider/app/pkg/markdown"
 	"github.com/getfider/fider/app/pkg/web"
 	"github.com/getfider/fider/app/pkg/webhook"
 	"github.com/getfider/fider/app/pkg/worker"
 )
 
-// NotifyAboutNewPost sends a notification (web and email) to subscribers
+// NotifyAboutNewPost sends an in-app notification to subscribers
 func NotifyAboutNewPost(post *entity.Post) worker.Task {
 	return describe("Notify about new post", func(c *worker.Context) error {
 		// Parse mentions from post description
@@ -27,7 +25,7 @@ func NotifyAboutNewPost(post *entity.Post) worker.Task {
 		var mentionNotifications []*entity.MentionNotification
 
 		// Web notification
-		users, err := getActiveSubscribers(c, post, enum.NotificationChannelWeb, enum.NotificationEventNewPost)
+		users, err := getActiveSubscribers(c, post, enum.NotificationEventNewPost)
 		if err != nil {
 			return c.Failure(err)
 		}
@@ -53,7 +51,7 @@ func NotifyAboutNewPost(post *entity.Post) worker.Task {
 		if len(mentions) > 0 {
 			title = fmt.Sprintf("**%s** mentioned you in **%s**", author.Name, post.Title)
 
-			users, err = getActiveSubscribers(c, post, enum.NotificationChannelWeb, enum.NotificationEventMention)
+			users, err = getActiveSubscribers(c, post, enum.NotificationEventMention)
 			if err != nil {
 				return c.Failure(err)
 			}
@@ -99,71 +97,8 @@ func NotifyAboutNewPost(post *entity.Post) worker.Task {
 			}
 		}
 
-		// Email notification
-		users, err = getActiveSubscribers(c, post, enum.NotificationChannelEmail, enum.NotificationEventNewPost)
-		if err != nil {
-			return c.Failure(err)
-		}
-
-		to := make([]dto.Recipient, 0)
-		for _, user := range users {
-			if user.ID != author.ID {
-				to = append(to, dto.NewRecipient(user.Name, user.Email, dto.Props{}))
-			}
-		}
-
 		tenant := c.Tenant()
 		baseURL, logoURL := web.BaseURL(c), web.LogoURL(c)
-
-		mailProps := dto.Props{
-			"title":    post.Title,
-			"siteName": tenant.Name,
-			"userName": author.Name,
-			"content":  markdown.Full(contentString.SanitizeMentions(), false),
-			"postLink": linkWithText(fmt.Sprintf("#%d", post.Number), baseURL, "/posts/%d/%s", post.Number, post.Slug),
-			"view":     linkWithText(i18n.T(c, "email.subscription.view"), baseURL, "/posts/%d/%s", post.Number, post.Slug),
-			"change":   linkWithText(i18n.T(c, "email.subscription.change"), baseURL, "/settings"),
-			"logo":     logoURL,
-		}
-
-		publishMail(c, &cmd.SendMail{
-			From:         dto.Recipient{Name: author.Name},
-			To:           to,
-			TemplateName: "new_post",
-			Props:        mailProps,
-		})
-
-		// Email notification - mentions
-		to = make([]dto.Recipient, 0)
-		if len(mentions) > 0 {
-			users, err = getActiveSubscribers(c, post, enum.NotificationChannelEmail, enum.NotificationEventMention)
-			if err != nil {
-				return c.Failure(err)
-			}
-
-			for _, mention := range mentions {
-				for _, u := range users {
-					if u.Name == mention && !slices.ContainsFunc(mentionNotifications,
-						func(n *entity.MentionNotification) bool {
-							return n.UserID == u.ID
-						}) {
-						to = append(to, dto.NewRecipient(u.Name, u.Email, dto.Props{}))
-
-						// Also send the notification log
-						err = bus.Dispatch(c, &cmd.AddMentionNotification{
-							UserID: u.ID,
-							PostID: post.ID,
-						})
-						if err != nil {
-							return c.Failure(err)
-						}
-					}
-				}
-			}
-		}
-
-		// Send mention email notifications
-		sendEmailNotifications(c, post, to, contentString.SanitizeMentions(), enum.NotificationEventMention, "new_comment")
 
 		webhookProps := webhook.Props{}
 		webhookProps.SetPost(post, "post", baseURL, false, false)
@@ -197,9 +132,8 @@ func NotifyAboutUpdatedPost(post *entity.Post) worker.Task {
 		author := c.User()
 		title := fmt.Sprintf("**%s** mentioned you in **%s**", author.Name, post.Title)
 		link := fmt.Sprintf("/posts/%d/%s", post.Number, post.Slug)
-		mentionNotificationSent := false
 		if len(mentions) > 0 {
-			users, err := getActiveSubscribers(c, post, enum.NotificationChannelWeb, enum.NotificationEventMention)
+			users, err := getActiveSubscribers(c, post, enum.NotificationEventMention)
 			if err != nil {
 				return c.Failure(err)
 			}
@@ -240,45 +174,10 @@ func NotifyAboutUpdatedPost(post *entity.Post) worker.Task {
 						if err != nil {
 							return c.Failure(err)
 						}
-						mentionNotificationSent = true
 					}
 				}
 			}
 		}
-
-		to := make([]dto.Recipient, 0)
-		if len(mentions) > 0 {
-			users, err := getActiveSubscribers(c, post, enum.NotificationChannelEmail, enum.NotificationEventMention)
-			if err != nil {
-				return c.Failure(err)
-			}
-
-			for _, mention := range mentions {
-				// Check if the user is in the list of mention subscribers (users)
-				for _, u := range users {
-					if u.Name == mention && !slices.ContainsFunc(mentionNotifications,
-						func(n *entity.MentionNotification) bool {
-							return n.UserID == u.ID
-						}) {
-						to = append(to, dto.NewRecipient(u.Name, u.Email, dto.Props{}))
-
-						// Also send the notification log
-						if !mentionNotificationSent {
-							err = bus.Dispatch(c, &cmd.AddMentionNotification{
-								UserID: u.ID,
-								PostID: post.ID,
-							})
-							if err != nil {
-								return c.Failure(err)
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Send email notifications for mentions
-		sendEmailNotifications(c, post, to, contentString.SanitizeMentions(), enum.NotificationEventMention, "new_comment")
 
 		return nil
 	})

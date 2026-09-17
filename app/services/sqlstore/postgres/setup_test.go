@@ -63,10 +63,10 @@ func SetupDatabaseTest(t *testing.T) context.Context {
 	avengersTenantCtx = withTenant(trxCtx, avengersTenant)
 	germanTenantCtx = withTenant(trxCtx, germanTenant)
 
-	getJonSnow := &query.GetUserByEmail{Email: "jon.snow@got.com"}
-	getGermanJonSnow := &query.GetUserByEmail{Email: "jon.snow@german.com"}
-	getAryaStark := &query.GetUserByEmail{Email: "arya.stark@got.com"}
-	getSansaStark := &query.GetUserByEmail{Email: "sansa.stark@got.com"}
+	getJonSnow := &query.GetUserByID{UserID: 1, TenantID: demoTenant.ID}
+	getGermanJonSnow := &query.GetUserByID{UserID: 7, TenantID: germanTenant.ID}
+	getAryaStark := &query.GetUserByID{UserID: 2, TenantID: demoTenant.ID}
+	getSansaStark := &query.GetUserByID{UserID: 3, TenantID: demoTenant.ID}
 	_ = bus.Dispatch(demoTenantCtx, getJonSnow, getSansaStark, getAryaStark)
 	_ = bus.Dispatch(germanTenantCtx, getGermanJonSnow)
 	jonSnow = getJonSnow.Result
@@ -74,7 +74,7 @@ func SetupDatabaseTest(t *testing.T) context.Context {
 	sansaStark = getSansaStark.Result
 	germanJonSnow = getGermanJonSnow.Result
 
-	getTonyStark := &query.GetUserByEmail{Email: "tony.stark@avengers.com"}
+	getTonyStark := &query.GetUserByID{UserID: 4, TenantID: avengersTenant.ID}
 	bus.MustDispatch(avengersTenantCtx, getTonyStark)
 	tonyStark = getTonyStark.Result
 

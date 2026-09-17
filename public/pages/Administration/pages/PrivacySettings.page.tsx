@@ -53,8 +53,7 @@ export default class PrivacySettingsPage extends AdminBasePage<any, PrivacySetti
         <Field label={i18n._({ id: "accounts.internal.title", message: "Internal members only" })}>
           <p className="text-muted">
             <Trans id="accounts.internal.help">
-              Only members with administrator-created accounts can access this site after signing in. Public access, self-registration, email sign-in and
-              third-party sign-in are disabled.
+              Only members with administrator-created accounts and passwords can access this site. Public access and self-registration are disabled.
             </Trans>
           </p>
           <p className="text-muted mt-2">

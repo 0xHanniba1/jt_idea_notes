@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/getfider/fider/app"
@@ -26,7 +27,7 @@ func TestUserToModel(t *testing.T) {
 		Email:         sql.NullString{String: "john@example.com", Valid: true},
 		Role:          sql.NullInt64{Int64: int64(enum.RoleAdministrator), Valid: true},
 		Status:        sql.NullInt64{Int64: int64(enum.UserActive), Valid: true},
-		AvatarType:    sql.NullInt64{Int64: int64(enum.AvatarTypeGravatar), Valid: true},
+		AvatarType:    sql.NullInt64{Int64: int64(enum.AvatarTypeLetter), Valid: true},
 		AvatarBlobKey: sql.NullString{String: "", Valid: true},
 		IsTrusted:     sql.NullBool{Bool: true, Valid: true},
 		Providers: []*dbEntities.UserProvider{
@@ -144,5 +145,21 @@ func TestUserToModel_Nil(t *testing.T) {
 
 	if entityUser != nil {
 		t.Error("Expected ToModel on nil to return nil")
+	}
+}
+
+func TestLegacyEmailAvatarFallsBackWithoutChangingCustomAvatar(t *testing.T) {
+	u, _ := url.Parse("http://test.fider.io")
+	ctx := context.WithValue(context.Background(), app.RequestCtxKey, web.Request{URL: u})
+	user := &dbEntities.User{ID: sql.NullInt64{Int64: 5, Valid: true}, Name: sql.NullString{String: "Member", Valid: true}, AvatarType: sql.NullInt64{Int64: 2, Valid: true}}
+	model := user.ToModel(ctx)
+	if model.AvatarType != enum.AvatarTypeLetter || !strings.Contains(model.AvatarURL, "/avatars/letter/5/Member") {
+		t.Fatalf("historical avatar did not fall back: %v", model.AvatarURL)
+	}
+	user.AvatarType.Int64 = int64(enum.AvatarTypeCustom)
+	user.AvatarBlobKey = sql.NullString{String: "existing-photo.png", Valid: true}
+	model = user.ToModel(ctx)
+	if model.AvatarType != enum.AvatarTypeCustom || !strings.Contains(model.AvatarURL, "/images/existing-photo.png") {
+		t.Fatal("custom avatar was changed")
 	}
 }

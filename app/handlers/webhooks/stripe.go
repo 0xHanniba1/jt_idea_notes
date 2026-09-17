@@ -6,14 +6,11 @@ import (
 
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/dto"
-	"github.com/getfider/fider/app/models/enum"
-	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
 	"github.com/getfider/fider/app/pkg/errors"
 	"github.com/getfider/fider/app/pkg/log"
 	"github.com/getfider/fider/app/pkg/web"
-	"github.com/getfider/fider/app/tasks"
 	"github.com/stripe/stripe-go/v83"
 	"github.com/stripe/stripe-go/v83/customer"
 	"github.com/stripe/stripe-go/v83/setupintent"
@@ -83,8 +80,6 @@ func handleSubscriptionCheckoutCompleted(c *web.Context, session *stripe.Checkou
 	log.Infof(c, "Stripe subscription activated for tenant @{TenantID}", dto.Props{
 		"TenantID": tenantID,
 	})
-
-	updateUserListPlan(c, tenantID, enum.PlanPro)
 
 	return c.Ok(web.Map{})
 }
@@ -184,23 +179,7 @@ func handleSetupCheckoutCompleted(c *web.Context, session *stripe.CheckoutSessio
 		"TenantID": tenantID,
 	})
 
-	updateUserListPlan(c, tenantID, enum.PlanPro)
-
 	return c.Ok(web.Map{})
-}
-
-func updateUserListPlan(c *web.Context, tenantID int, plan enum.Plan) {
-	if !env.Config.UserList.Enabled {
-		return
-	}
-	getTenant := &query.GetTenantByDomain{Domain: strconv.Itoa(tenantID)}
-	if err := bus.Dispatch(c, getTenant); err == nil && getTenant.Result != nil {
-		c.Enqueue(tasks.UserListUpdateCompany(&dto.UserListUpdateCompany{
-			TenantID: tenantID,
-			Name:     getTenant.Result.Name,
-			Plan:     plan,
-		}))
-	}
 }
 
 func handleSubscriptionDeleted(c *web.Context, event stripe.Event) error {
@@ -234,8 +213,6 @@ func handleSubscriptionDeleted(c *web.Context, event stripe.Event) error {
 	log.Infof(c, "Stripe subscription cancelled for tenant @{TenantID}", dto.Props{
 		"TenantID": tenantID,
 	})
-
-	updateUserListPlan(c, tenantID, enum.PlanFree)
 
 	return c.Ok(web.Map{})
 }

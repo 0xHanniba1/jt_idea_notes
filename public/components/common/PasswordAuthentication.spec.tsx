@@ -27,7 +27,6 @@ const member: ManagedUser = {
   username: "",
   passwordInitialized: false,
   mustChangePassword: false,
-  email: "",
   role: UserRole.Visitor,
   status: UserStatus.Active,
   isTrusted: false,
@@ -177,17 +176,37 @@ test("restoring a member accepts a supplied temporary password and sends it in t
   expect(restore).toHaveBeenCalledWith("/_api/admin/users/42/block", { password })
 })
 
-test("members without email cannot enable email notifications but can change in-app notifications", () => {
+test("notification controls preserve historical in-app preferences and submit only active in-app channel values", () => {
   const changed = jest.fn()
-  render(<NotificationSettings hasEmail={false} userSettings={{ event_notification_new_post: "3" }} settingsChanged={changed} />)
-  screen.getAllByRole("switch", { name: "Email" }).forEach((control) => {
-    expect(control).toBeDisabled()
-    expect(control).toHaveAttribute("aria-checked", "false")
-    fireEvent.click(control)
+  render(
+    <NotificationSettings
+      userSettings={{
+        event_notification_new_post: "3",
+        event_notification_new_comment: "2",
+        event_notification_mention: "1",
+        event_notification_change_status: "0",
+      }}
+      settingsChanged={changed}
+    />
+  )
+  expect(screen.getAllByRole("switch")).toHaveLength(4)
+  expect(screen.queryByRole("switch", { name: "Email" })).not.toBeInTheDocument()
+  expect(screen.getByRole("switch", { name: "New Post" })).toHaveAttribute("aria-checked", "true")
+  expect(screen.getByRole("switch", { name: "New Comments" })).toHaveAttribute("aria-checked", "false")
+  fireEvent.click(screen.getByRole("switch", { name: "New Post" }))
+  expect(changed).toHaveBeenLastCalledWith({
+    event_notification_new_post: "0",
+    event_notification_new_comment: "0",
+    event_notification_mention: "1",
+    event_notification_change_status: "0",
   })
-  expect(changed).not.toHaveBeenCalled()
-  fireEvent.click(screen.getAllByRole("switch", { name: "Web" })[0])
-  expect(changed).toHaveBeenCalledWith({ event_notification_new_post: "2" })
+  fireEvent.click(screen.getByRole("switch", { name: "New Comments" }))
+  expect(changed).toHaveBeenLastCalledWith({
+    event_notification_new_post: "0",
+    event_notification_new_comment: "1",
+    event_notification_mention: "1",
+    event_notification_change_status: "0",
+  })
 })
 
 test("administrators cannot manage their own credentials and collaborators cannot open account actions", () => {

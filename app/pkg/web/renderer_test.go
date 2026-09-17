@@ -152,8 +152,8 @@ func TestRenderer_AuthenticatedUser(t *testing.T) {
 		Email:      "jon.snow@got.com",
 		Status:     enum.UserActive,
 		Role:       enum.RoleAdministrator,
-		AvatarType: enum.AvatarTypeGravatar,
-		AvatarURL:  "https://demo.test.fider.io:3000/static/avatars/gravatar/5/Jon%20Snow",
+		AvatarType: enum.AvatarTypeLetter,
+		AvatarURL:  "https://demo.test.fider.io:3000/static/avatars/letter/5/Jon%20Snow",
 	})
 	renderer := web.NewRenderer()
 	renderer.Render(buf, http.StatusOK, web.Props{

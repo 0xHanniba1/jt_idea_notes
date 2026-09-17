@@ -5,20 +5,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/getfider/fider/app/models/cmd"
-	"github.com/getfider/fider/app/models/entity"
-	"github.com/getfider/fider/app/models/enum"
 
 	"github.com/getfider/fider/app/models/query"
 
-	"github.com/getfider/fider/app"
 	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/dbx"
 	"github.com/getfider/fider/app/pkg/env"
-	"github.com/getfider/fider/app/pkg/errors"
 	"github.com/getfider/fider/app/pkg/log"
 	"github.com/getfider/fider/app/pkg/web"
 )
@@ -122,39 +115,6 @@ func LogError() web.HandlerFunc {
 		})
 		return c.Ok(web.Map{})
 	}
-}
-
-func validateKey(kind enum.EmailVerificationKind, key string, c *web.Context) (*entity.EmailVerification, error) {
-	//If key has been used, return NotFound
-	findByKey := &query.GetVerificationByKey{Kind: kind, Key: key}
-	err := bus.Dispatch(c, findByKey)
-	if err != nil {
-		if errors.Cause(err) == app.ErrNotFound {
-			return nil, c.NotFound()
-		}
-		return nil, c.Failure(err)
-	}
-
-	now := time.Now()
-	res := findByKey.Result
-
-	// If key has been used more than 5 minutes ago, deny usage
-	// The 5 minutes grace period is to avoid issues with email clients that preview the link
-	// Examples: Outlook Smart Preview, corporate email protection software
-	if res.VerifiedAt != nil && now.Sub(*res.VerifiedAt) > 5*time.Minute {
-		return nil, c.Gone()
-	}
-
-	//If key expired, deny usage
-	if now.After(res.ExpiresAt) {
-		err = bus.Dispatch(c, &cmd.SetKeyAsVerified{Key: key})
-		if err != nil {
-			return nil, c.Failure(err)
-		}
-		return nil, c.Gone()
-	}
-
-	return res, nil
 }
 
 func between(n, min, max int) int {

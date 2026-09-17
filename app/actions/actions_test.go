@@ -2,16 +2,8 @@ package actions_test
 
 import (
 	. "github.com/getfider/fider/app/pkg/assert"
-	"github.com/getfider/fider/app/pkg/jwt"
 	"github.com/getfider/fider/app/pkg/validate"
 )
-
-var jonSnowToken, _ = jwt.Encode(jwt.OAuthClaims{
-	OAuthID:       "123",
-	OAuthName:     "Jon Snow",
-	OAuthEmail:    "jon.snow@got.com",
-	OAuthProvider: "facebook",
-})
 
 func ExpectFailed(result *validate.Result, expectedFields ...string) {
 	Expect(result.Ok).IsFalse()

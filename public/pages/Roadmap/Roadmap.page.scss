@@ -1,9 +1,5 @@
 @use "~@fider/assets/styles/variables.scss" as *;
 
-#p-roadmap {
-  padding-top: 24px;
-  padding-bottom: 24px;
-}
 .c-roadmap-title {
   font-size: 22px;
   font-weight: 600;
@@ -80,12 +76,6 @@
     grid-template-columns: 1fr;
     gap: 24px;
   }
-}
-
-#p-roadmap-upsell,
-#p-roadmap-blank {
-  padding-top: spacing(8);
-  padding-bottom: spacing(12);
 }
 
 .c-roadmap-upsell {

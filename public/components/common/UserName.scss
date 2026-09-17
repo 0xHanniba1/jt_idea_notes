@@ -6,13 +6,6 @@
   display: inline-flex;
   align-items: center;
 
-  &--email {
-    margin-inline-start: 10px;
-    color: var(--colors-gray-600);
-    font-size: get("font.size.xs");
-    font-weight: 400;
-  }
-
   &--staff {
     color: var(--colors-primary-base);
     border-color: var(--colors-primary-base);

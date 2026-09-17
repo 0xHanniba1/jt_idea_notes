@@ -1,6 +1,7 @@
 import "./Roadmap.page.scss"
 import IconCheckCircle from "@fider/assets/images/heroicons-check-circle.svg"
 
+import { i18n } from "@lingui/core"
 import React, { useState, useCallback, useRef, useEffect } from "react"
 import { Post, Tag } from "@fider/models"
 import { Header, Button, Icon, ResponseLozenge, ShowTag, Moment } from "@fider/components"
@@ -345,12 +346,7 @@ const RoadmapPage = (props: RoadmapPageProps) => {
   const fider = useFider()
   const hasRoadmap = fider.isSingleHostMode() || fider.session.tenant.isPro
 
-  return (
-    <>
-      <Header />
-      {hasRoadmap ? <RoadmapBoard {...props} /> : <RoadmapUpsell />}
-    </>
-  )
+  return <Header title={i18n._({ id: "header.nav.roadmap", message: "Roadmap" })}>{hasRoadmap ? <RoadmapBoard {...props} /> : <RoadmapUpsell />}</Header>
 }
 
 export default RoadmapPage

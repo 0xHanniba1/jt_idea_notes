@@ -750,5 +750,18 @@
   "signin.message.socialbutton.intro": "Se connecter avec",
   "signin.name.placeholder": "Votre nom",
   "validation.custom.maxattachments": "Un maximum de {number} pièces jointes est autorisé.",
-  "validation.custom.maximagesize": "La taille de l'image doit être inférieure à {kilobytes}KB."
+  "validation.custom.maximagesize": "La taille de l'image doit être inférieure à {kilobytes}KB.",
+  "workspace.brand.subtitle": "",
+  "workspace.breadcrumbs": "",
+  "workspace.label": "",
+  "workspace.moderation.pending": "",
+  "workspace.navigation": "",
+  "workspace.navigation.collapse": "",
+  "workspace.navigation.expand": "",
+  "workspace.navigation.open": "",
+  "workspace.role.administrator": "",
+  "workspace.role.collaborator": "",
+  "workspace.role.member": "",
+  "workspace.skip": "",
+  "workspace.status": ""
 }

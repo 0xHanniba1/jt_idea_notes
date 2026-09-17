@@ -190,7 +190,6 @@ const ContentModerationPage = () => {
               <Avatar user={item.user} size="large" />
               <VStack spacing={1} className="flex-grow c-moderation-item__user-info">
                 <div className="text-semibold c-moderation-item__user-name">{item.user.name}</div>
-                <div className="c-moderation-item__user-email">&lt;{item.user.email}&gt;</div>
                 {blocked && <span className="text-red-700">{blocked}</span>}
               </VStack>
             </HStack>
@@ -250,8 +249,7 @@ const ContentModerationPage = () => {
   const comments = state.items.filter((item) => item.type === "comment")
 
   return (
-    <>
-      <Header />
+    <Header title={i18n._({ id: "moderation.title", message: "Moderation Queue" })}>
       <div id="p-admin-moderation" className="page container">
         <VStack spacing={2}>
           <h1 className="text-display">
@@ -292,7 +290,7 @@ const ContentModerationPage = () => {
           )}
         </div>
       </div>
-    </>
+    </Header>
   )
 }
 

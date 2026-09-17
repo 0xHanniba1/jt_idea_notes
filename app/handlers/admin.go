@@ -5,14 +5,11 @@ import (
 
 	"github.com/getfider/fider/app/actions"
 	"github.com/getfider/fider/app/models/cmd"
-	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/models/entity"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
-	"github.com/getfider/fider/app/pkg/env"
 	"github.com/getfider/fider/app/pkg/i18n"
 	"github.com/getfider/fider/app/pkg/web"
-	"github.com/getfider/fider/app/tasks"
 )
 
 // GeneralSettingsPage is the general settings page
@@ -66,14 +63,6 @@ func UpdateSettings() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
-		// Handle userlist.
-		if env.Config.UserList.Enabled {
-			c.Enqueue(tasks.UserListUpdateCompany(&dto.UserListUpdateCompany{
-				TenantID: c.Tenant().ID,
-				Name:     action.Title,
-			}))
-		}
-
 		return c.Ok(web.Map{})
 	}
 }
@@ -122,25 +111,6 @@ func UpdatePrivacySettings() web.HandlerFunc {
 	}
 }
 
-// UpdateEmailAuthAllowed update current tenant's allow email auth settings
-func UpdateEmailAuthAllowed() web.HandlerFunc {
-	return func(c *web.Context) error {
-		action := new(actions.UpdateTenantEmailAuthAllowed)
-		if result := c.BindTo(action); !result.Ok {
-			return c.HandleValidation(result)
-		}
-
-		updateSettings := &cmd.UpdateTenantEmailAuthAllowedSettings{
-			IsEmailAuthAllowed: action.IsEmailAuthAllowed,
-		}
-		if err := bus.Dispatch(c, updateSettings); err != nil {
-			return c.Failure(err)
-		}
-
-		return c.Ok(web.Map{})
-	}
-}
-
 // ManageMembers is the page used by administrators to change member's role
 func ManageMembers() web.HandlerFunc {
 	return func(c *web.Context) error {
@@ -166,10 +136,10 @@ func ManageMembers() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
-		// Create an array of UserWithEmail structs from the searchUsers.Result
-		allUsersWithEmail := make([]entity.UserWithEmail, len(searchUsers.Result))
+		// Create an array of UserWithAccount structs from the searchUsers.Result
+		accounts := make([]entity.UserWithAccount, len(searchUsers.Result))
 		for i, user := range searchUsers.Result {
-			allUsersWithEmail[i] = entity.UserWithEmail{
+			accounts[i] = entity.UserWithAccount{
 				User: user,
 			}
 		}
@@ -178,7 +148,7 @@ func ManageMembers() web.HandlerFunc {
 			Page:  "Administration/pages/ManageMembers.page",
 			Title: i18n.T(c, "admin.title.users"),
 			Data: web.Map{
-				"users":      allUsersWithEmail,
+				"users":      accounts,
 				"totalCount": searchUsers.TotalCount,
 				"totalPages": (searchUsers.TotalCount + 10 - 1) / 10,
 			},
@@ -186,96 +156,11 @@ func ManageMembers() web.HandlerFunc {
 	}
 }
 
-// ManageAuthentication is the page used by administrators to change site authentication settings
-func ManageAuthentication() web.HandlerFunc {
-	return func(c *web.Context) error {
-		listProviders := &query.ListAllOAuthProviders{}
-		if err := bus.Dispatch(c, listProviders); err != nil {
-			return c.Failure(err)
-		}
-
-		return c.Page(http.StatusOK, web.Props{
-			Page:  "Administration/pages/ManageAuthentication.page",
-			Title: i18n.T(c, "admin.title.authentication"),
-			Data: web.Map{
-				"providers": listProviders.Result,
-			},
-		})
-	}
-}
-
 // GetOAuthConfig returns OAuth config based on given provider
-func GetOAuthConfig() web.HandlerFunc {
-	return func(c *web.Context) error {
-		getConfig := &query.GetCustomOAuthConfigByProvider{
-			Provider: c.Param("provider"),
-		}
-		if err := bus.Dispatch(c, getConfig); err != nil {
-			return c.Failure(err)
-		}
-
-		return c.Ok(getConfig.Result)
-	}
-}
 
 // SaveOAuthConfig is used to create/edit OAuth configurations
-func SaveOAuthConfig() web.HandlerFunc {
-	return func(c *web.Context) error {
-		action := actions.NewCreateEditOAuthConfig()
-		if result := c.BindTo(action); !result.Ok {
-			return c.HandleValidation(result)
-		}
-
-		if err := bus.Dispatch(c,
-			&cmd.UploadImage{
-				Image:  action.Logo,
-				Folder: "logos",
-			},
-			&cmd.SaveCustomOAuthConfig{
-				ID:                action.ID,
-				Logo:              action.Logo,
-				Provider:          action.Provider,
-				Status:            action.Status,
-				DisplayName:       action.DisplayName,
-				ClientID:          action.ClientID,
-				ClientSecret:      action.ClientSecret,
-				AuthorizeURL:      action.AuthorizeURL,
-				TokenURL:          action.TokenURL,
-				Scope:             action.Scope,
-				ProfileURL:        action.ProfileURL,
-				IsTrusted:         action.IsTrusted,
-				JSONUserIDPath:    action.JSONUserIDPath,
-				JSONUserNamePath:  action.JSONUserNamePath,
-				JSONUserEmailPath: action.JSONUserEmailPath,
-				JSONUserRolesPath: action.JSONUserRolesPath,
-				AllowedRoles:      action.AllowedRoles,
-			},
-		); err != nil {
-			return c.Failure(err)
-		}
-
-		return c.Ok(web.Map{})
-	}
-}
 
 // SetSystemProviderStatus is used to enable/disable built-in OAuth providers for a tenant
-func SetSystemProviderStatus() web.HandlerFunc {
-	return func(c *web.Context) error {
-		action := new(actions.SetSystemProviderStatus)
-		if result := c.BindTo(action); !result.Ok {
-			return c.HandleValidation(result)
-		}
-
-		if err := bus.Dispatch(c, &cmd.SetTenantProviderStatus{
-			Provider:  action.Provider,
-			IsEnabled: action.IsEnabled,
-		}); err != nil {
-			return c.Failure(err)
-		}
-
-		return c.Ok(web.Map{})
-	}
-}
 
 // AdminPage renders a settings page using the current site's language.
 func AdminPage(titleKey, page string) web.HandlerFunc {

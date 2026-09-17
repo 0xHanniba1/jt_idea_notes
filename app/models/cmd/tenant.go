@@ -22,10 +22,6 @@ type UpdateTenantPrivacySettings struct {
 	IsModerationEnabled bool
 }
 
-type UpdateTenantEmailAuthAllowedSettings struct {
-	IsEmailAuthAllowed bool
-}
-
 type UpdateTenantSettings struct {
 	Logo                *dto.ImageUpload
 	Title               string
@@ -46,40 +42,10 @@ type ActivateTenant struct {
 	TenantID int
 }
 
-type SaveVerificationKey struct {
-	Key      string
-	Code     string
-	Duration time.Duration
-	Request  NewEmailVerification
-}
-
-// NewEmailVerification is used to define an email verification process
-type NewEmailVerification interface {
-	GetEmail() string
-	GetName() string
-	GetUser() *entity.User
-	GetKind() enum.EmailVerificationKind
-}
-
-type SetKeyAsVerified struct {
-	Key string
-}
-
-type IncrementVerificationAttempts struct {
-	Key string
-}
-
-type InvalidateVerificationsByEmail struct {
-	Email string
-	Kind  enum.EmailVerificationKind
-}
-
-type InvalidatePreviousSignUpKeys struct {
-}
 
 // ScheduleTenantDeletion records the account owner's request to delete the whole site.
 // The tenant stays active during the grace window; a background job performs the hard
-// delete once ScheduledAt passes. CancelKey authorises the email cancel link.
+// delete once ScheduledAt passes. Retained for historical storage compatibility; no public scheduling flow exists.
 type ScheduleTenantDeletion struct {
 	TenantID          int
 	RequestedByUserID int

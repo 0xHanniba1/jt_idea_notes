@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-17 — Workspace navigation and removal of email features
+
+- Adopt the case-platform sidebar, breadcrumb header and white workspace while preserving the idea list and detail drawer. Rename the Chinese navigation to 首页 and 进度.
+- Remove email settings, mail notifications, legacy registration/invitations, Gravatar, delivery services, templates and mail configuration. Keep password accounts, in-app notifications and uploaded/default avatars; preserve historical data and normalize legacy preferences.
+- Stop exposing contact email in session/member/moderation data and webhook properties; reject obsolete webhook variables before delivery. Replace email-based E2E setup with disposable password-account fixtures.
+- Validate Go short/race tests, 233 frontend tests, TypeScript, lint, builds and real isolated browser/HTTP flows. See [workspace verification](docs/jt-workspace-shell-verification.md), [email removal verification](docs/remove-email-verification.md), and Issues #11 / #12. Docker E2E was dry-run checked, not executed locally.
+
 ## 2026-09-17 — Account management and fixed usernames
 
 - Adapt the CRM account layout with a persistent creation form, account cards, search, role/status filters, and visible role, password and activation controls. Preserve existing roles and permissions.

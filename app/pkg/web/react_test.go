@@ -53,7 +53,9 @@ func TestReactRenderer_RenderEmptyHomeHTML(t *testing.T) {
 		},
 	})
 	Expect(html).ContainsSubstring(`<div class="c-dev-banner">DEV</div>`)
-	Expect(html).ContainsSubstring(`<main id="p-home" class="page container">`)
+	Expect(html).ContainsSubstring(`<main id="workspace-content" class="c-workspace__content" tabindex="-1">`)
+	Expect(strings.Count(html, "<main ")).Equals(1)
+	Expect(html).ContainsSubstring(`<div id="p-home" class="page container">`)
 	Expect(html).ContainsSubstring(`<span>New idea</span>`)
 	Expect(html).ContainsSubstring(`What can we do better? This is the place for you to discuss and share ideas.`)
 	Expect(html).ContainsSubstring(`No posts have been created yet.`)
@@ -118,7 +120,9 @@ func TestReactRenderer_RenderEmptyHomeHTML_Portuguese(t *testing.T) {
 		},
 	})
 	Expect(html).ContainsSubstring(`<div class="c-dev-banner">DEV</div>`)
-	Expect(html).ContainsSubstring(`<main id="p-home" class="page container">`)
+	Expect(html).ContainsSubstring(`<main id="workspace-content" class="c-workspace__content" tabindex="-1">`)
+	Expect(strings.Count(html, "<main ")).Equals(1)
+	Expect(html).ContainsSubstring(`<div id="p-home" class="page container">`)
 	// Newly introduced CTA falls back to English; existing Portuguese content remains localized.
 	Expect(html).ContainsSubstring(`<span>New idea</span>`)
 	Expect(html).ContainsSubstring(`What can we do better? This is the place for you to discuss and share ideas.`)

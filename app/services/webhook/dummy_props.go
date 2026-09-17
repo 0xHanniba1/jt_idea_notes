@@ -26,7 +26,6 @@ You can use ` + "`" + `{{ markdown .post_description }}` + "`" + ` to parse __Ma
 	User: &entity.User{
 		ID:    7,
 		Name:  "Fider",
-		Email: "contact@fider.io",
 		Role:  1,
 	},
 	CommentsCount: 3,

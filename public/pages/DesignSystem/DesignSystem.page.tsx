@@ -22,7 +22,6 @@ import {
   Message,
   Hint,
   AvatarStack,
-  SocialSignInButton,
   Dropdown,
   Icon,
   Checkbox,
@@ -120,10 +119,9 @@ const DesignSystemPage = () => {
   }
 
   return (
-    <>
-      <Header />
+    <Header title="JT UI">
       <div id="p-ui-toolkit" className="page container">
-        <PageTitle title="JT UI" subtitle="Shared controls from jt_case_platform. Use the header theme switch to inspect light and dark states." />
+        <PageTitle title="JT UI" subtitle="Shared controls from jt_case_platform. Use the workspace theme switch to inspect light and dark states." />
         <p className="text-muted">
           Keyboard check: Tab, Shift+Tab, Arrow keys, Home, End, Escape. Hover, selected, disabled, loading, error and long-content states are included below.
         </p>
@@ -337,12 +335,6 @@ const DesignSystemPage = () => {
               Loading
             </Button>
           </HStack>
-
-          <HStack>
-            <SocialSignInButton option={{ displayName: "GitHub", provider: "github" }} />
-            <SocialSignInButton option={{ displayName: "Facebook", provider: "facebook" }} />
-            <SocialSignInButton option={{ displayName: "Google", provider: "google" }} />
-          </HStack>
         </VStack>
 
         <h2 className="text-display2 mb-3 mt-6">6. Toggle</h2>
@@ -433,7 +425,7 @@ const DesignSystemPage = () => {
           <Input label="Disabled!" field="unamed" disabled={true} value={"you can't change this!"} />
           <Input label="Name" field="name" placeholder={"Your name goes here..."} />
           <Input label="Subdomain" field="subdomain" suffix=".fider.io" />
-          <Input label="Email" field="email" suffix={<Button variant="primary">Sign in</Button>} />
+          <Input label="Username" field="username" suffix={<Button variant="primary">Sign in</Button>} />
           <TextArea label="Description" field="description" minRows={5}>
             <p className="text-muted">This textarea resizes as you type.</p>
           </TextArea>
@@ -517,7 +509,7 @@ const DesignSystemPage = () => {
 
         <Input field="search" placeholder="Search..." icon={IconSearch} />
       </div>
-    </>
+    </Header>
   )
 }
 

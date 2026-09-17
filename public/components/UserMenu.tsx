@@ -3,11 +3,12 @@ import { useFider } from "@fider/hooks"
 import { Avatar, Dropdown } from "./common"
 import { actions, notify } from "@fider/services"
 import { Trans } from "@lingui/react/macro"
+import { i18n } from "@lingui/core"
 import IconCog from "@fider/assets/images/heroicons-cog.svg"
 import IconWrench from "@fider/assets/images/heroicons-wrenchscrewdriver.svg"
 import IconLeft from "@fider/assets/images/heroicons-arrowleft-rectangle.svg"
 
-export const UserMenu = () => {
+export const UserMenu = ({ sidebar = false, compact = false }: { sidebar?: boolean; compact?: boolean }) => {
   const fider = useFider()
   const [signingOut, setSigningOut] = useState(false)
   const pending = useRef(false)
@@ -31,7 +32,32 @@ export const UserMenu = () => {
 
   return (
     <div className="c-menu-user">
-      <Dropdown ariaLabel={fider.session.user.name} position="left" renderHandle={<Avatar user={fider.session.user} />}>
+      <Dropdown
+        ariaLabel={fider.session.user.name}
+        position={sidebar ? "right" : "left"}
+        renderHandle={
+          <>
+            <Avatar user={fider.session.user} />
+            {sidebar && !compact && (
+              <>
+                <span className="c-user-menu__identity">
+                  <span>{fider.session.user.name}</span>
+                  <small>
+                    {fider.session.user.isAdministrator
+                      ? i18n._({ id: "workspace.role.administrator", message: "Administrator" })
+                      : fider.session.user.isCollaborator
+                      ? i18n._({ id: "workspace.role.collaborator", message: "Collaborator" })
+                      : i18n._({ id: "workspace.role.member", message: "Member" })}
+                  </small>
+                </span>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path d="m5 6 3-3 3 3M5 10l3 3 3-3" />
+                </svg>
+              </>
+            )}
+          </>
+        }
+      >
         <div className="p-2 text-medium uppercase">{fider.session.user.name}</div>
         <Dropdown.ListItem href="/settings" icon={IconCog}>
           <Trans id="menu.mysettings">My Settings</Trans>

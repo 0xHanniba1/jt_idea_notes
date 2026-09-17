@@ -1,8 +1,9 @@
 import { World as CucumberWorld } from "@cucumber/cucumber"
-import { Page } from "@playwright/test"
+import { BrowserContext, Page } from "@playwright/test"
 
 export interface FiderWorld extends CucumberWorld {
-  tenantName: string
+  baseURL: string
+  context: BrowserContext
   page: Page
   log: (msg: string) => void
 }

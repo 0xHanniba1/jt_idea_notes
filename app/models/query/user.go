@@ -32,12 +32,6 @@ type GetUserByID struct {
 	Result *entity.User
 }
 
-type GetUserByEmail struct {
-	Email string
-
-	Result *entity.User
-}
-
 type GetUserByProvider struct {
 	Provider string
 	UID      string

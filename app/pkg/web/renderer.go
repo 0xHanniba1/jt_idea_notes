@@ -222,7 +222,6 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 			"id":              u.ID,
 			"name":            u.Name,
 			"username":        u.Username,
-			"email":           u.Email,
 			"role":            u.Role,
 			"status":          u.Status,
 			"avatarType":      u.AvatarType,

@@ -750,5 +750,18 @@
   "signin.message.socialbutton.intro": "ログイン",
   "signin.name.placeholder": "あなたの名前",
   "validation.custom.maxattachments": "最大 {number} 個の添付ファイルが許可されます。",
-  "validation.custom.maximagesize": "画像サイズは{kilobytes}KB未満である必要があります。"
+  "validation.custom.maximagesize": "画像サイズは{kilobytes}KB未満である必要があります。",
+  "workspace.brand.subtitle": "",
+  "workspace.breadcrumbs": "",
+  "workspace.label": "",
+  "workspace.moderation.pending": "",
+  "workspace.navigation": "",
+  "workspace.navigation.collapse": "",
+  "workspace.navigation.expand": "",
+  "workspace.navigation.open": "",
+  "workspace.role.administrator": "",
+  "workspace.role.collaborator": "",
+  "workspace.role.member": "",
+  "workspace.skip": "",
+  "workspace.status": ""
 }

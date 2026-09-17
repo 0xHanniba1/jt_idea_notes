@@ -53,7 +53,7 @@ func User() web.MiddlewareFunc {
 			}
 			// Hashing endpoints take their lock after doing expensive password work.
 			restore := c.Request.Method == "DELETE" && strings.HasPrefix(c.Request.URL.Path, "/_api/admin/users/") && strings.HasSuffix(c.Request.URL.Path, "/block")
-			getMutation := c.Request.Method == "GET" && (c.Request.URL.Path == "/change-email/verify" || strings.HasPrefix(c.Request.URL.Path, "/notifications/") || strings.HasPrefix(c.Request.URL.Path, "/_api/admin/webhook/test/"))
+			getMutation := c.Request.Method == "GET" && (strings.HasPrefix(c.Request.URL.Path, "/notifications/") || strings.HasPrefix(c.Request.URL.Path, "/_api/admin/webhook/test/"))
 			writeLock := (web.IsWriteMethod(c.Request.Method) || getMutation) && !strings.HasPrefix(c.Request.URL.Path, "/_api/auth/") && !strings.HasPrefix(c.Request.URL.Path, "/_api/admin/accounts") && !restore
 			q := &query.GetPasswordCredential{UserID: claims.UserID, Lock: writeLock}
 			if err := bus.Dispatch(c, q); err != nil {

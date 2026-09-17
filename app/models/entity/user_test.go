@@ -8,10 +8,10 @@ import (
 	. "github.com/getfider/fider/app/pkg/assert"
 )
 
-func TestUserWithEmail_MarshalJSON(t *testing.T) {
+func TestUserWithAccount_MarshalJSON(t *testing.T) {
 
 	RegisterT(t)
-	user := entity.UserWithEmail{
+	user := entity.UserWithAccount{
 		User: &entity.User{
 			ID:                  1,
 			Name:                "John Doe",
@@ -25,7 +25,7 @@ func TestUserWithEmail_MarshalJSON(t *testing.T) {
 		},
 	}
 
-	expectedJSON := `{"id":1,"name":"John Doe","role":"visitor","status":"active","isTrusted":false,"email":"johndoe@example.com","username":"john.doe","passwordInitialized":true,"mustChangePassword":true}`
+	expectedJSON := `{"id":1,"name":"John Doe","role":"visitor","status":"active","isTrusted":false,"username":"john.doe","passwordInitialized":true,"mustChangePassword":true}`
 
 	jsonData, err := json.Marshal(user)
 	if err != nil {

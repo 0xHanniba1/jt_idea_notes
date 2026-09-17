@@ -145,6 +145,13 @@ func executeTemplate(name, text string, props webhook.Props) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Keep strict webhook rendering local to this execution, including when
+	// the shared template provider returns a cached template.
+	tmpl, err = tmpl.Clone()
+	if err != nil {
+		return "", err
+	}
+	tmpl.Option("missingkey=error")
 
 	replacedText, err := tpl.Execute(tmpl, props)
 	if err != nil {

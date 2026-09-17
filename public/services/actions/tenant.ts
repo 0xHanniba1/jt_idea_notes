@@ -1,27 +1,6 @@
 import { http, Result } from "@fider/services/http"
-import { UserRole, OAuthConfig, ImageUpload, EmailVerificationKind } from "@fider/models"
+import { UserRole, ImageUpload } from "@fider/models"
 import { PrivacySettingsPageState } from "@fider/pages/Administration/pages/PrivacySettings.page"
-
-export interface CheckAvailabilityResponse {
-  message: string
-}
-
-export interface CreateTenantRequest {
-  legalAgreement: boolean
-  tenantName: string
-  subdomain?: string
-  name?: string
-  token?: string
-  email?: string
-}
-
-export interface CreateTenantResponse {
-  token?: string
-}
-
-export const createTenant = async (request: CreateTenantRequest): Promise<Result<CreateTenantResponse>> => {
-  return await http.post<CreateTenantResponse>("/_api/tenants", request)
-}
 
 export interface UpdateTenantSettingsRequest {
   logo?: ImageUpload
@@ -46,24 +25,6 @@ export const updateTenantPrivacy = async (request: PrivacySettingsPageState): Pr
   return await http.post("/_api/admin/settings/privacy", request)
 }
 
-export const updateTenantEmailAuthAllowed = async (isEmailAuthAllowed: boolean): Promise<Result> => {
-  return await http.post("/_api/admin/settings/emailauth", {
-    isEmailAuthAllowed,
-  })
-}
-
-export const checkAvailability = async (subdomain: string): Promise<Result<CheckAvailabilityResponse>> => {
-  return await http.get<CheckAvailabilityResponse>(`/_api/tenants/${subdomain}/availability`)
-}
-
-export const completeProfile = async (kind: EmailVerificationKind, key: string, name: string): Promise<Result> => {
-  return await http.post("/_api/signin/complete", {
-    kind,
-    key,
-    name,
-  })
-}
-
 export const changeUserRole = async (userID: number, role: UserRole): Promise<Result> => {
   return await http.post(`/_api/admin/roles/${role}/users`, {
     userID,
@@ -84,51 +45,4 @@ export const trustUser = async (userID: number): Promise<Result> => {
 
 export const untrustUser = async (userID: number): Promise<Result> => {
   return await http.delete(`/_api/admin/users/${userID}/trust`)
-}
-
-export const getOAuthConfig = async (provider: string): Promise<Result<OAuthConfig>> => {
-  return await http.get<OAuthConfig>(`/_api/admin/oauth/${provider}`)
-}
-
-export interface CreateEditOAuthConfigRequest {
-  provider: string
-  status: number
-  displayName: string
-  clientID: string
-  clientSecret: string
-  authorizeURL: string
-  tokenURL: string
-  scope: string
-  profileURL: string
-  jsonUserIDPath: string
-  jsonUserNamePath: string
-  jsonUserEmailPath: string
-  jsonUserRolesPath: string
-  allowedRoles: string
-  logo?: ImageUpload
-  isTrusted: boolean
-}
-
-export const saveOAuthConfig = async (request: CreateEditOAuthConfigRequest): Promise<Result> => {
-  return await http.post("/_api/admin/oauth", request)
-}
-
-export const setSystemProviderStatus = async (provider: string, isEnabled: boolean): Promise<Result> => {
-  return await http.post(`/_api/admin/oauth/${provider}/status`, { provider, isEnabled })
-}
-
-export const resendSignUpEmail = async (): Promise<Result> => {
-  return await http.post("/_api/signup/resend", {})
-}
-
-export interface RequestTenantDeletionResponse {
-  scheduledDeletionAt: string
-}
-
-export const requestTenantDeletion = async (subdomain: string): Promise<Result<RequestTenantDeletionResponse>> => {
-  return await http.delete<RequestTenantDeletionResponse>("/_api/admin/tenant", { subdomain })
-}
-
-export const cancelTenantDeletion = async (): Promise<Result> => {
-  return await http.post("/_api/admin/tenant/cancel-deletion")
 }

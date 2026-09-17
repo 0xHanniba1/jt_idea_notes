@@ -38,8 +38,6 @@ const pages: { [key: string]: any } = {
   "ShowPost/ShowPost.page": require(`./pages/ShowPost/ShowPost.page`),
   "SignIn/SignIn.page": require(`./pages/SignIn/SignIn.page`),
   "SignIn/ChangePasswordRequired.page": require(`./pages/SignIn/ChangePasswordRequired.page`),
-  "SignUp/SignUp.page": require(`./pages/SignUp/SignUp.page`),
-  "SignUp/PendingActivation.page": require(`./pages/SignUp/PendingActivation.page`),
   "Legal/Legal.page": require(`./pages/Legal/Legal.page`),
   "DesignSystem/DesignSystem.page": require(`./pages/DesignSystem/DesignSystem.page`),
   "Error/Maintenance.page": require(`./pages/Error/Maintenance.page`),
@@ -48,7 +46,6 @@ const pages: { [key: string]: any } = {
   "Error/Error404.page": require(`./pages/Error/Error404.page`),
   "Error/Error410.page": require(`./pages/Error/Error410.page`),
   "Error/Error500.page": require(`./pages/Error/Error500.page`),
-  "Error/NotInvited.page": require(`./pages/Error/NotInvited.page`),
   "Error/AccessDenied.page": require(`./pages/Error/AccessDenied.page`),
 }
 

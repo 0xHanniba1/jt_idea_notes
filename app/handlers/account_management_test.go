@@ -167,7 +167,7 @@ func TestAccountManagementProfileRejectsUsernameBeforeWriting(t *testing.T) {
 		bus.AddHandler(func(_ context.Context, _ *cmd.UploadImage) error { writes++; return nil })
 		bus.AddHandler(func(_ context.Context, _ *cmd.UpdateCurrentUser) error { writes++; return nil })
 		bus.AddHandler(func(_ context.Context, _ *cmd.UpdateCurrentUserSettings) error { writes++; return nil })
-		status, response := server.ExecutePost(handlers.UpdateUserSettings(), passwordHandlerBody(t, map[string]any{"username": username, "name": "新昵称", "avatarType": "gravatar"}))
+		status, response := server.ExecutePost(handlers.UpdateUserSettings(), passwordHandlerBody(t, map[string]any{"username": username, "name": "新昵称", "avatarType": "letter"}))
 		if status != http.StatusBadRequest || writes != 0 || !strings.Contains(response.Body.String(), `"field":"username"`) {
 			t.Fatalf("username mutation reached writing: status=%d writes=%d", status, writes)
 		}
@@ -181,7 +181,7 @@ func TestAccountManagementProfileNicknameCharacterBoundary(t *testing.T) {
 		bus.AddHandler(func(_ context.Context, _ *cmd.UploadImage) error { writes++; return nil })
 		bus.AddHandler(func(_ context.Context, c *cmd.UpdateCurrentUser) error { writes++; name = c.Name; return nil })
 		bus.AddHandler(func(_ context.Context, _ *cmd.UpdateCurrentUserSettings) error { writes++; return nil })
-		status, _ := server.ExecutePost(handlers.UpdateUserSettings(), passwordHandlerBody(t, map[string]any{"name": "  " + strings.Repeat("字", length) + "  ", "avatarType": "gravatar"}))
+		status, _ := server.ExecutePost(handlers.UpdateUserSettings(), passwordHandlerBody(t, map[string]any{"name": "  " + strings.Repeat("字", length) + "  ", "avatarType": "letter"}))
 		if length == 100 {
 			if status != http.StatusOK || writes != 3 || name != strings.Repeat("字", 100) {
 				t.Fatalf("valid trimmed Chinese nickname rejected: status=%d writes=%d", status, writes)

@@ -190,5 +190,6 @@
   "auth.account.self": "Use personal settings to change your own password. Contact another administrator for account recovery.",
   "auth.internalonly": "This site is for internal members and requires password sign-in.",
   "auth.transport.required": "Password sign-in requires HTTPS. Configure the site URL and trusted reverse proxy before enabling access.",
-  "auth.username.immutable": "Your username is used to sign in and cannot be changed."
+  "auth.username.immutable": "Your username is used to sign in and cannot be changed.",
+  "page.progress.title": "Progress"
 }

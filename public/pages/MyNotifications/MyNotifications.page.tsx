@@ -60,8 +60,7 @@ export default class MyNotificationsPage extends React.Component<MyNotifications
 
   public render() {
     return (
-      <>
-        <Header />
+      <Header title={i18n._({ id: "mynotifications.page.title", message: "Notifications" })}>
         <div id="p-my-notifications" className="page container">
           <PageTitle
             title={i18n._({ id: "mynotifications.page.title", message: "Notifications" })}
@@ -97,7 +96,7 @@ export default class MyNotificationsPage extends React.Component<MyNotifications
             </>
           )}
         </div>
-      </>
+      </Header>
     )
   }
 }

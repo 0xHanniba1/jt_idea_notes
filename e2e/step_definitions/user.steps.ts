@@ -1,27 +1,24 @@
-import { Given } from "@cucumber/cucumber"
-import { FiderWorld } from "e2e/world"
-import { getLatestCodeSentTo, isAuthenticated, isAuthenticatedAsUser } from "./fns"
+import { Given, Then } from "@cucumber/cucumber"
+import { expect } from "@playwright/test"
+import { fixtureAccounts, FixtureAccount } from "../config"
+import { FiderWorld } from "../world"
+import { isAuthenticatedAsUser } from "./fns"
 
-Given("I sign in as {string}", async function (this: FiderWorld, userName: string) {
-  if (await isAuthenticatedAsUser(this.page, userName)) {
-    return
-  }
+Given("I sign in as {string}", async function (this: FiderWorld, accountName: string) {
+  if (!(accountName in fixtureAccounts)) throw new Error(`Unknown E2E fixture account: ${accountName}`)
+  const account = fixtureAccounts[accountName as FixtureAccount]
+  await this.context.clearCookies()
+  await this.page.goto("/signin")
+  await this.page.getByLabel("Username", { exact: true }).fill(account.username)
+  await this.page.getByLabel("Password", { exact: true }).fill(account.password)
+  await this.page.getByRole("button", { name: "Sign in", exact: true }).click()
+  await expect(this.page.locator("#p-home")).toBeVisible()
+  expect(await isAuthenticatedAsUser(this.page, account.username)).toBe(true)
+})
 
-  if (await isAuthenticated(this.page)) {
-    await this.page.click(".c-menu-user .c-dropdown__handle")
-    await this.page.click("a[href='/signout']")
-  }
-
-  const userEmail = `${userName}-${this.tenantName}@fider.io`
-  await this.page.getByRole("button", { name: "Sign in" }).click()
-  await this.page.fill(".c-signin-control #input-email", userEmail)
-  await this.page.click(".c-signin-control .c-button--primary")
-
-  // Get the code from email and enter it
-  const code = await getLatestCodeSentTo(userEmail)
-  await this.page.fill("#input-code", code)
-  await this.page.getByRole("button", { name: "submit" }).click()
-
-  // Wait for navigation after successful code verification
-  await this.page.waitForLoadState("networkidle")
+Then("I should be on the sign in page", async function (this: FiderWorld) {
+  await expect(this.page).toHaveURL(`${this.baseURL}/signin`)
+  await expect(this.page.getByLabel("Username", { exact: true })).toBeVisible()
+  await expect(this.page.getByLabel("Password", { exact: true })).toBeVisible()
+  await expect(this.page.locator("#p-home")).toHaveCount(0)
 })

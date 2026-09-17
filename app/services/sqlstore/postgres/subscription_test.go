@@ -165,7 +165,7 @@ func TestSubscription_AdminUnsubscribed(t *testing.T) {
 	Expect(subscribed.Result).IsFalse()
 }
 
-func TestSubscription_DisabledEmail(t *testing.T) {
+func TestSubscription_EnabledCommentNotifications(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
 
@@ -181,17 +181,13 @@ func TestSubscription_DisabledEmail(t *testing.T) {
 	Expect(err).IsNil()
 
 	newCommentWebSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelWeb, Event: enum.NotificationEventNewComment}
-	newCommentEmailSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventNewComment}
 	changeStatusSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelWeb, Event: enum.NotificationEventChangeStatus}
-	err = bus.Dispatch(aryaStarkCtx, newCommentWebSubscribers, newCommentEmailSubscribers, changeStatusSubscribers)
+	err = bus.Dispatch(aryaStarkCtx, newCommentWebSubscribers, changeStatusSubscribers)
 	Expect(err).IsNil()
 
 	Expect(newCommentWebSubscribers.Result).HasLen(2)
 	Expect(newCommentWebSubscribers.Result[0].ID).Equals(jonSnow.ID)
 	Expect(newCommentWebSubscribers.Result[1].ID).Equals(aryaStark.ID)
-
-	Expect(newCommentEmailSubscribers.Result).HasLen(1)
-	Expect(newCommentEmailSubscribers.Result[0].ID).Equals(jonSnow.ID)
 
 	Expect(changeStatusSubscribers.Result).HasLen(2)
 	Expect(changeStatusSubscribers.Result[0].ID).Equals(jonSnow.ID)
@@ -222,23 +218,19 @@ func TestSubscription_VisitorEnabledNewPost(t *testing.T) {
 
 	err = bus.Dispatch(aryaStarkCtx, &cmd.UpdateCurrentUserSettings{
 		Settings: map[string]string{
-			enum.NotificationEventNewPost.UserSettingsKeyName: strconv.Itoa(int(enum.NotificationChannelEmail | enum.NotificationChannelWeb)),
+			enum.NotificationEventNewPost.UserSettingsKeyName: strconv.Itoa(int(enum.NotificationChannelWeb)),
 		},
 	})
 	Expect(err).IsNil()
 
 	newPostWebSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelWeb, Event: enum.NotificationEventNewPost}
-	newPostEmailSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventNewPost}
-	err = bus.Dispatch(aryaStarkCtx, newPostWebSubscribers, newPostEmailSubscribers)
+	err = bus.Dispatch(aryaStarkCtx, newPostWebSubscribers)
 	Expect(err).IsNil()
 
 	Expect(newPostWebSubscribers.Result).HasLen(2)
 	Expect(newPostWebSubscribers.Result[0].ID).Equals(jonSnow.ID)
 	Expect(newPostWebSubscribers.Result[1].ID).Equals(aryaStark.ID)
 
-	Expect(newPostEmailSubscribers.Result).HasLen(2)
-	Expect(newPostEmailSubscribers.Result[0].ID).Equals(jonSnow.ID)
-	Expect(newPostEmailSubscribers.Result[1].ID).Equals(aryaStark.ID)
 }
 
 func TestSubscription_DisabledEverything(t *testing.T) {
@@ -262,20 +254,14 @@ func TestSubscription_DisabledEverything(t *testing.T) {
 	Expect(err).IsNil()
 
 	newPostWebSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelWeb, Event: enum.NotificationEventNewPost}
-	newPostEmailSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventNewPost}
 	newCommentWebSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelWeb, Event: enum.NotificationEventNewComment}
-	newCommentEmailSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventNewComment}
 	changeStatusWebSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelWeb, Event: enum.NotificationEventChangeStatus}
-	changeStatusEmailSubscribers := &query.GetActiveSubscribers{Number: newPost.Result.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventChangeStatus}
-	err = bus.Dispatch(aryaStarkCtx, newPostWebSubscribers, newPostEmailSubscribers, newCommentWebSubscribers, newCommentEmailSubscribers, changeStatusWebSubscribers, changeStatusEmailSubscribers)
+	err = bus.Dispatch(aryaStarkCtx, newPostWebSubscribers, newCommentWebSubscribers, changeStatusWebSubscribers)
 	Expect(err).IsNil()
 
 	Expect(newPostWebSubscribers.Result).HasLen(0)
-	Expect(newPostEmailSubscribers.Result).HasLen(0)
 	Expect(newCommentWebSubscribers.Result).HasLen(0)
-	Expect(newCommentEmailSubscribers.Result).HasLen(0)
 	Expect(changeStatusWebSubscribers.Result).HasLen(0)
-	Expect(changeStatusEmailSubscribers.Result).HasLen(0)
 }
 
 func TestSubscription_DeletedPost(t *testing.T) {
@@ -316,39 +302,77 @@ func TestSubscription_SubscribedToDifferentPost(t *testing.T) {
 	Expect(q.Result[0].ID).Equals(jonSnow.ID)
 }
 
-func TestSubscription_EmailSupressed(t *testing.T) {
+func TestSubscription_LegacyPreferencesKeepOnlyWebBit(t *testing.T) {
+	for _, tc := range []struct {
+		stored  string
+		current string
+		enabled bool
+	}{
+		{stored: "3", current: "1", enabled: true},
+		{stored: "2", current: "0", enabled: false},
+	} {
+		t.Run(tc.stored, func(t *testing.T) {
+			SetupDatabaseTest(t)
+			defer TeardownDatabaseTest()
+			post := &cmd.AddNewPost{Title: "Legacy notification preference", Description: "Preserve the site notification bit"}
+			if err := bus.Dispatch(aryaStarkCtx, post); err != nil {
+				t.Fatal(err)
+			}
+			// Seed persisted legacy values directly; new settings only accept 0 or 1.
+			for _, event := range enum.AllNotificationEvents {
+				if _, err := trx.Execute(`INSERT INTO user_settings (tenant_id, user_id, key, value)
+                    VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, key) DO UPDATE SET value = $4`,
+					demoTenant.ID, aryaStark.ID, event.UserSettingsKeyName, tc.stored); err != nil {
+					t.Fatal(err)
+				}
+			}
+			settings := &query.GetCurrentUserSettings{}
+			if err := bus.Dispatch(aryaStarkCtx, settings); err != nil {
+				t.Fatal(err)
+			}
+			for _, event := range enum.AllNotificationEvents {
+				if got := settings.Result[event.UserSettingsKeyName]; got != tc.current {
+					t.Fatalf("legacy %s should read as %s for %s, got %s", tc.stored, tc.current, event.UserSettingsKeyName, got)
+				}
+				subscribers := &query.GetActiveSubscribers{Number: post.Result.Number, Channel: enum.NotificationChannelWeb, Event: event}
+				if err := bus.Dispatch(jonSnowCtx, subscribers); err != nil {
+					t.Fatal(err)
+				}
+				found := false
+				for _, user := range subscribers.Result {
+					if user.ID == aryaStark.ID {
+						found = true
+					}
+				}
+				if found != tc.enabled {
+					t.Fatalf("legacy %s unexpectedly changed web delivery for %s: enabled=%v", tc.stored, event.UserSettingsKeyName, found)
+				}
+			}
+		})
+	}
+}
+
+func TestSubscription_OnlyWebChannelIsSupported(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
+	for _, channel := range []enum.NotificationChannel{0, 2, 3} {
+		q := &query.GetActiveSubscribers{Number: 1, Channel: channel, Event: enum.NotificationEventNewPost}
+		if err := bus.Dispatch(jonSnowCtx, q); err == nil {
+			t.Fatalf("unsupported notification channel %d was accepted", channel)
+		}
+	}
+}
 
-	// Enable email notifications for new comments
-	err := bus.Dispatch(aryaStarkCtx, &cmd.UpdateCurrentUserSettings{
-		Settings: map[string]string{
-			enum.NotificationEventNewComment.UserSettingsKeyName: strconv.Itoa(int(enum.NotificationChannelEmail)),
-		},
-	})
-	Expect(err).IsNil()
-
-	newPost1 := &cmd.AddNewPost{Title: "Post #1", Description: "Description #1"}
-	err = bus.Dispatch(aryaStarkCtx, newPost1)
-	Expect(err).IsNil()
-
-	err = bus.Dispatch(aryaStarkCtx, &cmd.AddSubscriber{Post: newPost1.Result, User: aryaStark})
-	Expect(err).IsNil()
-
-	q := &query.GetActiveSubscribers{Number: newPost1.Result.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventNewComment}
-	err = bus.Dispatch(aryaStarkCtx, q)
-	Expect(err).IsNil()
-	Expect(q.Result).HasLen(2)
-	Expect(q.Result[0].ID).Equals(jonSnow.ID)
-	Expect(q.Result[1].ID).Equals(aryaStark.ID)
-
-	//Supress the email and verify that AryaStark is not an active subscriber anymore
-	err = bus.Dispatch(aryaStarkCtx, &cmd.SupressEmail{EmailAddresses: []string{aryaStark.Email}})
-	Expect(err).IsNil()
-
-	q = &query.GetActiveSubscribers{Number: newPost1.Result.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventNewComment}
-	err = bus.Dispatch(aryaStarkCtx, q)
-	Expect(err).IsNil()
-	Expect(q.Result).HasLen(1)
-	Expect(q.Result[0].ID).Equals(jonSnow.ID)
+func TestSubscription_DefaultSettingsUseWebChannel(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+	q := &query.GetCurrentUserSettings{}
+	if err := bus.Dispatch(jonSnowCtx, q); err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range enum.AllNotificationEvents {
+		if event.DefaultSettingValue != "1" || q.Result[event.UserSettingsKeyName] != "1" {
+			t.Fatalf("default preference is not site-only for %s: %s", event.UserSettingsKeyName, q.Result[event.UserSettingsKeyName])
+		}
+	}
 }

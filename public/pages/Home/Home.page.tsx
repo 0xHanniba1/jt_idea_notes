@@ -142,15 +142,14 @@ What can we do better? This is the place for you to discuss and share ideas.`,
   }
 
   return (
-    <>
+    <Header title={i18n._({ id: "header.nav.feedback", message: "All Feedback" })}>
       <ShareFeedback
         tags={props.tags}
         placeholder={fider.session.tenant.invitation || defaultInvitation}
         isOpen={isShareFeedbackOpen && !fider.isReadOnly}
         onClose={() => setIsShareFeedbackOpen(false)}
       />
-      <Header />
-      <main id="p-home" className="page container">
+      <div id="p-home" className="page container">
         <div className="p-home__heading">
           <div className="p-home__welcome">
             <h1 className="p-home__welcome-title" tabIndex={-1} data-post-list-focus>
@@ -184,7 +183,7 @@ What can we do better? This is the place for you to discuss and share ideas.`,
         ) : (
           <PostsContainer ref={postsContainerRef} posts={props.posts} tags={props.tags} countPerStatus={props.countPerStatus} onPostClick={handlePostClick} />
         )}
-      </main>
+      </div>
       {selectedPostId !== null && (
         <PostDetailsOverlay onClose={handleCloseOverlay}>
           <PostDetails
@@ -199,7 +198,7 @@ What can we do better? This is the place for you to discuss and share ideas.`,
           />
         </PostDetailsOverlay>
       )}
-    </>
+    </Header>
   )
 }
 
