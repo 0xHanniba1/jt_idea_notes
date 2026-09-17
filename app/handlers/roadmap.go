@@ -10,7 +10,7 @@ import (
 	"github.com/getfider/fider/app/pkg/web"
 )
 
-// RoadmapPage renders the roadmap board. Pro tenants and self-hosted
+// RoadmapPage renders one paginated progress status. Pro tenants and self-hosted
 // installations get the full data; other tenants render the page with no data
 // so the client shows the upgrade call-to-action.
 func RoadmapPage() web.HandlerFunc {
@@ -21,23 +21,32 @@ func RoadmapPage() web.HandlerFunc {
 		}
 
 		if env.IsSingleHostMode() || c.Tenant().IsPro {
-			// Keep in sync with ROADMAP_DEFAULT_LIMIT on the client; the "Show more"
-			// link uses posts.length >= limit as its heuristic and needs both ends
-			// to agree on the initial cap.
-			plannedPosts := &query.SearchPosts{View: "planned", Limit: "10"}
-			startedPosts := &query.SearchPosts{View: "started", Limit: "10"}
-			completedPosts := &query.SearchPosts{View: "completed", Limit: "10"}
+			view := c.QueryParam("view")
+			switch view {
+			case "planned", "started", "completed":
+			default:
+				view = "planned"
+			}
+			searchPosts := &query.SearchPosts{
+				View:     view,
+				Query:    c.QueryParam("query"),
+				Page:     c.QueryParam("page"),
+				Limit:    c.QueryParam("limit"),
+				Paginate: true,
+			}
 			getAllTags := &query.GetAllTags{}
 
-			if err := bus.Dispatch(c, plannedPosts, startedPosts, completedPosts, getAllTags); err != nil {
+			if err := bus.Dispatch(c, searchPosts, getAllTags); err != nil {
 				return c.Failure(err)
 			}
 
 			props.Data = web.Map{
-				"plannedPosts":   plannedPosts.Result,
-				"startedPosts":   startedPosts.Result,
-				"completedPosts": completedPosts.Result,
-				"tags":           getAllTags.Result,
+				"posts": searchPosts.Result,
+				"pagination": web.Map{
+					"total": searchPosts.TotalCount, "page": searchPosts.PageNumber, "pageSize": searchPosts.PageSize,
+				},
+				"tags": getAllTags.Result,
+				"view": view,
 			}
 		}
 

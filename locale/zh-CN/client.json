@@ -621,7 +621,7 @@
   "showpost.save.success": "帖子已成功更新",
   "validation.custom.maxattachments": "最多允许 {number} 个附件。",
   "validation.custom.maximagesize": "图像大小必须小于{kilobytes}KB。",
-  "workspace.brand.subtitle": "想法工作台",
+  "workspace.brand.subtitle": "需求工作台",
   "workspace.breadcrumbs": "当前位置",
   "workspace.label": "工作空间",
   "workspace.moderation.pending": "{count} 项内容待审核",
@@ -633,5 +633,7 @@
   "workspace.role.collaborator": "协作者",
   "workspace.role.member": "成员",
   "workspace.skip": "跳到主要内容",
-  "workspace.status": "页面状态"
+  "workspace.status": "页面状态",
+  "progress.status.label": "进度状态",
+  "progress.empty": "当前状态下暂无记录"
 }

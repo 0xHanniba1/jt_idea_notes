@@ -184,7 +184,9 @@ test("page size and search reset to the first page and keep other filters", asyn
   const mock = httpMock.alwaysOk()
   ;(mock.get as jest.Mock).mockResolvedValue({ ok: true, data: pageData([post], 31, 1, 10) })
   renderPosts([post], 31, 2)
-  fireEvent.change(screen.getByRole("combobox", { name: "Per page" }), { target: { value: "10" } })
+  fireEvent.click(screen.getByRole("button", { name: "Per page: 25" }))
+  expect(screen.getByRole("menuitemradio", { name: "25" })).toHaveAttribute("aria-checked", "true")
+  fireEvent.click(screen.getByRole("menuitemradio", { name: "10" }))
   await act(async () => {
     jest.advanceTimersByTime(500)
   })
@@ -227,4 +229,60 @@ test("uses server-clamped page after records are removed", async () => {
   expect(new URL(window.location.href).searchParams.get("page")).toBe("2")
   expect(screen.getByText("2 / 2")).toBeInTheDocument()
   expect(screen.getByRole("status")).toHaveTextContent("20 total · 11–20")
+})
+
+test("progress switches one full list, keeps roadmap URL and resets page while preserving search", async () => {
+  window.history.replaceState({}, "", "/roadmap?view=planned&page=2&limit=10&query=idea&statuses=deleted&tags=hidden")
+  const mock = httpMock.alwaysOk()
+  ;(mock.get as jest.Mock).mockResolvedValue({ ok: true, data: pageData([{ ...post, status: "started" }], 1, 1, 10) })
+  render(
+    <FiderContext.Provider value={Fider}>
+      <PostsContainer progressView="planned" posts={[post]} tags={[]} countPerStatus={{}} pagination={{ total: 20, page: 2, pageSize: 10 }} />
+    </FiderContext.Provider>
+  )
+  expect(screen.getByRole("button", { name: "Planned" })).toHaveAttribute("aria-pressed", "true")
+  expect(screen.queryByRole("button", { name: /Sort by/ })).not.toBeInTheDocument()
+  expect(new URL(window.location.href).searchParams.has("statuses")).toBe(false)
+  fireEvent.click(screen.getByRole("button", { name: "Started" }))
+  await act(async () => {
+    jest.advanceTimersByTime(500)
+  })
+  const requestURL = new URL((mock.get as jest.Mock).mock.calls[0][0], "http://localhost")
+  expect(requestURL.searchParams.get("view")).toBe("started")
+  expect(requestURL.searchParams.get("page")).toBe("1")
+  expect(requestURL.searchParams.get("query")).toBe("idea")
+  expect(requestURL.searchParams.has("tags")).toBe(false)
+  expect(window.location.pathname).toBe("/roadmap")
+  expect(screen.getByRole("button", { name: "Started" })).toHaveAttribute("aria-pressed", "true")
+})
+
+test("empty progress retains switching, search and pagination and ignores stale state responses", async () => {
+  window.history.replaceState({}, "", "/roadmap?view=planned")
+  const mock = httpMock.alwaysOk()
+  const resolvers: Array<(result: unknown) => void> = []
+  ;(mock.get as jest.Mock).mockImplementation(() => new Promise((resolve) => resolvers.push(resolve)))
+  render(
+    <FiderContext.Provider value={Fider}>
+      <PostsContainer progressView="planned" posts={[]} tags={[]} countPerStatus={{}} />
+    </FiderContext.Provider>
+  )
+  expect(screen.getByPlaceholderText("Search")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled()
+  fireEvent.click(screen.getByRole("button", { name: "Started" }))
+  await act(async () => {
+    jest.advanceTimersByTime(500)
+  })
+  fireEvent.click(screen.getByRole("button", { name: "Completed" }))
+  await act(async () => {
+    jest.advanceTimersByTime(500)
+  })
+  await act(async () => {
+    resolvers[1]({ ok: true, data: pageData([{ ...post, title: "Completed result", status: "completed" }]) })
+  })
+  await act(async () => {
+    resolvers[0]({ ok: true, data: pageData([{ ...post, title: "Stale started result", status: "started" }]) })
+  })
+  expect(screen.getByText("Completed result")).toBeInTheDocument()
+  expect(screen.queryByText("Stale started result")).not.toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Completed" })).toHaveAttribute("aria-pressed", "true")
 })
