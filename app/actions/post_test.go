@@ -13,6 +13,8 @@ import (
 	"github.com/getfider/fider/app/actions"
 	. "github.com/getfider/fider/app/pkg/assert"
 	"github.com/getfider/fider/app/pkg/bus"
+	"github.com/getfider/fider/app/pkg/validate"
+	"github.com/gosimple/slug"
 )
 
 func TestCreateNewPost_InvalidPostTitles(t *testing.T) {
@@ -27,10 +29,8 @@ func TestCreateNewPost_InvalidPostTitles(t *testing.T) {
 	})
 
 	for _, title := range []string{
-		"me",
 		"",
 		"  ",
-		"signup",
 		"My great great great great great great great great great great great great great great great great great post.",
 		"my GREAT post",
 	} {
@@ -48,6 +48,8 @@ func TestCreateNewPost_ValidPostTitles(t *testing.T) {
 	})
 
 	for _, title := range []string{
+		"me",
+		"signup",
 		"this is my new post",
 		"this post is very descriptive",
 	} {
@@ -55,6 +57,89 @@ func TestCreateNewPost_ValidPostTitles(t *testing.T) {
 		result := action.Validate(context.Background(), nil)
 		ExpectSuccess(result)
 	}
+}
+
+func TestPostTitleUnicodeLengthAndNormalization(t *testing.T) {
+	tests := []struct {
+		name       string
+		title      string
+		normalized string
+		valid      bool
+	}{
+		{name: "one Chinese character", title: "记", normalized: "记", valid: true},
+		{name: "100 Chinese characters", title: strings.Repeat("记", 100), normalized: strings.Repeat("记", 100), valid: true},
+		{name: "101 Chinese characters", title: strings.Repeat("记", 101), normalized: strings.Repeat("记", 101)},
+		{name: "one emoji", title: "🔔", normalized: "🔔", valid: true},
+		{name: "100 emoji", title: strings.Repeat("🔔", 100), normalized: strings.Repeat("🔔", 100), valid: true},
+		{name: "101 emoji", title: strings.Repeat("🔔", 101), normalized: strings.Repeat("🔔", 101)},
+		{name: "100 ASCII characters", title: strings.Repeat("a", 100), normalized: strings.Repeat("a", 100), valid: true},
+		{name: "101 ASCII characters", title: strings.Repeat("a", 101), normalized: strings.Repeat("a", 101)},
+		{name: "empty", title: "", normalized: ""},
+		{name: "only Unicode whitespace", title: " \t\n\r\u0085\u00a0\u1680\u2003\u2028\u2029\u202f\u205f\u3000\uFEFF", normalized: ""},
+		{name: "mixed whitespace", title: "\uFEFF  启用\t\u0085\u2003🔔\u00a0通知\n\uFEFF", normalized: "启用 🔔 通知", valid: true},
+		{name: "normalized length", title: "\uFEFF  " + strings.Repeat("记", 100) + "\u3000\n", normalized: strings.Repeat("记", 100), valid: true},
+	}
+
+	for _, operation := range []string{"create", "update"} {
+		for _, tt := range tests {
+			t.Run(operation+"/"+tt.name, func(t *testing.T) {
+				RegisterT(t)
+				var queriedSlug string
+				bus.AddHandler(func(ctx context.Context, q *query.GetPostBySlug) error {
+					queriedSlug = q.Slug
+					return app.ErrNotFound
+				})
+
+				var result *validate.Result
+				var normalized string
+				if operation == "create" {
+					action := &actions.CreateNewPost{Title: tt.title}
+					result = action.Validate(context.Background(), nil)
+					normalized = action.Title
+				} else {
+					action := &actions.UpdatePost{Title: tt.title, Post: &entity.Post{ID: 1}}
+					result = action.Validate(context.Background(), nil)
+					normalized = action.Title
+				}
+				if normalized != tt.normalized {
+					t.Fatalf("stored title = %q, want %q", normalized, tt.normalized)
+				}
+				if tt.valid {
+					ExpectSuccess(result)
+					if queriedSlug != slug.Make(tt.normalized) {
+						t.Fatalf("duplicate lookup slug = %q, want %q", queriedSlug, slug.Make(tt.normalized))
+					}
+				} else {
+					ExpectFailed(result, "title")
+				}
+			})
+		}
+	}
+}
+
+func TestPostTitleNormalizationPreservesDuplicateChecks(t *testing.T) {
+	RegisterT(t)
+
+	bus.AddHandler(func(ctx context.Context, q *query.GetPostBySlug) error {
+		if q.Slug == "my-great-post" {
+			q.Result = &entity.Post{ID: 2, Slug: q.Slug}
+			return nil
+		}
+		return app.ErrNotFound
+	})
+
+	title := " \uFEFFmy\u2003GREAT\npost\u0085"
+	create := &actions.CreateNewPost{Title: title}
+	ExpectFailed(create.Validate(context.Background(), nil), "title")
+	Expect(create.Title).Equals("my GREAT post")
+
+	update := &actions.UpdatePost{Title: title, Post: &entity.Post{ID: 1}}
+	ExpectFailed(update.Validate(context.Background(), nil), "title")
+	Expect(update.Title).Equals("my GREAT post")
+
+	ownPost := &actions.UpdatePost{Title: title, Post: &entity.Post{ID: 2}}
+	ExpectSuccess(ownPost.Validate(context.Background(), nil))
+	Expect(ownPost.Title).Equals("my GREAT post")
 }
 
 func TestSetResponse_InvalidStatus(t *testing.T) {

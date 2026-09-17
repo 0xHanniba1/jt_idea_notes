@@ -1,0 +1,194 @@
+.c-profile-avatar {
+  margin: 24px 0;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  &__preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 76px;
+    height: 76px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--control-bg);
+    color: var(--ink-500);
+    font-size: 28px;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+  &__label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  &__hint {
+    margin: 5px 0 11px;
+    color: var(--ink-500);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+  }
+  &__button,
+  &__text-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.25;
+    cursor: pointer;
+    color: var(--ink-700);
+    background: var(--control-bg);
+    &:hover:not(:disabled) {
+      background: var(--control-hover);
+    }
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--colors-primary-base);
+      outline-offset: 2px;
+    }
+  }
+  &__text-button {
+    padding: 0;
+    color: var(--ink-500);
+    background: transparent;
+  }
+  &__button--primary {
+    background: var(--colors-primary-base);
+    color: var(--on-accent);
+    font-weight: 600;
+    &:hover:not(:disabled) {
+      background: var(--colors-primary-dark);
+    }
+  }
+  &__error,
+  &__notice {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  &__error {
+    color: var(--red);
+  }
+  &__notice {
+    color: var(--ink-500);
+  }
+}
+.c-avatar-crop {
+  width: min(420px, calc(100vw - 32px));
+  &__hint {
+    margin: 0 0 20px;
+    color: var(--ink-500);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  &__stage {
+    position: relative;
+    width: min(280px, 100%);
+    aspect-ratio: 1;
+    margin: 0 auto;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 14px;
+    background: var(--control-bg);
+    color: var(--ink-500);
+    font-size: 13px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    &:active {
+      cursor: grabbing;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--colors-primary-base);
+      outline-offset: 3px;
+    }
+    img {
+      position: absolute;
+      max-width: none;
+      pointer-events: none;
+    }
+  }
+  &__mask {
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 0 0 100px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+  &__zoom {
+    width: min(280px, 100%);
+    margin: 20px auto 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    font-size: 12px;
+    color: var(--ink-500);
+    input {
+      grid-column: 1 / -1;
+      min-width: 0;
+      width: 100%;
+      height: 26px;
+      padding: 0;
+      accent-color: var(--colors-primary-base);
+      cursor: pointer;
+    }
+    input:focus-visible {
+      outline: 2px solid var(--colors-primary-base);
+      outline-offset: 2px;
+    }
+  }
+  &__reset {
+    display: flex;
+    margin: 6px auto 12px;
+  }
+  .c-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+}
+@media (max-width: 480px) {
+  .c-profile-avatar__row {
+    gap: 14px;
+  }
+  .c-profile-avatar__preview {
+    width: 64px;
+    height: 64px;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .c-profile-avatar__button,
+  .c-profile-avatar__text-button {
+    min-height: 44px;
+  }
+  .c-avatar-crop__zoom input {
+    height: 40px;
+  }
+}

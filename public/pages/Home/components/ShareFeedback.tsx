@@ -1,29 +1,18 @@
 import "./ShareFeedback.scss"
+import { isValidPostTitle, normalizePostTitle } from "@fider/services/postTitle"
 
 import React, { useEffect, useRef, useState } from "react"
 import { SignInControl } from "@fider/components/common/SignInControl"
 import { Modal, CloseIcon, Form, Button, Input, LegalFooter } from "@fider/components/common"
 import { useFider } from "@fider/hooks"
 import { Trans } from "@lingui/react/macro"
-import { actions, Failure, querystring, cache } from "@fider/services"
+import { actions, Failure, cache } from "@fider/services"
 import { plainText } from "@fider/services/markdown"
 import { i18n } from "@lingui/core"
 import { Tag } from "@fider/models"
 import { SimilarPosts } from "../components/SimilarPosts"
-import { TagsSelect } from "@fider/components/common/TagsSelect"
 import CommentEditor from "@fider/components/common/form/CommentEditor"
-import {
-  CACHE_KEYS,
-  clearCache,
-  clearCachedDescription,
-  getCachedDescription,
-  getCachedTags,
-  getCachedTitle,
-  setCachedDescription,
-  setCachedTags,
-  setCachedTitle,
-  setPostPending,
-} from "./PostCache"
+import { clearCache, setPostPending } from "./PostCache"
 import { useAttachments } from "@fider/hooks/useAttachments"
 
 interface ShareFeedbackProps {
@@ -33,7 +22,10 @@ interface ShareFeedbackProps {
   tags: Tag[]
 }
 
-export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
+export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => (props.isOpen ? <ShareFeedbackForm {...props} /> : null)
+
+// Each opening owns a fresh form, including the editor and its attachments.
+const ShareFeedbackForm: React.FC<ShareFeedbackProps> = (props) => {
   const fider = useFider()
   const { isOpen, onClose } = props
   const onCloseRef = useRef(onClose)
@@ -41,45 +33,16 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
 
-  const getTagsCachedValue = (): Tag[] => {
-    if (!canEditTags) {
-      return []
-    }
-
-    const cacheValue = getCachedTags()
-    const urlValue = querystring.get("tags")
-    const combined = [...cacheValue, ...urlValue.split(",")]
-    const tagsAsStrings = Array.from(new Set(combined.map((s) => s.trim()).filter((s) => s.length > 0)))
-
-    return props.tags.filter((tag) => tagsAsStrings.includes(tag.slug))
-  }
-
-  const getTitleManuallyEditedValue = (): boolean => {
-    // If the cached title deviates from the description, it means the user manually edited it
-    return getCachedTitle() !== getCachedDescription()
-  }
-
-  const canEditTags = fider.settings.postWithTags && props.tags.length > 0
-
-  const descriptionTemplate = fider.session.tenant.descriptionTemplate || ""
-  const hasCachedDraft = getCachedDescription().trim() !== ""
-  const prefillTemplate = !hasCachedDraft && descriptionTemplate !== ""
-
-  const [title, setTitle] = useState(getCachedTitle())
-  const [description, setDescription] = useState(prefillTemplate ? descriptionTemplate : getCachedDescription())
-  const { attachments, handleImageUploaded, getImageSrc, clearAttachments } = useAttachments({
-    cacheKey: CACHE_KEYS.ATTACHMENT,
-    useLocalStorage: true,
-    maxAttachments: 3,
-  })
-  const [tags, setTags] = useState(getTagsCachedValue())
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const { attachments, handleImageUploaded, getImageSrc, clearAttachments } = useAttachments({ maxAttachments: 3 })
   const [error, setError] = useState<Failure | undefined>(undefined)
   const titleRef = useRef<HTMLInputElement>()
-  const editorRef = useRef<HTMLDivElement>(null)
-  const [titleManuallyEdited, setTitleManuallyEdited] = useState(prefillTemplate ? true : getTitleManuallyEditedValue())
+  const [titleManuallyEdited, setTitleManuallyEdited] = useState(false)
   const [isInitialMount, setIsInitialMount] = useState(true)
 
   useEffect(() => {
+    clearCache() // Discard legacy drafts persisted by earlier versions.
     setIsInitialMount(false)
   }, [])
 
@@ -123,23 +86,14 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
   }, [description, titleManuallyEdited])
 
   useEffect(() => {
-    if (isOpen && editorRef.current) {
-      // Small delay to ensure modal is fully rendered
-      const frame = window.requestAnimationFrame(() => {
-        // Focus the editor
-        const editorContent = editorRef.current?.querySelector(".ProseMirror")
-        if (editorContent) {
-          ;(editorContent as HTMLElement).focus()
-        }
-      })
-      return () => window.cancelAnimationFrame(frame)
-    }
+    if (!isOpen) return
+    const frame = window.requestAnimationFrame(() => titleRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
   }, [isOpen])
 
   // Handlers for post input changes
   const handleTitleChange = (value: string, isManualEdit = true) => {
     setTitle(value)
-    setCachedTitle(value)
     // If this is a manual edit (not auto-generated from description),
     // mark the title as manually edited so we stop auto-populating.
     // Once the user has touched the title we keep it manually edited even
@@ -156,41 +110,21 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
     }
   }
 
-  const handleTagsChanged = (newTags: Tag[]) => {
-    if (submittingRef.current) return
-    setCachedTags(newTags.map((tag) => tag.slug))
-    setTags(newTags)
-  }
-
-  const handleDescriptionChange = (value: string) => {
-    // If the description is emptied (e.g. the prefilled template is deleted),
-    // remove it from the cache so reopening the modal prefills the template again
-    // instead of restoring an empty draft.
-    if (value.trim() === "") {
-      clearCachedDescription()
-    } else {
-      setCachedDescription(value)
-    }
-    setDescription(value)
-  }
+  const handleDescriptionChange = (value: string) => setDescription(value)
 
   const onSubmitFeedback = () => {
     setPostPending(true)
   }
 
   const clearError = () => setError(undefined)
+  const hasValidTitle = isValidPostTitle(title)
 
   const finaliseFeedback = async () => {
-    if (!title || submittingRef.current) return
+    if (!hasValidTitle || fider.isReadOnly || submittingRef.current) return
     submittingRef.current = true
     setSubmitting(true)
     try {
-      const result = await actions.createPost(
-        title,
-        description,
-        attachments,
-        tags.map((tag) => tag.slug)
-      )
+      const result = await actions.createPost(normalizePostTitle(title), description, attachments, [])
       if (result.ok) {
         clearError()
         clearCache()
@@ -215,8 +149,6 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
     // We don't need to do anything special here
   }
 
-  const showSubmitButton = title.replace(/\s+/g, " ").trim().length > 9
-
   return (
     <Modal.Window
       ariaLabel={i18n._({ id: "newpost.modal.title", message: "Share your idea..." })}
@@ -237,7 +169,16 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
           </h1>
           <div className="c-share-feedback-form">
             <Form error={error}>
-              <div ref={editorRef} className="mb-4">
+              <Input
+                field="title"
+                inputRef={titleRef}
+                label={i18n._({ id: "label.title", message: "Title" })}
+                value={title}
+                disabled={fider.isReadOnly || submitting}
+                onChange={handleTitleChange}
+                onKeyDown={handleKeyDown}
+              />
+              <div className="mb-4">
                 <CommentEditor
                   field="description"
                   onChange={handleDescriptionChange}
@@ -246,36 +187,12 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
                   disabled={fider.isReadOnly || submitting}
                   maxAttachments={3}
                   maxImageSizeKB={5 * 1024}
-                  placeholder={i18n._({
-                    id: "newpost.modal.description.placeholder",
-                    message: "Tell us about it. Explain it fully, don't hold back, the more information the better.",
-                  })}
+                  placeholder=""
                   onImageUploaded={handleImageUploaded}
                   onGetImageSrc={getImageSrc}
                 />
               </div>
               <SimilarPosts title={title} tags={props.tags} />
-              <Input
-                field="title"
-                inputRef={titleRef}
-                maxLength={255}
-                label={i18n._({ id: "newpost.modal.title.label", message: "Give your idea a title" })}
-                value={title}
-                disabled={fider.isReadOnly || submitting}
-                onChange={handleTitleChange}
-                onKeyDown={handleKeyDown}
-                placeholder={i18n._({ id: "newpost.modal.title.placeholder", message: "Something short and snappy, sum it up in a few words" })}
-              />
-              {canEditTags && (
-                <div className="c-form-field">
-                  <label>
-                    <Trans id="label.tags">Tags</Trans>
-                  </label>
-                  <fieldset className="c-share-feedback__tags" disabled={submitting}>
-                    <TagsSelect tags={props.tags} selectionChanged={handleTagsChanged} selected={tags} alwaysEditing={true} canEdit={!submitting} />
-                  </fieldset>
-                </div>
-              )}
             </Form>
           </div>
         </div>
@@ -284,24 +201,21 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
           <div className="c-share-feedback__content">
             <div className="c-share-feedback-signin">
               <h2 className="text-title text-center mb-4">
-                <Trans id="newpost.modal.submit">Submit your idea</Trans>
+                <Trans id="action.publish">Publish</Trans>
               </h2>
               <SignInControl onSubmit={onSubmitFeedback} onSignedIn={onSignedIn} redirectTo="/" />
             </div>
           </div>
         ) : (
-          /* For authenticated users, only show the submit button container when title is long enough */
-          showSubmitButton && (
-            <div className="c-share-feedback__content">
-              <div className="c-share-feedback-signin">
-                <div className="flex justify-center">
-                  <Button variant="primary" disabled={submitting} onClick={finaliseFeedback}>
-                    <Trans id="newpost.modal.submit">Submit your idea</Trans>
-                  </Button>
-                </div>
+          <div className="c-share-feedback__content">
+            <div className="c-share-feedback-signin">
+              <div className="flex justify-center">
+                <Button variant="primary" disabled={!hasValidTitle || fider.isReadOnly || submitting} onClick={finaliseFeedback}>
+                  <Trans id="action.publish">Publish</Trans>
+                </Button>
               </div>
             </div>
-          )
+          </div>
         )}
         {!fider.session.isAuthenticated ? <LegalFooter /> : null}
       </Modal.Content>

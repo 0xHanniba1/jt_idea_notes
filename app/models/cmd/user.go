@@ -22,9 +22,6 @@ type RegenerateAPIKey struct {
 	Result string
 }
 
-type DeleteCurrentUser struct {
-}
-
 type ChangeUserRole struct {
 	UserID int
 	Role   enum.Role
@@ -51,3 +48,12 @@ type UpdateCurrentUser struct {
 }
 
 type RotateAllUserSecurityStamps struct{}
+
+// UpdateCurrentUserProfile writes only the display name.
+type UpdateCurrentUserProfile struct{ Name string }
+
+// UpdateCurrentUserAvatar writes only avatar fields.
+type UpdateCurrentUserAvatar struct {
+	AvatarType enum.AvatarType
+	Avatar     *dto.ImageUpload
+}

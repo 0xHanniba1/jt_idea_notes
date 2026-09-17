@@ -5,6 +5,7 @@ import IconPlusCircle from "@fider/assets/images/heroicons-pluscircle.svg"
 import React, { useEffect, useState, useRef } from "react"
 import { Post, Tag, PostStatus } from "@fider/models"
 import { Markdown, Hint, Icon, Header, Button } from "@fider/components"
+import { PostPagination } from "@fider/services/actions/post"
 import { PostsContainer } from "./components/PostsContainer"
 import { useFider, usePostOverlay } from "@fider/hooks"
 import { HStack } from "@fider/components/layout"
@@ -15,6 +16,7 @@ import { isPostPending, setPostPending } from "./components/PostCache"
 import { PostDetails, PostDetailsOverlay } from "@fider/components/PostDetails"
 
 export interface HomePageProps {
+  pagination?: PostPagination
   posts: Post[]
   tags: Tag[]
   searchNoiseWords: string[]
@@ -181,7 +183,14 @@ What can we do better? This is the place for you to discuss and share ideas.`,
         {isLonely() ? (
           <Lonely />
         ) : (
-          <PostsContainer ref={postsContainerRef} posts={props.posts} tags={props.tags} countPerStatus={props.countPerStatus} onPostClick={handlePostClick} />
+          <PostsContainer
+            ref={postsContainerRef}
+            pagination={props.pagination}
+            posts={props.posts}
+            tags={props.tags}
+            countPerStatus={props.countPerStatus}
+            onPostClick={handlePostClick}
+          />
         )}
       </div>
       {selectedPostId !== null && (

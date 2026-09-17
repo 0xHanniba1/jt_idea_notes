@@ -57,6 +57,8 @@ func SearchPosts() web.HandlerFunc {
 			Query:            c.QueryParam("query"),
 			View:             query.NormalizePostView(viewQueryParams),
 			Limit:            c.QueryParam("limit"),
+			Page:             c.QueryParam("page"),
+			Paginate:         c.Request.URL.Query().Has("page"),
 			Tags:             c.QueryParamAsArray("tags"),
 			ModerationFilter: c.QueryParam("moderation"),
 		}
@@ -72,6 +74,12 @@ func SearchPosts() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
+		if searchPosts.Paginate {
+			return c.Ok(web.Map{
+				"posts": searchPosts.Result, "total": searchPosts.TotalCount,
+				"page": searchPosts.PageNumber, "pageSize": searchPosts.PageSize,
+			})
+		}
 		return c.Ok(searchPosts.Result)
 	}
 }

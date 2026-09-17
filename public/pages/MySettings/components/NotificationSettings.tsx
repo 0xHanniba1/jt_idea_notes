@@ -6,6 +6,7 @@ import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
 
 interface NotificationSettingsProps {
+  hideHeading?: boolean
   userSettings: UserSettings
   settingsChanged: (settings: UserSettings) => void
 }
@@ -36,7 +37,7 @@ export const NotificationSettings = (props: NotificationSettingsProps) => {
   ]
 
   return (
-    <Field label={i18n._({ id: "label.notifications", message: "Notifications" })}>
+    <Field label={props.hideHeading ? undefined : i18n._({ id: "label.notifications", message: "Notifications" })}>
       <p className="text-muted mb-6">
         <Trans id="mysettings.notification.title">Choose the events to receive an in-app notification for.</Trans>
       </p>

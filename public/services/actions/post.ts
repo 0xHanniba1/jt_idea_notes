@@ -24,8 +24,19 @@ export interface SearchPostsParams {
   moderation?: string
 }
 
-export const searchPosts = async (params: SearchPostsParams): Promise<Result<Post[]>> => {
+export interface PostPagination {
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface PostsPage extends PostPagination {
+  posts: Post[]
+}
+
+const postSearchURL = (params: SearchPostsParams, page?: number): string => {
   const qsParams = querystring.stringify({
+    page,
     tags: params.tags,
     statuses: params.statuses,
     query: params.query,
@@ -35,8 +46,12 @@ export const searchPosts = async (params: SearchPostsParams): Promise<Result<Pos
     notags: params.noTags ? "true" : undefined,
     myposts: params.myPosts ? "true" : undefined,
   })
-  return await http.get<Post[]>(`/api/v1/posts${qsParams}`)
+  return `/api/v1/posts${qsParams}`
 }
+
+export const searchPosts = async (params: SearchPostsParams): Promise<Result<Post[]>> => http.get<Post[]>(postSearchURL(params))
+
+export const searchPostsPage = async (params: SearchPostsParams, page: number): Promise<Result<PostsPage>> => http.get<PostsPage>(postSearchURL(params, page))
 
 export const findSimilarPosts = async (query: string): Promise<Result<Post[]>> => {
   const params = querystring.stringify({ query: query })

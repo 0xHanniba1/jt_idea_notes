@@ -1,0 +1,83 @@
+.p-my-settings {
+  max-width: 1240px;
+  margin-inline: auto;
+  &__heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+  }
+  &__secondary {
+    display: grid;
+    gap: 24px;
+    min-width: 0;
+  }
+  &__panel {
+    min-width: 0;
+    padding: 28px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--paper);
+    box-shadow: var(--shadow-control);
+    h2 {
+      font-size: 16px;
+      font-weight: 650;
+      line-height: 1.5;
+      margin: 0;
+    }
+    > .c-form {
+      margin-top: 24px;
+    }
+    .c-form {
+      display: grid;
+      gap: 20px;
+    }
+    .c-form-field {
+      margin: 0;
+    }
+    .c-input {
+      height: 44px;
+      min-height: 44px;
+      border-radius: 14px;
+      background: var(--control-bg);
+    }
+    .c-input[readonly] {
+      color: var(--ink-500);
+    }
+    .c-form > .c-button {
+      width: 100%;
+      min-height: 44px;
+    }
+    .text-muted {
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    fieldset {
+      border: 0;
+      padding: 0;
+      margin: 0;
+      min-width: 0;
+    }
+  }
+  &__notice {
+    color: var(--ink-500);
+    font-size: 13px;
+  }
+  @media (max-width: 900px) {
+    &__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    &__panel {
+      padding: 22px 18px;
+    }
+  }
+}

@@ -81,55 +81,6 @@ func untrustUser(ctx context.Context, c *cmd.UntrustUser) error {
 	})
 }
 
-func deleteCurrentUser(ctx context.Context, c *cmd.DeleteCurrentUser) error {
-	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		if user == nil {
-			return passwordauth.ErrUnauthorized
-		}
-		users, err := lockPasswordUsers(ctx, trx, tenant, user, user.ID)
-		if err != nil {
-			return err
-		}
-		if err := checkPasswordActor(user, users[user.ID], false); err != nil {
-			return err
-		}
-		if err := checkLastPasswordAdministrator(trx, tenant, users[user.ID]); err != nil {
-			return err
-		}
-		if _, err := trx.ExecuteSensitive(
-			"UPDATE users SET role = $3, status = $4, name = '', email = '', api_key = null, api_key_date = null, security_stamp = $5 WHERE id = $1 AND tenant_id = $2",
-			user.ID, tenant.ID, enum.RoleVisitor, enum.UserDeleted, generateSecurityStamp(),
-		); err != nil {
-			return errors.Wrap(err, "failed to delete current user")
-		}
-
-		var tables = []struct {
-			name       string
-			userColumn string
-		}{
-			{"user_credentials", "user_id"},
-			{"user_providers", "user_id"},
-			{"user_settings", "user_id"},
-			{"notifications", "user_id"},
-			{"notifications", "author_id"},
-			{"post_votes", "user_id"},
-			{"post_subscribers", "user_id"},
-			{"email_verifications", "user_id"},
-		}
-
-		for _, table := range tables {
-			if _, err := trx.Execute(
-				fmt.Sprintf("DELETE FROM %s WHERE %s = $1 AND tenant_id = $2", table.name, table.userColumn),
-				user.ID, tenant.ID,
-			); err != nil {
-				return errors.Wrap(err, "failed to delete current user's %s records", table)
-			}
-		}
-
-		return nil
-	})
-}
-
 func regenerateAPIKey(ctx context.Context, c *cmd.RegenerateAPIKey) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
 		apiKey := rand.String(64)
@@ -559,5 +510,23 @@ func rotateAllUserSecurityStamps(ctx context.Context, c *cmd.RotateAllUserSecuri
 			}
 		}
 		return nil
+	})
+}
+
+func updateCurrentUserProfile(ctx context.Context, c *cmd.UpdateCurrentUserProfile) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		_, err := trx.Execute("UPDATE users SET name=$3 WHERE id=$1 AND tenant_id=$2", user.ID, tenant.ID, c.Name)
+		return err
+	})
+}
+
+func updateCurrentUserAvatar(ctx context.Context, c *cmd.UpdateCurrentUserAvatar) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		key := c.Avatar.BlobKey
+		if c.Avatar.Remove {
+			key = ""
+		}
+		_, err := trx.Execute("UPDATE users SET avatar_type=$3, avatar_bkey=$4 WHERE id=$1 AND tenant_id=$2", user.ID, tenant.ID, c.AvatarType, key)
+		return err
 	})
 }

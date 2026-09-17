@@ -31,6 +31,62 @@
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
   }
+  &__pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 4px;
+    color: var(--ink-500);
+    font-size: 13px;
+  }
+  &__page-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    select,
+    button {
+      background: var(--colors-gray-100);
+      border: 0;
+      border-radius: var(--radius-pill);
+      color: inherit;
+      min-height: 36px;
+    }
+    select {
+      padding: 0 12px;
+      cursor: pointer;
+    }
+    button {
+      width: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      &:hover:not(:disabled) {
+        background: var(--control-hover);
+      }
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+    }
+    svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  }
+  &__page-number {
+    min-width: 40px;
+    text-align: center;
+  }
   &__post-link {
     display: block;
     text-decoration: none;

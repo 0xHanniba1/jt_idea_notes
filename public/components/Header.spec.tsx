@@ -53,18 +53,24 @@ afterEach(() => {
   jest.restoreAllMocks()
 })
 
-test("navigation shows the current section and respects staff permissions", () => {
-  window.history.replaceState({}, "", "/admin/users")
-  const view = renderShell()
-  const nav = screen.getByRole("navigation", { name: "Main navigation" })
-  expect(within(nav).getByRole("link", { name: "Site Settings" })).toHaveAttribute("aria-current", "page")
-  expect(within(nav).getByRole("link", { name: "All Feedback" })).not.toHaveAttribute("aria-current")
-  view.unmount()
-  cleanup()
-  document.body.innerHTML = '<div id="root"></div><div id="root-modal"></div>'
-  initialize(false)
+test.each(["administrator", "collaborator", "member"])("settings is only in the administrator account menu: %s", (role) => {
+  Fider.initialize({
+    settings: { oauth: [], baseURL: "http://test.localhost" },
+    tenant: { name: "Idea Notes", allowedSchemes: "", locale: "en" },
+    user: { id: 1, name: "Test User", isAdministrator: role === "administrator", isCollaborator: role !== "member" },
+  })
   renderShell()
-  expect(screen.queryByRole("link", { name: "Site Settings" })).not.toBeInTheDocument()
+  const nav = screen.getByRole("navigation", { name: "Main navigation" })
+  expect(within(nav).queryByRole("link", { name: "Site Settings" })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole("button", { name: "Test User" }))
+  const menu = screen.getByRole("menu", { name: "Test User" })
+  expect(within(menu).queryByText("Test User")).not.toBeInTheDocument()
+  expect(within(menu).queryByText("Administration")).not.toBeInTheDocument()
+  expect(within(menu).getByRole("menuitem", { name: "My Settings" })).toBeInTheDocument()
+  expect(within(menu).getByRole("menuitem", { name: "Sign out" })).toBeInTheDocument()
+  const settings = within(menu).queryByRole("menuitem", { name: "Site Settings" })
+  if (role === "administrator") expect(settings).toHaveAttribute("href", "/admin")
+  else expect(settings).not.toBeInTheDocument()
 })
 
 test("collapse persists across full page visits without remounting or losing content", () => {

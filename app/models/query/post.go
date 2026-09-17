@@ -37,6 +37,11 @@ type SearchPosts struct {
 	Query            string
 	View             string
 	Limit            string
+	Page             string
+	Paginate         bool
+	TotalCount       int
+	PageNumber       int
+	PageSize         int
 	Statuses         []enum.PostStatus
 	Tags             []string
 	NoTagsOnly       bool

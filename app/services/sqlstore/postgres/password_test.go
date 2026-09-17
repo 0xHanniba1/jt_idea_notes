@@ -187,9 +187,6 @@ func TestPasswordStorageAuthorizationAndLastAdministrator(t *testing.T) {
 	if err := bus.Dispatch(admin, &cmd.ResetPasswordAccount{UserID: jonSnow.ID, PasswordHash: passwordauth.PlaceholderHash()}); err != passwordauth.ErrUnauthorized {
 		t.Fatal("self reset accepted")
 	}
-	if err := bus.Dispatch(admin, &cmd.DeleteCurrentUser{}); err != passwordauth.ErrLastAdministrator {
-		t.Fatalf("last administrator deleted: %v", err)
-	}
 	if err := bus.Dispatch(admin, &cmd.ChangeUserRole{UserID: tonyStark.ID, Role: enum.RoleVisitor}); err != app.ErrNotFound {
 		t.Fatalf("cross tenant user accepted: %v", err)
 	}
@@ -198,12 +195,6 @@ func TestPasswordStorageAuthorizationAndLastAdministrator(t *testing.T) {
 	}
 	if err := bus.Dispatch(member, &cmd.CreatePasswordAccount{Username: "stale.actor", Name: "Stale", PasswordHash: passwordauth.PlaceholderHash(), Role: enum.RoleVisitor}); err != passwordauth.ErrUnauthorized {
 		t.Fatalf("pre-promotion session retained access: %v", err)
-	}
-	if err := bus.Dispatch(admin, &cmd.DeleteCurrentUser{}); err != nil {
-		t.Fatal(err)
-	}
-	if err := bus.Dispatch(demoTenantCtx, &query.GetPasswordCredential{UserID: jonSnow.ID}); err != app.ErrNotFound {
-		t.Fatal("deleted user's credential survived")
 	}
 }
 

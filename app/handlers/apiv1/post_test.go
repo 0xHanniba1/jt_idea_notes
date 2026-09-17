@@ -2,9 +2,11 @@ package apiv1_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -1110,4 +1112,47 @@ func TestGetSubscriptionHandler_QueryFailure(t *testing.T) {
 		Use(middlewares.IsAuthenticated()).AddParam("number", 3).
 		Execute(apiv1.GetSubscription())
 	Expect(code).Equals(http.StatusInternalServerError)
+}
+
+func TestSearchPostsHandler_PaginationResponseCompatibility(t *testing.T) {
+	for _, tc := range []struct {
+		url      string
+		paginate bool
+	}{
+		{"/api/v1/posts?limit=10", false}, {"/api/v1/posts?page=2&limit=10", true}, {"/api/v1/posts?page=&limit=10", true},
+	} {
+		t.Run(tc.url, func(t *testing.T) {
+			RegisterT(t)
+			bus.AddHandler(func(ctx context.Context, q *query.SearchPosts) error {
+				if q.Paginate != tc.paginate || q.Limit != "10" {
+					t.Fatalf("incorrect pagination opt-in: %+v", q)
+				}
+				q.TotalCount = 31
+				q.PageNumber = 2
+				q.PageSize = 10
+				q.Result = []*entity.Post{}
+				return nil
+			})
+			code, response := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.JonSnow).WithURL(tc.url).Execute(apiv1.SearchPosts())
+			Expect(code).Equals(http.StatusOK)
+			if tc.paginate {
+				var result struct {
+					Posts    []entity.Post `json:"posts"`
+					Total    int           `json:"total"`
+					Page     int           `json:"page"`
+					PageSize int           `json:"pageSize"`
+				}
+				if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+					t.Fatal(err)
+				}
+				if result.Posts == nil || result.Total != 31 || result.Page != 2 || result.PageSize != 10 {
+					t.Fatalf("invalid pagination response: %+v", result)
+				}
+			} else {
+				if strings.TrimSpace(response.Body.String()) != "[]" {
+					t.Fatalf("legacy array response changed: %s", response.Body.String())
+				}
+			}
+		})
+	}
 }

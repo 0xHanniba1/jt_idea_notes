@@ -16,6 +16,9 @@ export const regenerateAPIKey = async (): Promise<Result<{ apiKey: string }>> =>
   return await http.post<{ apiKey: string }>("/_api/user/regenerate-apikey")
 }
 
-export const deleteCurrentAccount = async (): Promise<Result> => {
-  return await http.delete("/_api/user")
-}
+export const updateProfileName = (name: string): Promise<Result<{ name: string }>> => http.post("/_api/user/profile", { name })
+export const updateNotificationSettings = (settings: UserSettings): Promise<Result> => http.post("/_api/user/notifications", { settings })
+export const updateProfileAvatar = (
+  avatar: ImageUpload,
+  avatarType: UserAvatarType
+): Promise<Result<{ avatarURL: string; avatarType: UserAvatarType; avatarBlobKey: string }>> => http.post("/_api/user/avatar", { avatar, avatarType })

@@ -2,7 +2,7 @@ import React from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { i18n } from "@lingui/core"
 import { Fider, http } from "@fider/services"
-import { UserAvatarType, UserRole } from "@fider/models"
+import { UserRole } from "@fider/models"
 import MySettingsPage from "./MySettings.page"
 import { normalizeNotificationSettings } from "./components/NotificationSettings"
 
@@ -31,9 +31,13 @@ test("profile settings retire email and remote email avatars while preserving un
   render(<MySettingsPage userSettings={{ event_notification_new_post: "3" }} />)
   expect(screen.queryByLabelText("Email")).not.toBeInTheDocument()
   expect(screen.queryByRole("option", { name: "Gravatar" })).not.toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Delete My Account" })).toBeInTheDocument()
-  expect(screen.getByLabelText("Avatar")).toHaveValue(UserAvatarType.Letter)
-  expect(screen.getByRole("option", { name: "Custom" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Delete My Account" })).not.toBeInTheDocument()
+  expect(screen.queryByText("Delete account")).not.toBeInTheDocument()
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Upload avatar" })).toBeInTheDocument()
+  expect(screen.getByRole("region", { name: "Personal profile" })).toBeInTheDocument()
+  expect(screen.getByRole("region", { name: "Login password" })).toBeInTheDocument()
+  expect(screen.getByRole("region", { name: "In-app notifications" })).toBeInTheDocument()
   screen.getAllByLabelText("Username").forEach((input) => expect(input).toHaveAttribute("readonly"))
   expect(screen.getByLabelText("Nickname")).toHaveValue("Existing nickname")
   expect(screen.getByLabelText("Current password")).toBeInTheDocument()
@@ -41,19 +45,12 @@ test("profile settings retire email and remote email avatars while preserving un
   expect(screen.getAllByRole("switch")).toHaveLength(4)
 })
 
-test("saving a nickname sends no contact-email fields and normalizes legacy notification and avatar preferences", async () => {
+test("saving a nickname does not submit unrelated notification or avatar drafts", async () => {
   const post = jest.spyOn(http, "post").mockResolvedValue({ ok: false, data: undefined, error: { errors: [{ field: "name", message: "Please try again." }] } })
   render(<MySettingsPage userSettings={{ event_notification_new_post: "3", event_notification_new_comment: "2", other_setting: "unchanged" }} />)
   fireEvent.change(screen.getByLabelText("Nickname"), { target: { value: "New nickname" } })
-  fireEvent.click(screen.getByRole("button", { name: "Save" }))
-  await waitFor(() =>
-    expect(post).toHaveBeenCalledWith("/_api/user/settings", {
-      name: "New nickname",
-      avatarType: UserAvatarType.Letter,
-      avatar: undefined,
-      settings: { event_notification_new_post: "1", event_notification_new_comment: "0", other_setting: "unchanged" },
-    })
-  )
+  fireEvent.click(screen.getByRole("button", { name: "Save profile" }))
+  await waitFor(() => expect(post).toHaveBeenCalledWith("/_api/user/profile", { name: "New nickname" }))
   expect(await screen.findByText("Please try again.")).toBeInTheDocument()
 })
 
@@ -67,4 +64,17 @@ test("notification normalization preserves the in-app bit and unrelated preferen
   }
   expect(normalizeNotificationSettings(original)).toEqual({ ...original, event_notification_new_post: "1", event_notification_new_comment: "0" })
   expect(original.event_notification_new_post).toBe("3")
+})
+
+test("notifications save independently without submitting or clearing an edited nickname", async () => {
+  const post = jest.spyOn(http, "post").mockResolvedValue({ ok: true, data: {} })
+  render(<MySettingsPage userSettings={{ event_notification_new_post: "3", event_notification_new_comment: "2" }} />)
+  fireEvent.change(screen.getByLabelText("Nickname"), { target: { value: "Unsaved nickname" } })
+  fireEvent.click(screen.getByRole("switch", { name: "New Post" }))
+  fireEvent.click(screen.getByRole("button", { name: "Save notifications" }))
+  await waitFor(() =>
+    expect(post).toHaveBeenCalledWith("/_api/user/notifications", { settings: { event_notification_new_post: "0", event_notification_new_comment: "0" } })
+  )
+  expect(screen.getByLabelText("Nickname")).toHaveValue("Unsaved nickname")
+  expect(await screen.findByText("Notification preferences saved.")).toBeInTheDocument()
 })

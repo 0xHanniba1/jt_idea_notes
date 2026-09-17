@@ -84,17 +84,21 @@ func TestPostStorage_AllViewKeepsClosedStatuses(t *testing.T) {
 	Expect(recent.Result[0].ID).Equals(open.Result.ID)
 }
 
-func TestUserStorage_DeletionCleansHistoricalVotesOnlyForThatUser(t *testing.T) {
+func TestUserStorage_DisablingPreservesHistoricalRecords(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()
+	admin := passwordAccountForTest(t, jonSnow, "jon.snow")
+	member := passwordAccountForTest(t, aryaStark, "arya.stark")
 	post := &cmd.AddNewPost{Title: "Historical record"}
-	Expect(bus.Dispatch(jonSnowCtx, post)).IsNil()
+	Expect(bus.Dispatch(member, post)).IsNil()
 	seedHistoricalVote(post.Result, jonSnow)
 	seedHistoricalVote(post.Result, aryaStark)
-	member := passwordAccountForTest(t, aryaStark, "arya.stark")
-	Expect(bus.Dispatch(member, &cmd.DeleteCurrentUser{})).IsNil()
-	Expect(historicalVoteCount(post.Result)).Equals(1)
-	var remainingUserID int
-	Expect(trx.Scalar(&remainingUserID, "SELECT user_id FROM post_votes WHERE post_id = $1", post.Result.ID)).IsNil()
-	Expect(remainingUserID).Equals(jonSnow.ID)
+	Expect(bus.Dispatch(admin, &cmd.BlockUser{UserID: aryaStark.ID})).IsNil()
+	Expect(historicalVoteCount(post.Result)).Equals(2)
+	var name string
+	Expect(trx.Scalar(&name, "SELECT name FROM users WHERE id = $1", aryaStark.ID)).IsNil()
+	Expect(name).Equals(aryaStark.Name)
+	var authorID int
+	Expect(trx.Scalar(&authorID, "SELECT user_id FROM posts WHERE id = $1", post.Result.ID)).IsNil()
+	Expect(authorID).Equals(aryaStark.ID)
 }
