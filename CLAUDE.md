@@ -40,7 +40,7 @@ All commands are defined in the Makefile.
 - `make test` - Run all tests (both Go and Jest)
 - `make lint` - Lint both server and UI code
 
-Follow [AGENTS.md](AGENTS.md) for verification scope. Run the relevant lint, tests and necessary build for code changes. Documentation-only changes require content review, repository link checks and `git diff --check`, without installing application dependencies or starting services. CI uses a conservative documentation allowlist; application, dependency, migration, build, workflow and mixed changes still require the complete suite. See the [CI rules](docs/release-process.md#按改动范围执行检查).
+Follow [AGENTS.md](AGENTS.md) for local verification scope. Run the relevant lint, tests and necessary build for code changes. Documentation-only changes require content review, repository link checks and `git diff --check`, without installing application dependencies or starting services.
 
 **Building:**
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-17 — Remove release workflow documentation and CI routing
+
+- Remove the release runbook and its verification document, along with deployment procedure and retention rules in project guidance.
+- Remove documentation-only CI classification, its helper/tests and final routing result. Restore the existing build/test jobs without changed-file routing; keep read-only workflow permissions.
+- Remove active references from project documentation. Existing Changelog entries remain historical records.
+- Adopt the user-provided minimal Issue/PR workflow: use tracking, branches and pull requests only when needed, while preserving explicit commit, push and merge authorization.
+
 ## 2026-09-17 — Scope CI to changed files
 
 - Keep lightweight whitespace and repository-link checks for explicitly allowlisted documentation-only PRs and main/stable pushes; skip application tests, database services and Docker/E2E work for those changes.
