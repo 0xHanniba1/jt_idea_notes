@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-17 — Deployment artifact retention
+
+- Keep the running cloud version and the two most recent successful previous versions with their linked pre-release backups. Clean expired deployment artifacts only after successful verification; protect live data and unrelated backups.
+
 ## 2026-09-17 — Remove automatic registry publishing
 
 - Disable and remove GHCR publishing and its release receipt helper. Keep build, tests, E2E and workflow linting.
