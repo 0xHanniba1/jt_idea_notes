@@ -71,7 +71,6 @@ const Sidebar = ({ compact = false, active, onSignIn }: SidebarProps) => {
   const fider = useFider()
   const feedback = i18n._({ id: "header.nav.feedback", message: "All Feedback" })
   const roadmap = i18n._({ id: "header.nav.roadmap", message: "Roadmap" })
-  const settings = i18n._({ id: "menu.sitesettings", message: "Site Settings" })
   const link = (href: string, label: string, kind: "ideas" | "roadmap" | "settings") => (
     <a
       href={href}
@@ -101,9 +100,6 @@ const Sidebar = ({ compact = false, active, onSignIn }: SidebarProps) => {
         </div>
         {link("/", feedback, "ideas")}
         {link("/roadmap", roadmap, "roadmap")}
-        {fider.session.isAuthenticated && fider.session.user.isCollaborator && (
-          <div className="c-workspace__management">{link("/admin", settings, "settings")}</div>
-        )}
       </nav>
       <div className="c-workspace__account">
         {fider.session.isAuthenticated ? (

@@ -83,21 +83,6 @@ func ChangeUserRole() web.HandlerFunc {
 	}
 }
 
-// DeleteUser erases current user personal data and sign them out
-func DeleteUser() web.HandlerFunc {
-	return func(c *web.Context) error {
-		if err := bus.Dispatch(c, &cmd.DeleteCurrentUser{}); err != nil {
-			return passwordStoreFailure(c, err)
-		}
-
-		if err := c.Commit(); err != nil {
-			return c.Failure(err)
-		}
-		c.ClearPasswordCookies()
-		return c.Ok(web.Map{})
-	}
-}
-
 // RegenerateAPIKey regenerates current user's API Key
 func RegenerateAPIKey() web.HandlerFunc {
 	return func(c *web.Context) error {
@@ -109,5 +94,60 @@ func RegenerateAPIKey() web.HandlerFunc {
 		return c.Ok(web.Map{
 			"apiKey": regenerateAPIKey.Result,
 		})
+	}
+}
+
+// UpdateUserProfile saves a display name without touching avatar or preferences.
+func UpdateUserProfile() web.HandlerFunc {
+	return func(c *web.Context) error {
+		action := new(actions.UpdateUserProfile)
+		if result := c.BindTo(action); !result.Ok {
+			return c.HandleValidation(result)
+		}
+		if err := bus.Dispatch(c, &cmd.UpdateCurrentUserProfile{Name: action.Name}); err != nil {
+			return c.Failure(err)
+		}
+		if err := c.Commit(); err != nil {
+			return c.Failure(err)
+		}
+		return c.Ok(web.Map{"name": action.Name})
+	}
+}
+
+// UpdateUserNotifications saves only in-app notification preferences.
+func UpdateUserNotifications() web.HandlerFunc {
+	return func(c *web.Context) error {
+		action := new(actions.UpdateUserNotifications)
+		if result := c.BindTo(action); !result.Ok {
+			return c.HandleValidation(result)
+		}
+		if err := bus.Dispatch(c, &cmd.UpdateCurrentUserSettings{Settings: action.Settings}); err != nil {
+			return c.Failure(err)
+		}
+		if err := c.Commit(); err != nil {
+			return c.Failure(err)
+		}
+		return c.Ok(web.Map{})
+	}
+}
+
+// UpdateUserAvatar saves or removes only the current user's avatar.
+func UpdateUserAvatar() web.HandlerFunc {
+	return func(c *web.Context) error {
+		action := new(actions.UpdateUserAvatar)
+		if result := c.BindTo(action); !result.Ok {
+			return c.HandleValidation(result)
+		}
+		if err := bus.Dispatch(c, &cmd.UploadImage{Image: action.Avatar, Folder: "avatars"}, &cmd.UpdateCurrentUserAvatar{Avatar: action.Avatar, AvatarType: action.AvatarType}); err != nil {
+			return c.Failure(err)
+		}
+		user := &query.GetUserByID{UserID: c.User().ID, TenantID: c.Tenant().ID}
+		if err := bus.Dispatch(c, user); err != nil {
+			return c.Failure(err)
+		}
+		if err := c.Commit(); err != nil {
+			return c.Failure(err)
+		}
+		return c.Ok(web.Map{"avatarURL": user.Result.AvatarURL, "avatarType": user.Result.AvatarType, "avatarBlobKey": user.Result.AvatarBlobKey})
 	}
 }

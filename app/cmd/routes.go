@@ -129,8 +129,10 @@ func routes(r *web.Engine) *web.Engine {
 		ui.Get("/notifications/:id", handlers.ReadNotification())
 		ui.Get("/_api/notifications/unread", handlers.GetAllNotifications())
 
-		ui.Delete("/_api/user", handlers.DeleteUser())
 		ui.Post("/_api/user/settings", handlers.UpdateUserSettings())
+		ui.Post("/_api/user/profile", handlers.UpdateUserProfile())
+		ui.Post("/_api/user/avatar", handlers.UpdateUserAvatar())
+		ui.Post("/_api/user/notifications", handlers.UpdateUserNotifications())
 		ui.Post("/_api/notifications/read-all", handlers.ReadAllNotifications())
 		ui.Get("/_api/notifications/unread/total", handlers.TotalUnreadNotifications())
 

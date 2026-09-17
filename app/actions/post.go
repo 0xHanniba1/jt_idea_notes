@@ -2,9 +2,10 @@ package actions
 
 import (
 	"context"
-	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/models/entity"
@@ -19,6 +20,12 @@ import (
 	"github.com/getfider/fider/app/pkg/errors"
 	"github.com/getfider/fider/app/pkg/validate"
 )
+
+func normalizePostTitle(title string) string {
+	return strings.Join(strings.FieldsFunc(title, func(r rune) bool {
+		return unicode.IsSpace(r) || r == '\uFEFF'
+	}), " ")
+}
 
 // CreateNewPost is used to create a new post
 type CreateNewPost struct {
@@ -66,14 +73,11 @@ func (action *CreateNewPost) IsAuthorized(ctx context.Context, user *entity.User
 func (action *CreateNewPost) Validate(ctx context.Context, user *entity.User) *validate.Result {
 	result := validate.Success()
 
-	re := regexp.MustCompile(`\s+`)
-	normalizedTitle := strings.TrimSpace(re.ReplaceAllString(action.Title, " "))
+	action.Title = normalizePostTitle(action.Title)
 
-	if normalizedTitle == "" {
+	if action.Title == "" {
 		result.AddFieldFailure("title", propertyIsRequired(ctx, "title"))
-	} else if len(normalizedTitle) < 10 {
-		result.AddFieldFailure("title", i18n.T(ctx, "validation.custom.descriptivetitle"))
-	} else if len(normalizedTitle) > 100 {
+	} else if utf8.RuneCountInString(action.Title) > 100 {
 		result.AddFieldFailure("title", propertyMaxStringLen(ctx, "title", 100))
 	} else if env.Config.PostCreationWithTagsEnabled && len(action.TagSlugs) != len(action.Tags) {
 		result.AddFieldFailure("tags", propertyIsInvalid(ctx, "tags"))
@@ -134,11 +138,11 @@ func (input *UpdatePost) IsAuthorized(ctx context.Context, user *entity.User) bo
 func (action *UpdatePost) Validate(ctx context.Context, user *entity.User) *validate.Result {
 	result := validate.Success()
 
+	action.Title = normalizePostTitle(action.Title)
+
 	if action.Title == "" {
 		result.AddFieldFailure("title", propertyIsRequired(ctx, "title"))
-	} else if len(action.Title) < 10 {
-		result.AddFieldFailure("title", i18n.T(ctx, "validation.custom.descriptivetitle"))
-	} else if len(action.Title) > 100 {
+	} else if utf8.RuneCountInString(action.Title) > 100 {
 		result.AddFieldFailure("title", propertyMaxStringLen(ctx, "title", 100))
 	}
 

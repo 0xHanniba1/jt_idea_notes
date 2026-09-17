@@ -58,21 +58,15 @@ export const UserMenu = ({ sidebar = false, compact = false }: { sidebar?: boole
           </>
         }
       >
-        <div className="p-2 text-medium uppercase">{fider.session.user.name}</div>
         <Dropdown.ListItem href="/settings" icon={IconCog}>
           <Trans id="menu.mysettings">My Settings</Trans>
         </Dropdown.ListItem>
-        <Dropdown.Divider />
 
-        {fider.session.user.isCollaborator && (
+        {fider.session.user.isAdministrator && (
           <>
-            <div className="p-2 text-medium uppercase">
-              <Trans id="menu.administration">Administration</Trans>
-            </div>
             <Dropdown.ListItem href="/admin" icon={IconWrench}>
               <Trans id="menu.sitesettings">Site Settings</Trans>
             </Dropdown.ListItem>
-            <Dropdown.Divider />
           </>
         )}
         <Dropdown.ListItem onClick={signOut} disabled={signingOut} icon={IconLeft}>

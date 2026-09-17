@@ -30,5 +30,5 @@ Given("I click enter your suggestion", async function (this: FiderWorld) {
 })
 
 Given("I click submit your feedback", async function (this: FiderWorld) {
-  await this.page.getByRole("button", { name: "Submit your idea", exact: true }).click()
+  await this.page.getByRole("button", { name: "Publish", exact: true }).click()
 })

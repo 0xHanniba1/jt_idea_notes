@@ -1,6 +1,7 @@
 import "./PostsContainer.scss"
 
 import React from "react"
+import { PostPagination } from "@fider/services/actions/post"
 
 import { Post, Tag, CurrentUser, normalizePostView } from "@fider/models"
 import { Loader, Input, Button } from "@fider/components"
@@ -10,11 +11,11 @@ import IconX from "@fider/assets/images/heroicons-x.svg"
 import { PostFilter } from "./PostFilter"
 import { ListPosts } from "./ListPosts"
 import { i18n } from "@lingui/core"
-import { Trans } from "@lingui/react/macro"
 import { PostsSort } from "./PostsSort"
 
 interface PostsContainerProps {
   user?: CurrentUser
+  pagination?: PostPagination
   posts: Post[]
   tags: Tag[]
   countPerStatus: { [key: string]: number }
@@ -29,7 +30,9 @@ interface PostsContainerState {
   filterState: FilterState // Filter state
   query: string // Search query
   moderation: string
-  limit?: number // Limit
+  limit: number
+  page: number
+  total: number
 }
 
 export interface FilterState {
@@ -58,7 +61,9 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
         myPosts: querystring.get("myposts") === "true",
         noTags: querystring.get("notags") === "true",
       },
-      limit: querystring.getNumber("limit"),
+      limit: props.pagination?.pageSize || 25,
+      page: props.pagination?.page || 1,
+      total: props.pagination?.total ?? props.posts.length,
     }
   }
 
@@ -81,36 +86,42 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     if (url.searchParams.has("view")) {
       url.searchParams.set("view", this.state.view)
     }
+    if (url.searchParams.has("limit")) url.searchParams.set("limit", String(this.state.limit))
+    if (url.searchParams.has("page") || this.state.page > 1) url.searchParams.set("page", String(this.state.page))
     return url
   }
 
-  private changeFilterCriteria<K extends keyof PostsContainerState>(obj: Pick<PostsContainerState, K>, reset: boolean): void {
-    this.setState(obj, () => {
-      const query = this.state.query.trim().toLowerCase()
-      navigator.replaceState(
-        querystring.stringify({
-          statuses: this.state.filterState.statuses,
-          tags: this.state.filterState.tags,
-          myposts: this.state.filterState.myPosts ? "true" : undefined,
-          notags: this.state.filterState.noTags ? "true" : undefined,
-          query,
-          view: this.state.view,
-          limit: this.state.limit,
-          moderation: this.state.moderation,
-        })
-      )
+  private changeFilterCriteria(obj: Partial<PostsContainerState>, reset: boolean): void {
+    this.setState(
+      (state) => ({ ...state, ...obj, page: obj.page ?? 1 }),
+      () => {
+        const query = this.state.query.trim().toLowerCase()
+        navigator.replaceState(
+          querystring.stringify({
+            statuses: this.state.filterState.statuses,
+            tags: this.state.filterState.tags,
+            myposts: this.state.filterState.myPosts ? "true" : undefined,
+            notags: this.state.filterState.noTags ? "true" : undefined,
+            query,
+            view: this.state.view,
+            limit: this.state.limit,
+            page: this.state.page,
+            moderation: this.state.moderation,
+          })
+        )
 
-      this.searchPosts(
-        query,
-        this.state.view,
-        this.state.limit,
-        this.state.filterState.tags,
-        this.state.filterState.statuses,
-        this.state.filterState.myPosts,
-        this.state.filterState.noTags,
-        reset
-      )
-    })
+        this.searchPosts(
+          query,
+          this.state.view,
+          this.state.limit,
+          this.state.filterState.tags,
+          this.state.filterState.statuses,
+          this.state.filterState.myPosts,
+          this.state.filterState.noTags,
+          reset
+        )
+      }
+    )
   }
 
   private timer?: number
@@ -127,9 +138,10 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
   ) {
     window.clearTimeout(this.timer)
     const version = ++this.requestVersion
+    const page = this.state.page
     this.setState({ posts: reset ? undefined : this.state.posts, loading: true, failed: false })
     this.timer = window.setTimeout(() => {
-      void this.fetchPosts(version, query, view, limit, tags, statuses, myPosts, noTags)
+      void this.fetchPosts(version, query, view, limit, tags, statuses, myPosts, noTags, page)
     }, 500)
   }
 
@@ -141,17 +153,28 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     tags: string[],
     statuses: string[],
     myPosts: boolean,
-    noTags: boolean
+    noTags: boolean,
+    page: number
   ) {
     const moderation = statuses.includes("pending") ? "pending" : this.state.moderation
     try {
-      const response = await actions.searchPosts({ query, view, limit, tags, statuses: statuses.filter((s) => s !== "pending"), myPosts, noTags, moderation })
+      const response = await actions.searchPostsPage(
+        { query, view, limit, tags, statuses: statuses.filter((s) => s !== "pending"), myPosts, noTags, moderation },
+        page
+      )
       if (version !== this.requestVersion) return
-      if (!response.ok) {
+      if (!response.ok || !response.data) {
         this.setState({ loading: false, failed: true })
         return
       }
-      this.setState({ loading: false, failed: false, posts: response.data || [] })
+      const data = response.data
+      this.setState({ loading: false, failed: false, posts: data.posts, total: data.total, page: data.page, limit: data.pageSize }, () => {
+        // Refreshing behind a detail drawer must not rewrite its URL.
+        if (new URL(navigator.url()).pathname === "/") {
+          const url = this.getNormalizedURL()
+          navigator.replaceState(`${url.pathname}${url.search}${url.hash}`)
+        }
+      })
     } catch {
       if (version === this.requestVersion) this.setState({ loading: false, failed: true })
     }
@@ -164,7 +187,17 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     const version = ++this.requestVersion
     const { query, view, limit, filterState } = this.state
     this.setState({ loading: true, failed: false })
-    await this.fetchPosts(version, query.trim().toLowerCase(), view, limit, filterState.tags, filterState.statuses, filterState.myPosts, filterState.noTags)
+    await this.fetchPosts(
+      version,
+      query.trim().toLowerCase(),
+      view,
+      limit,
+      filterState.tags,
+      filterState.statuses,
+      filterState.myPosts,
+      filterState.noTags,
+      this.state.page
+    )
   }
 
   public updateSinglePost = () => this.refreshPosts()
@@ -185,28 +218,11 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
     this.changeFilterCriteria({ query: "" }, true)
   }
 
-  private showMore = (event: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>): void => {
-    event.preventDefault()
-    this.changeFilterCriteria({ limit: (this.state.limit || 30) + 10 }, false)
-  }
-
-  private getShowMoreLink = (): string | undefined => {
-    if (this.state.posts && this.state.posts.length >= (this.state.limit || 30)) {
-      return querystring.stringify({
-        statuses: this.state.filterState.statuses,
-        tags: this.state.filterState.tags,
-        myposts: this.state.filterState.myPosts ? "true" : undefined,
-        notags: this.state.filterState.noTags ? "true" : undefined,
-        query: this.state.query,
-        view: this.state.view,
-        limit: (this.state.limit || 30) + 10,
-        moderation: this.state.moderation,
-      })
-    }
-  }
-
   public render() {
-    const showMoreLink = this.getShowMoreLink()
+    const { total, page, limit, loading, failed } = this.state
+    const pages = Math.max(1, Math.ceil(total / limit))
+    const start = total ? (page - 1) * limit + 1 : 0
+    const end = Math.min(page * limit, total)
     const headerClass = this.state.query ? "c-posts-container__header c-posts-container__header--searching" : "c-posts-container__header"
 
     return (
@@ -252,14 +268,55 @@ export class PostsContainer extends React.Component<PostsContainerProps, PostsCo
               <Loader />
             </div>
           )}
-          {showMoreLink && (
-            <div className="my-4 text-center">
-              <a href={showMoreLink} className="text-primary-base text-medium hover:underline" onClick={this.showMore}>
-                <Trans id="home.postscontainer.label.viewmore">View more posts</Trans>
-              </a>
-            </div>
-          )}
         </div>
+        {!failed && (
+          <nav className="c-posts-container__pagination" aria-label={i18n._({ id: "home.pagination.label", message: "Ideas pagination" })}>
+            <span role="status">
+              {loading
+                ? i18n._({ id: "label.loading", message: "Loading" })
+                : i18n._({ id: "home.pagination.range", message: "{total} total · {start}–{end}", values: { total, start, end } })}
+            </span>
+            <div className="c-posts-container__page-controls">
+              <label htmlFor="posts-page-size">{i18n._({ id: "home.pagination.perpage", message: "Per page" })}</label>
+              <select
+                id="posts-page-size"
+                disabled={loading}
+                value={limit}
+                onChange={(event) => this.changeFilterCriteria({ limit: Number(event.target.value) }, true)}
+              >
+                {[10, 25, 50, 100].map((size) => (
+                  <option value={size} key={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+              <span>{i18n._({ id: "home.pagination.items", message: "items" })}</span>
+              <button
+                type="button"
+                aria-label={i18n._({ id: "home.pagination.previous", message: "Previous page" })}
+                disabled={loading || page <= 1}
+                onClick={() => this.changeFilterCriteria({ page: page - 1 }, true)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m14 7-5 5 5 5" />
+                </svg>
+              </button>
+              <span className="c-posts-container__page-number">
+                {page} / {pages}
+              </span>
+              <button
+                type="button"
+                aria-label={i18n._({ id: "home.pagination.next", message: "Next page" })}
+                disabled={loading || page >= pages}
+                onClick={() => this.changeFilterCriteria({ page: page + 1 }, true)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m10 7 5 5-5 5" />
+                </svg>
+              </button>
+            </div>
+          </nav>
+        )}
       </div>
     )
   }

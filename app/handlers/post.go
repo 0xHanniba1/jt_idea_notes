@@ -21,6 +21,8 @@ func Index() web.HandlerFunc {
 			Query:            c.QueryParam("query"),
 			View:             query.NormalizePostView(c.QueryParam("view")),
 			Limit:            c.QueryParam("limit"),
+			Page:             c.QueryParam("page"),
+			Paginate:         true,
 			Tags:             c.QueryParamAsArray("tags"),
 			ModerationFilter: c.QueryParam("moderation"),
 		}
@@ -68,8 +70,11 @@ func Index() web.HandlerFunc {
 		data := web.Map{
 			"searchNoiseWords": env.SearchNoiseWords(),
 			"posts":            searchPosts.Result,
-			"tags":             getAllTags.Result,
-			"countPerStatus":   countPerStatus.Result,
+			"pagination": web.Map{
+				"total": searchPosts.TotalCount, "page": searchPosts.PageNumber, "pageSize": searchPosts.PageSize,
+			},
+			"tags":           getAllTags.Result,
+			"countPerStatus": countPerStatus.Result,
 		}
 
 		return c.Page(http.StatusOK, web.Props{

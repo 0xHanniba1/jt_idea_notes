@@ -1,4 +1,5 @@
 import "./PostDetails.scss"
+import { isValidPostTitle, normalizePostTitle } from "@fider/services/postTitle"
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
 
@@ -332,11 +333,11 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
   }
 
   const saveChanges = async () => {
-    if (!post || saving) return
+    if (!post || saving || Fider.isReadOnly || !isValidPostTitle(newTitle)) return
     setSaving(true)
     setError(undefined)
     try {
-      const result = await actions.updatePost(post.number, newTitle, newDescription, attachments)
+      const result = await actions.updatePost(post.number, normalizePostTitle(newTitle), newDescription, attachments)
       if (!mounted.current || securityExit.current) return
       if (result.ok) {
         dirty.current = false
@@ -344,7 +345,7 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
         setEditMode(false)
         editing.current = false
         clearAttachments()
-        setPost({ ...post, title: newTitle, description: newDescription })
+        setPost({ ...post, title: normalizePostTitle(newTitle), description: newDescription })
         notify.success(<Trans id="showpost.save.success">Post updated successfully</Trans>)
         await handleDataChanged()
       } else {
@@ -389,7 +390,7 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
   }
 
   const moderatePost = async (approve: boolean) => {
-    if (!post || saving) return
+    if (!post || saving || Fider.isReadOnly || !isValidPostTitle(newTitle)) return
     setSaving(true)
     try {
       const result = await (approve ? actions.approvePost(post.id) : actions.declinePost(post.id))
@@ -482,14 +483,7 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
             {/* Title */}
             {editMode ? (
               <Form error={error}>
-                <Input
-                  field="title"
-                  ariaLabel={i18n._({ id: "label.title", message: "Title" })}
-                  maxLength={100}
-                  value={newTitle}
-                  onChange={setNewTitle}
-                  disabled={saving}
-                />
+                <Input field="title" ariaLabel={i18n._({ id: "label.title", message: "Title" })} value={newTitle} onChange={setNewTitle} disabled={saving} />
               </Form>
             ) : (
               <h1 className="p-show-post__title">{post.title}</h1>
@@ -574,7 +568,7 @@ const PostDetailsContent: React.FC<PostDetailsProps> = (props) => {
           {/* Edit Mode Actions */}
           {editMode && (
             <HStack className="mt-6">
-              <Button variant="primary" onClick={saveChanges} disabled={Fider.isReadOnly || saving}>
+              <Button variant="primary" onClick={saveChanges} disabled={Fider.isReadOnly || saving || !isValidPostTitle(newTitle)}>
                 <Icon sprite={IconThumbsUp} />{" "}
                 <span>
                   <Trans id="action.save">Save</Trans>

@@ -231,3 +231,25 @@ test("deleting a record uses the drawer callback after server success", async ()
   expect(onModalClose).toHaveBeenCalledTimes(1)
   expect(location.pathname).toBe("/posts/1/first-record")
 })
+
+test("editing applies the same Unicode title limits and submits the normalized title", async () => {
+  render(<PostDetails postNumber={post.number} initialPost={post} />)
+  fireEvent.click(await screen.findByRole("button", { name: "Edit" }))
+  const title = screen.getByRole("textbox", { name: "Title" })
+  const save = screen.getByRole("button", { name: "Save" })
+  for (const value of [" \u0085\u3000\uFEFF", "中".repeat(101), "😀".repeat(101)]) {
+    fireEvent.change(title, { target: { value } })
+    expect(save).toBeDisabled()
+  }
+  for (const value of ["修", "中".repeat(100), "😀".repeat(100)]) {
+    fireEvent.change(title, { target: { value } })
+    expect(save).toBeEnabled()
+  }
+  expect(title).not.toHaveAttribute("maxlength")
+  jest.mocked(actions.updatePost).mockRejectedValue(new Error("Network unavailable"))
+  fireEvent.change(title, { target: { value: "  登录\u0085\u3000报错\uFEFF" } })
+  await act(async () => {
+    fireEvent.click(save)
+  })
+  expect(actions.updatePost).toHaveBeenCalledWith(post.number, "登录 报错", post.description, [])
+})

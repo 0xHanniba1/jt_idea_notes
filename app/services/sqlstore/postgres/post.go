@@ -393,69 +393,85 @@ func searchPosts(ctx context.Context, q *query.SearchPosts) error {
 			q.Statuses = []enum.PostStatus{}
 		}
 
-		if q.Limit != "all" {
-			if _, err := strconv.Atoi(q.Limit); err != nil {
-				q.Limit = "30"
+		limit := q.Limit
+		if q.Paginate {
+			q.PageSize, _ = strconv.Atoi(q.Limit)
+			switch q.PageSize {
+			case 10, 25, 50, 100:
+			default:
+				q.PageSize = 25
+			}
+			q.PageNumber, _ = strconv.Atoi(q.Page)
+			if q.PageNumber < 1 {
+				q.PageNumber = 1
+			}
+			q.TotalCount = 0
+			limit = strconv.Itoa(q.PageSize)
+		} else if limit != "all" {
+			if _, err := strconv.Atoi(limit); err != nil {
+				limit = "30"
 			}
 		}
 
-		var (
-			posts []*dbEntities.Post
-			err   error
-		)
+		// Reuse exactly the same predicates for the count and page so that tenant,
+		// moderation, search and tag visibility cannot disagree with the total.
+		predicate := "1 = 1"
+		tagsPlaceholder := 3
+		params := []interface{}{tenant.ID}
+		var searchTerm string
+		var score string
 		if q.Query != "" {
-			tsQuery := ToTSQuery(SanitizeString(q.Query))
-			if tsQuery == "" {
+			searchTerm = ToTSQuery(SanitizeString(q.Query))
+			if searchTerm == "" {
 				q.Result = make([]*entity.Post, 0)
+				if q.Paginate {
+					q.PageNumber = 1
+				}
 				return nil
 			}
-
 			tsConfig := MapLocaleToTSConfig(tenant.Locale)
-
 			tsQueryExpr := fmt.Sprintf("to_tsquery('%s', regexp_replace(regexp_replace($3, '\\\\s+', ':* & ', 'g'), '$', ':*'))", tsConfig)
 			tsQuerySimple := "to_tsquery('simple', regexp_replace(regexp_replace($3, '\\\\s+', ':* & ', 'g'), '$', ':*'))"
-
-			score := fmt.Sprintf("ts_rank_cd(q.search, %s) + ts_rank_cd(q.search, %s)", tsQueryExpr, tsQuerySimple)
-
-			searchPredicate := fmt.Sprintf(`q.search @@ %s OR q.search @@ %s`, tsQueryExpr, tsQuerySimple)
-
-			condition, statuses, _ := getViewData(*q, 4)
-
-			if q.MyPostsOnly && user != nil {
-				condition += " AND user_id = " + strconv.Itoa(user.ID)
-			}
-
-			sql := fmt.Sprintf(`
-				SELECT * FROM (%s) AS q
-				WHERE (%s) %s
-				ORDER BY %s DESC
-				LIMIT %s
-			`, innerQuery, searchPredicate, condition, score, q.Limit)
-
-			params := []interface{}{tenant.ID, pq.Array(statuses), tsQuery}
-			if len(q.Tags) > 0 && !q.NoTagsOnly {
-				params = append(params, pq.Array(q.Tags))
-			}
-			err = trx.Select(&posts, sql, params...)
-		} else {
-			condition, statuses, sort := getViewData(*q, 3)
-
-			if q.MyPostsOnly && user != nil {
-				condition += " AND user_id = " + strconv.Itoa(user.ID)
-			}
-
-			sql := fmt.Sprintf(`
-				SELECT * FROM (%s) AS q
-				WHERE 1 = 1 %s
-				ORDER BY %s DESC
-				LIMIT %s
-			`, innerQuery, condition, sort, q.Limit)
-			params := []interface{}{tenant.ID, pq.Array(statuses)}
-			if len(q.Tags) > 0 && !q.NoTagsOnly {
-				params = append(params, pq.Array(q.Tags))
-			}
-			err = trx.Select(&posts, sql, params...)
+			score = fmt.Sprintf("ts_rank_cd(q.search, %s) + ts_rank_cd(q.search, %s)", tsQueryExpr, tsQuerySimple)
+			predicate = fmt.Sprintf("(%s OR %s)", "q.search @@ "+tsQueryExpr, "q.search @@ "+tsQuerySimple)
+			tagsPlaceholder = 4
 		}
+		condition, statuses, sort := getViewData(*q, tagsPlaceholder)
+		params = append(params, pq.Array(statuses))
+		if searchTerm != "" {
+			params = append(params, searchTerm)
+			sort = score
+		}
+		if len(q.Tags) > 0 && !q.NoTagsOnly {
+			params = append(params, pq.Array(q.Tags))
+		}
+		if q.MyPostsOnly && user != nil {
+			condition += " AND user_id = " + strconv.Itoa(user.ID)
+		}
+		filteredQuery := fmt.Sprintf("FROM (%s) AS q WHERE %s %s", innerQuery, predicate, condition)
+		offset := 0
+		if q.Paginate {
+			if err := trx.Scalar(&q.TotalCount, "SELECT COUNT(*) "+filteredQuery, params...); err != nil {
+				return errors.Wrap(err, "failed to count posts")
+			}
+			lastPage := 1
+			if q.TotalCount > 0 {
+				lastPage = (q.TotalCount-1)/q.PageSize + 1
+			}
+			if q.PageNumber > lastPage {
+				q.PageNumber = lastPage
+			}
+			offset = (q.PageNumber - 1) * q.PageSize
+		}
+		// Unique IDs keep equal comment counts, response dates and search ranks
+		// in a deterministic order across adjacent pages.
+		order := sort + " DESC"
+		if sort != "id" {
+			order += ", id DESC"
+		}
+		sql := fmt.Sprintf("SELECT * %s ORDER BY %s LIMIT %s OFFSET %d", filteredQuery, order, limit, offset)
+		var posts []*dbEntities.Post
+		err := trx.Select(&posts, sql, params...)
 
 		if err != nil {
 			return errors.Wrap(err, "failed to search posts")

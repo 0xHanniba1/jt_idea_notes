@@ -1,6 +1,6 @@
 import "./Avatar.scss"
 
-import React from "react"
+import React, { useState } from "react"
 import { UserRole } from "@fider/models"
 
 interface AvatarProps {
@@ -14,5 +14,14 @@ interface AvatarProps {
 
 export const Avatar = (props: AvatarProps) => {
   const size = props.size === "small" ? "h-6 w-6" : props.size === "large" ? "h-11 w-11" : "h-8 w-8"
-  return <img className={`c-avatar ${size}`} alt={props.user.name} src={`${props.user.avatarURL}?size=50`} />
+  const [failedURL, setFailedURL] = useState<string>()
+  const url = props.user.avatarURL
+  if (!url || url.includes("/static/avatars/letter/") || failedURL === url) {
+    return (
+      <span role="img" aria-label={props.user.name} className={`c-avatar c-avatar--initial ${size}`}>
+        {Array.from(props.user.name.trim())[0] || "?"}
+      </span>
+    )
+  }
+  return <img className={`c-avatar ${size}`} alt={props.user.name} src={`${url}${url.includes("?") ? "&" : "?"}size=50`} onError={() => setFailedURL(url)} />
 }

@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
 	"github.com/getfider/fider/app/pkg/errors"
+	"github.com/gosimple/slug"
 )
 
 func TestPostStorage_GetAll(t *testing.T) {
@@ -268,6 +270,55 @@ func TestPostStorage_AddAndGet(t *testing.T) {
 	Expect(postBySlug.Result.User.ID).Equals(1)
 	Expect(postBySlug.Result.User.Name).Equals("Jon Snow")
 	Expect(postBySlug.Result.User.Email).Equals("jon.snow@got.com")
+}
+
+func TestPostStorage_UnicodeTitleLongSlugCreateAndUpdate(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	title := strings.Repeat("想", 100)
+	expectedSlug := slug.Make(title)
+	if len(expectedSlug) <= 100 {
+		t.Fatalf("test requires a transliterated slug longer than 100 characters, got %d", len(expectedSlug))
+	}
+	create := &cmd.AddNewPost{Title: title, Description: "A full-length Chinese title"}
+	if err := bus.Dispatch(jonSnowCtx, create); err != nil {
+		t.Fatalf("create 100-character Chinese title: %v", err)
+	}
+
+	byID := &query.GetPostByID{PostID: create.Result.ID}
+	bySlug := &query.GetPostBySlug{Slug: expectedSlug}
+	Expect(bus.Dispatch(jonSnowCtx, byID, bySlug)).IsNil()
+	Expect(byID.Result.Title).Equals(title)
+	Expect(byID.Result.Slug).Equals(expectedSlug)
+	Expect(bySlug.Result.ID).Equals(create.Result.ID)
+	Expect(bySlug.Result.Title).Equals(title)
+
+	updatedTitle := strings.Repeat("记", 100)
+	updatedSlug := slug.Make(updatedTitle)
+	if len(updatedSlug) <= 100 {
+		t.Fatalf("test requires an updated slug longer than 100 characters, got %d", len(updatedSlug))
+	}
+	update := &cmd.UpdatePost{Post: create.Result, Title: updatedTitle, Description: "Updated full-length Chinese title"}
+	if err := bus.Dispatch(jonSnowCtx, update); err != nil {
+		t.Fatalf("update 100-character Chinese title: %v", err)
+	}
+
+	byID = &query.GetPostByID{PostID: create.Result.ID}
+	bySlug = &query.GetPostBySlug{Slug: updatedSlug}
+	Expect(bus.Dispatch(jonSnowCtx, byID, bySlug)).IsNil()
+	Expect(byID.Result.Title).Equals(updatedTitle)
+	Expect(byID.Result.Slug).Equals(updatedSlug)
+	Expect(bySlug.Result.ID).Equals(create.Result.ID)
+	Expect(bySlug.Result.Title).Equals(updatedTitle)
+	Expect(bySlug.Result.Description).Equals(update.Description)
+
+	// Widening the column must retain the active-post uniqueness constraint.
+	duplicate := &cmd.AddNewPost{Title: updatedTitle}
+	err := bus.Dispatch(jonSnowCtx, duplicate)
+	if err == nil || !strings.Contains(err.Error(), "post_slug_tenant_key") {
+		t.Fatalf("expected the existing slug uniqueness constraint, got %v", err)
+	}
 }
 
 func TestPostStorage_GetInvalid(t *testing.T) {
@@ -762,6 +813,16 @@ func TestSearchPosts_RespectsFilters(t *testing.T) {
 				foundIDs[i] = post.ID
 			}
 			Expect(foundIDs).ContainsOnly(tc.expectedIDs)
+
+			tc.searchParams.Paginate = true
+			tc.searchParams.Page = "99"
+			tc.searchParams.Limit = "10"
+			if err := bus.Dispatch(aryaStarkCtx, tc.searchParams); err != nil {
+				t.Fatal(err)
+			}
+			Expect(tc.searchParams.TotalCount).Equals(tc.expectedCount)
+			Expect(tc.searchParams.Result).HasLen(tc.expectedCount)
+			Expect(tc.searchParams.PageNumber).Equals(1)
 		})
 	}
 }

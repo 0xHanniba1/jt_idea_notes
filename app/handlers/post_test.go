@@ -170,3 +170,25 @@ func TestIndexHandler_PreservesModerationFilter(t *testing.T) {
 	Expect(search.View).Equals("recent")
 	Expect(search.ModerationFilter).Equals("approved")
 }
+
+func TestIndexHandler_Pagination(t *testing.T) {
+	RegisterT(t)
+	bus.AddHandler(func(ctx context.Context, q *query.CountPostPerStatus) error { return nil })
+	bus.AddHandler(func(ctx context.Context, q *query.GetAllTags) error { return nil })
+	bus.AddHandler(func(ctx context.Context, q *query.SearchPosts) error {
+		if !q.Paginate || q.Page != "2" || q.Limit != "10" {
+			t.Fatalf("home did not request pagination: %+v", q)
+		}
+		q.TotalCount = 31
+		q.PageNumber = 2
+		q.PageSize = 10
+		q.Result = []*entity.Post{}
+		return nil
+	})
+	code, props := mock.NewServer().OnTenant(mock.DemoTenant).AsUser(mock.JonSnow).WithURL("/?page=2&limit=10").ExecuteAsPage(handlers.Index())
+	Expect(code).Equals(http.StatusOK)
+	pagination := props.Data["pagination"].(map[string]interface{})
+	Expect(pagination["total"]).Equals(float64(31))
+	Expect(pagination["page"]).Equals(float64(2))
+	Expect(pagination["pageSize"]).Equals(float64(10))
+}

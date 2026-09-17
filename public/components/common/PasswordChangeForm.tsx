@@ -6,7 +6,13 @@ import { authenticationFailure, validatePassword, validatePasswordConfirmation }
 import { i18n } from "@lingui/core"
 import { Trans } from "@lingui/react/macro"
 
-export const PasswordChangeForm = (props: { required?: boolean; disabled?: boolean; username?: string; onSubmittingChange?: (busy: boolean) => void }) => {
+export const PasswordChangeForm = (props: {
+  required?: boolean
+  disabled?: boolean
+  username?: string
+  hideUsername?: boolean
+  onSubmittingChange?: (busy: boolean) => void
+}) => {
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -49,7 +55,8 @@ export const PasswordChangeForm = (props: { required?: boolean; disabled?: boole
 
   return (
     <Form error={error} autoComplete="on" onSubmit={submit}>
-      {props.username && (
+      {props.username && props.hideUsername && <input type="hidden" name="username" autoComplete="username" value={props.username} readOnly />}
+      {props.username && !props.hideUsername && (
         <Input field="passwordUsername" label={i18n._({ id: "auth.username", message: "Username" })} value={props.username} autoComplete="username" readOnly />
       )}
       {!props.required && (

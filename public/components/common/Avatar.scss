@@ -5,3 +5,14 @@
   border: 1px solid var(--line);
   object-fit: cover;
 }
+
+.c-avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--control-bg);
+  color: var(--ink-500);
+  font-weight: 500;
+  line-height: 1;
+}

@@ -17,7 +17,6 @@ import (
 	. "github.com/getfider/fider/app/pkg/assert"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/mock"
-	"github.com/getfider/fider/app/pkg/web"
 )
 
 func TestSettingsHandler(t *testing.T) {
@@ -146,25 +145,4 @@ func TestChangeRoleHandler_Valid(t *testing.T) {
 	Expect(code).Equals(http.StatusOK)
 	Expect(changeRole.UserID).Equals(mock.AryaStark.ID)
 	Expect(changeRole.Role).Equals(enum.RoleAdministrator)
-}
-
-func TestDeleteUserHandler(t *testing.T) {
-	RegisterT(t)
-
-	var deleteCmd *cmd.DeleteCurrentUser
-	bus.AddHandler(func(ctx context.Context, c *cmd.DeleteCurrentUser) error {
-		deleteCmd = c
-		return nil
-	})
-
-	server := mock.NewServer()
-	code, response := server.
-		AsUser(mock.JonSnow).
-		Execute(handlers.DeleteUser())
-
-	Expect(code).Equals(http.StatusOK)
-	Expect(response.Header().Get("Set-Cookie")).ContainsSubstring(web.CookieAuthName + "=; Path=/; Expires=")
-	Expect(response.Header().Get("Set-Cookie")).ContainsSubstring("Max-Age=0; HttpOnly")
-
-	Expect(deleteCmd).IsNotNil()
 }

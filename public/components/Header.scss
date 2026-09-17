@@ -104,9 +104,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  &__management {
-    margin-top: 26px;
-  }
   &__account {
     margin-top: 16px;
     padding-top: 12px;
@@ -129,7 +126,8 @@
       background: var(--control-hover);
     }
     .c-dropdown__list {
-      min-width: 200px;
+      width: 100%;
+      min-width: 0;
       left: 0;
       right: auto;
     }
@@ -264,6 +262,10 @@
   &--collapsed &__nav-link {
     justify-content: center;
     padding-inline: 0;
+  }
+  // A collapsed sidebar keeps a readable menu beside the compact avatar trigger.
+  &--collapsed &__account .c-dropdown__list {
+    width: 160px;
   }
   &--collapsed &__account .c-dropdown__handle {
     justify-content: center;

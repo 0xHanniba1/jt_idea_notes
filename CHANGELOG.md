@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-17 — Idea submission, pagination and personal settings
+
+- Align and simplify the account menu, restrict the settings entry to administrators, and center the notification button.
+- Put the title first, keep Publish visible, remove tag selection and placeholders, and start each new idea with an empty form. Validate normalized titles as 1–100 Unicode code points and expand the slug column for long transliterations.
+- Replace load-more with server pagination, totals and selectable page sizes, preserving filter permissions and stable ordering.
+- Organize personal settings into CRM-style profile, password and notification cards. Add cropped avatar upload and independent save endpoints; remove self-service account deletion while preserving administrator deactivation and history.
+- Validate 257 frontend tests, Go short tests including isolated PostgreSQL coverage, TypeScript, lint, production builds and actual isolated browser interactions. See [verification](docs/workspace-ui-polish-verification.md) and Issue #14.
+
 ## 2026-09-17 — Workspace navigation and removal of email features
 
 - Adopt the case-platform sidebar, breadcrumb header and white workspace while preserving the idea list and detail drawer. Rename the Chinese navigation to 首页 and 进度.
